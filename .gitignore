@@ -1,0 +1,51 @@
+## .NET / Visual Studio ##
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww]in32/
+[Aa]RM/
+[Aa]RM64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# Visual Studio
+.vs/
+*.pidb
+*.svclog
+*.scc
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# Others
+*.log
+*.tmp
+node_modules/
+
+# Secrets (do not commit)
+appsettings.Development.json
+appsettings.*.local.json
+*.pfx
