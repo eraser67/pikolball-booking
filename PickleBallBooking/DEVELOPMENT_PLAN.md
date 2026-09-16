@@ -1,103 +1,185 @@
 # Pickleball Booking System Development Plan
 
-## Phase 1
-Environment and project verification
+## Completed Phases (1–15)
 
-## Phase 2
+### Phase 1
+Environment and project setup
+
+### Phase 2
 PostgreSQL / Supabase configuration
 
-## Phase 3
+### Phase 3
 Entity Framework Core models and migrations
 
-## Phase 4
+### Phase 4
 Court Management
 
-## Phase 5
+### Phase 5
 Time Slot Management
 
-## Phase 6
+### Phase 6
 Pricing Management
 
-## Phase 7
+### Phase 7
 Customer Booking
 
-## Phase 8
-Availability
+### Phase 8
+Availability Display
 
-## Phase 9
+### Phase 9
 Double Booking Protection
 
-## Phase 10
+### Phase 10
 Booking Lookup
 
-## Phase 11
+### Phase 11
 Admin Authentication
 
-## Phase 12
+### Phase 12
 Admin Dashboard
 
-## Phase 13
+### Phase 13
 Booking Management
 
-## Phase 14
-Schedule
+### Phase 14
+Schedule/Calendar View
 
-## Phase 15
+### Phase 15
 Security and Error Handling
 
-# FUTURE ENHANCEMENT PHASES
+---
 
-The original Phases 1–15 have already been implemented.
+## Upcoming Phases (16–18)
 
-The following enhancement phases apply to the current application.
+The following enhancement phases apply to the redesigned booking system using fixed hourly TimeSlots.
 
-## Phase 16 — Booking Model and Time Range Redesign
+### Phase 16 — Booking Model Redesign to Fixed Hourly TimeSlots
 
-* Inspect current Booking implementation
-* Inspect current TimeSlot implementation
-* Inspect current database schema
-* Determine migration strategy
-* Change booking model to support StartTime and EndTime
-* Support continuous multi-hour bookings
-* Calculate DurationHours
-* Update pricing calculation
-* Update availability logic
-* Implement overlap protection
-* Preserve existing booking data where practical
-* Update affected tests
-* Run build
-* Run automated tests
+**Objective:** Redesign the booking system to use fixed 1-hour TimeSlots as the atomic unit of booking and availability.
 
-Do not implement this phase until the existing implementation has been inspected and a migration plan has been approved.
+**Tasks:**
 
-## Phase 17 — Modern Calendar Availability
+- Inspect current Booking implementation
+- Inspect current TimeSlot implementation
+- Inspect current database schema
+- Determine migration strategy for existing bookings
+- Redesign Booking model to use:
+  - BookingDate (single date)
+  - StartTime (e.g., 6:00 PM)
+  - EndTime (e.g., 10:00 PM)
+  - DurationHours (calculated from StartTime/EndTime)
+  - One record per reservation (NOT one per hour)
+- Support continuous multi-hour bookings (multi-TimeSlot selection)
+- Update availability logic to be TimeSlot-based
+- Update pricing calculation to be per-TimeSlot
+- Update overlap protection to work with TimeSlot-based availability
+- Preserve existing booking data where practical
+- Update all affected tests
+- Run build
+- Run automated tests
+- Verify no regressions in existing functionality
 
-* Calendar-style date selection
-* Court availability display
-* Start-time selection
-* End-time selection
-* Visual time-range selection
-* Available state
-* Booked state
-* Unavailable state
-* Selected state
-* Duration display
-* Price display
-* Server-side availability validation
-* Responsive desktop layout
-* Responsive mobile layout
-* Automated tests
+**Approval Gate:** Do not implement until existing implementation has been inspected and migration plan is approved.
 
-## Phase 18 — UI/UX Redesign
+### Phase 17 — Fixed-TimeSlot Availability UI
 
-Use Bootstrap 5 and Bootstrap Icons.
+**Objective:** Update booking interface to display all 24 hourly TimeSlots with clear availability status.
 
-Improve:
+**Tasks:**
 
-* Homepage
-* Navigation
-* Booking experience
-* Calendar
+- Display all 24 hourly TimeSlots (12:00 AM through 11:00 PM)
+- Show TimeSlot availability status:
+  - Available (green)
+  - Booked (red)
+  - Maintenance/Unavailable (gray)
+- Implement continuous TimeSlot selection (no gaps allowed)
+- Display selected time range
+- Display calculated duration
+- Display calculated price
+- Prevent non-continuous selection
+- Server-side validation of continuous selection
+- Responsive desktop layout
+- Responsive mobile layout
+- Date picker integration
+- Court selector integration
+- Updated tests for TimeSlot-based availability
+- Responsive design tests
+
+### Phase 18 — UI/UX Refinement
+
+**Objective:** Improve overall application UI/UX using Bootstrap 5.
+
+**Tasks:**
+
+- Improve Homepage
+- Enhance Navigation
+- Refine Booking Experience
+- Improve Schedule/Calendar View
+- Bootstrap 5 components
+- Bootstrap Icons integration
+- Accessibility improvements
+- Mobile responsiveness review
+- Error message refinement
+- Loading state indicators
+
+---
+
+## Implementation Guidelines
+
+### Before Each Phase
+
+- Read PROJECT_REQUIREMENTS.md
+- Inspect existing implementation
+- Understand existing code
+- Do not overwrite working functionality unnecessarily
+- Follow existing code conventions and patterns
+
+### After Each Phase
+
+1. Build the application
+2. Run tests
+3. Check for compilation errors
+4. Explain what was implemented
+5. Provide manual testing checklist
+6. Wait for approval before next phase
+
+## Design Principles for Phases 16–18
+
+### Fixed 1-Hour TimeSlots
+
+- 24 standard hourly TimeSlots (12:00 AM through 11:00 PM)
+- Each TimeSlot is explicitly Active or Inactive
+- Availability is determined per TimeSlot
+- Bookings span one or more consecutive TimeSlots
+- One Booking record per reservation (not per hour)
+
+### Continuous Multi-TimeSlot Bookings
+
+- Customer selects a continuous range of available TimeSlots
+- No gaps allowed between selected TimeSlots
+- System converts selected TimeSlots to StartTime and EndTime
+- Duration calculated from number of selected TimeSlots
+- Price calculated for all selected TimeSlots
+
+### Server-Side Authority
+
+- Frontend availability display is informational only
+- Server performs final validation immediately before booking creation
+- Availability check and booking creation must be atomic
+- Price is always recalculated and verified server-side
+- No client-provided data (price, status, availability) is trusted
+
+### Preserve Existing Functionality
+
+- All existing Admin pages and features remain active
+- Authentication mechanism unchanged
+- Booking lookup functionality preserved
+- Booking status workflows preserved
+- Court and pricing management preserved
+- TimeSlot management preserved
+- Double booking protection logic preserved
+- Error handling and validation preserved
+- Responsive UI preserved
 * Availability
 * Booking form
 * Booking confirmation

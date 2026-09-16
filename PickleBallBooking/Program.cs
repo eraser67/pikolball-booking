@@ -62,6 +62,23 @@ app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
 
+// Development-only: Database reset endpoint
+if (app.Environment.IsDevelopment())
+{
+    app.MapPost("/dev/reset-database", async (WebApplication app) =>
+    {
+        try
+        {
+            await DatabaseResetSeeder.ResetAndSeedAsync(app);
+            return Results.Ok(new { message = "Database reset and reseeded successfully!" });
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { error = ex.Message });
+        }
+    });
+}
+
 await AdminSeeder.SeedAsync(app);
 await DemoDataSeeder.SeedAsync(app);
 

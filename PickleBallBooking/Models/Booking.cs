@@ -52,4 +52,10 @@ public class Booking
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Collection of time slots associated with this booking.
+    /// One booking can span multiple consecutive hourly slots.
+    /// </summary>
+    public ICollection<BookingTimeSlot> TimeSlots { get; set; } = new List<BookingTimeSlot>();
 }

@@ -1,0 +1,112 @@
+@page "/Admin/DatabaseReset"
+@{
+    ViewData["Title"] = "Database Reset (Development Only)";
+}
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="mb-0">⚠️ Database Reset Tool</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <strong>Warning:</strong> This tool will DELETE ALL data from the database and reseed it with fresh sample data.
+                        This should only be used in development environments.
+                    </div>
+
+                    <h5>What This Does:</h5>
+                    <ul>
+                        <li>Deletes all bookings, pricing rules, time slots, and courts</li>
+                        <li>Adds 5 sample courts with descriptive names</li>
+                        <li>Adds 9 predefined time slots (morning, midday, evening)</li>
+                        <li>Adds pricing rules for weekday and weekend</li>
+                        <li>Creates 18 sample bookings with varied statuses</li>
+                    </ul>
+
+                    <h5 class="mt-4">Sample Courts:</h5>
+                    <ul>
+                        <li><strong>Court 1 - Indoor Premium:</strong> Indoor court with AC, premium equipment, excellent lighting.</li>
+                        <li><strong>Court 2 - Indoor Standard:</strong> Indoor court, standard equipment, good for practice.</li>
+                        <li><strong>Court 3 - Outdoor Covered:</strong> Outdoor court with cover, ideal for morning games.</li>
+                        <li><strong>Court 4 - Outdoor Open:</strong> Outdoor open court, great for tournaments and large groups.</li>
+                        <li><strong>Court 5 - Practice Court:</strong> Smaller practice court, currently under maintenance.</li>
+                    </ul>
+
+                    <hr />
+
+                    <div class="row mt-4">
+                        <div class="col">
+                            <a href="/Availability" class="btn btn-outline-secondary">← Back to Availability</a>
+                        </div>
+                        <div class="col text-end">
+                            <button type="button" class="btn btn-danger" onclick="resetDatabase()">
+                                Reset Database Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="result" class="mt-3"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function resetDatabase() {
+    if (!confirm('Are you absolutely sure? This will delete ALL data and cannot be undone!')) {
+        return;
+    }
+
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Resetting...';
+
+    try {
+        const response = await fetch('/dev/reset-database', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const resultDiv = document.getElementById('result');
+
+        if (response.ok) {
+            const data = await response.json();
+            resultDiv.innerHTML = `
+                <div class="alert alert-success alert-dismissible fade show">
+                    <strong>✓ Success!</strong> ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            // Redirect to availability after 2 seconds
+            setTimeout(() => {
+                window.location.href = '/Availability';
+            }, 2000);
+        } else {
+            const error = await response.json();
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <strong>✗ Error!</strong> ${error.error}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            btn.disabled = false;
+            btn.innerHTML = 'Reset Database Now';
+        }
+    } catch (error) {
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show">
+                <strong>✗ Error!</strong> ${error.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        btn.disabled = false;
+        btn.innerHTML = 'Reset Database Now';
+    }
+}
+</script>

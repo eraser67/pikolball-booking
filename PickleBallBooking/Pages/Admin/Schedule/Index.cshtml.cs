@@ -25,7 +25,15 @@ public class IndexModel : PageModel
 
     public List<TimeSlot> TimeSlots { get; set; } = new();
 
+    /// <summary>
+    /// Maps (CourtId, TimeSlotId) to booking for legacy range display.
+    /// </summary>
     public Dictionary<(int CourtId, int? TimeSlotId), Models.Booking> BookingsByCourtAndSlot { get; set; } = new();
+
+    /// <summary>
+    /// Slot availability matrix per court: courts[i][j] where i=courtId, j=slotId with SlotAvailability status.
+    /// </summary>
+    public Dictionary<int, List<SlotAvailability>> SlotAvailabilityByCourtId { get; set; } = new();
 
     public async Task OnGetAsync()
     {
@@ -37,6 +45,7 @@ public class IndexModel : PageModel
         Courts = await _courtService.GetActiveAsync();
         TimeSlots = await _timeSlotService.GetActiveAsync();
 
+        // Load legacy range-based bookings for backward compatibility
         var bookings = await _bookingService.GetBookingsForAdminAsync(new BookingAdminFilter
         {
             BookingDate = Date
@@ -45,5 +54,13 @@ public class IndexModel : PageModel
         BookingsByCourtAndSlot = bookings
             .Where(b => b.BookingStatus != BookingStatus.Cancelled)
             .ToDictionary(b => (b.CourtId, b.TimeSlotId));
+
+        // Load slot-based availability for each court (new fixed-slot model)
+        SlotAvailabilityByCourtId = new Dictionary<int, List<SlotAvailability>>();
+        foreach (var court in Courts)
+        {
+            var slotAvailability = await _bookingService.GetAvailableSlotsAsync(court.Id, Date);
+            SlotAvailabilityByCourtId[court.Id] = slotAvailability;
+        }
     }
 }

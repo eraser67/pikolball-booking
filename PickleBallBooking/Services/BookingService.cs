@@ -50,6 +50,220 @@ public class BookingService : IBookingService
         return validation;
     }
 
+    public async Task<BookingResult> CreateBookingWithSlotsAsync(
+        int courtId,
+        DateOnly bookingDate,
+        List<int> timeSlotIds,
+        string customerName,
+        string customerPhone,
+        string customerEmail)
+    {
+        // Validate input
+        if (timeSlotIds == null || timeSlotIds.Count == 0)
+        {
+            return BookingResult.Fail("At least one TimeSlot must be selected.");
+        }
+
+        // Check past date
+        if (bookingDate < DateOnly.FromDateTime(DateTime.UtcNow.Date))
+        {
+            return BookingResult.Fail("Booking date cannot be in the past.");
+        }
+
+        // Validate court is active
+        var court = await _context.Courts.FindAsync(courtId);
+        if (court is null || court.Status != CourtStatus.Active)
+        {
+            return BookingResult.Fail("The selected court is not available.");
+        }
+
+        // Validate continuous slots
+        var (isValid, errorMsg) = await ValidateContinuousSlotsAsync(timeSlotIds);
+        if (!isValid)
+        {
+            return BookingResult.Fail(errorMsg);
+        }
+
+        // Get the TimeSlots to build StartTime and EndTime
+        var slots = await _context.TimeSlots
+            .Where(ts => timeSlotIds.Contains(ts.Id))
+            .OrderBy(ts => ts.StartTime)
+            .ToListAsync();
+
+        var startTime = slots.First().StartTime;
+        var endTime = slots.Last().EndTime;
+        var durationHours = slots.Count; // Each slot is 1 hour
+
+        // Validate pricing for the time range
+        var priceResult = await ValidateAndGetPriceAsync(courtId, bookingDate, startTime, endTime);
+        if (!priceResult.Success)
+        {
+            return BookingResult.Fail(priceResult.ErrorMessage!);
+        }
+
+        // Use a transaction to ensure atomicity with database constraint
+        using var transaction = await _context.Database.BeginTransactionAsync();
+
+        try
+        {
+            const int maxAttempts = 5;
+            for (var attempt = 0; attempt < maxAttempts; attempt++)
+            {
+                // Generate booking reference
+                var countForDate = await _context.Bookings.CountAsync(b => b.BookingDate == bookingDate);
+                var sequence = countForDate + 1 + attempt;
+                var reference = $"PB-{bookingDate:yyyyMMdd}-{sequence:D4}";
+
+                // Create the Booking record
+                var booking = new Booking
+                {
+                    BookingReference = reference,
+                    CustomerName = customerName,
+                    CustomerPhone = customerPhone,
+                    CustomerEmail = customerEmail,
+                    CourtId = courtId,
+                    BookingDate = bookingDate,
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    DurationHours = (decimal)durationHours,
+                    Price = priceResult.Price,
+                    BookingStatus = BookingStatus.Pending,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Bookings.Add(booking);
+
+                try
+                {
+                    // Save to get the Booking ID
+                    await _context.SaveChangesAsync();
+
+                    // Now create BookingTimeSlot records for each selected slot
+                    var slotOrder = 0;
+                    foreach (var slotId in timeSlotIds)
+                    {
+                        var bookingTimeSlot = new BookingTimeSlot
+                        {
+                            BookingId = booking.Id,
+                            CourtId = courtId,
+                            BookingDate = bookingDate,
+                            TimeSlotId = slotId,
+                            SlotOrder = slotOrder++,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+
+                        _context.BookingTimeSlots.Add(bookingTimeSlot);
+                    }
+
+                    // Save BookingTimeSlot records
+                    // Database constraint will enforce unique (CourtId, BookingDate, TimeSlotId) WHERE IsActive=true
+                    await _context.SaveChangesAsync();
+
+                    // Commit transaction
+                    await transaction.CommitAsync();
+
+                    return BookingResult.Ok(booking);
+                }
+                catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex, "IX_Bookings_BookingReference"))
+                {
+                    // Reference collision, try again with next sequence
+                    _context.Entry(booking).State = EntityState.Detached;
+                }
+                catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex, "IX_BookingTimeSlot_CourtId_BookingDate_TimeSlotId_Active"))
+                {
+                    // Slot already booked - double-booking protection triggered
+                    await transaction.RollbackAsync();
+                    return BookingResult.Fail("One or more selected TimeSlots are no longer available. Please choose another time.");
+                }
+            }
+
+            await transaction.RollbackAsync();
+            return BookingResult.Fail("Unable to create booking after multiple attempts. Please try again.");
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task<List<SlotAvailability>> GetAvailableSlotsAsync(int courtId, DateOnly bookingDate)
+    {
+        // Get all TimeSlots
+        var timeSlots = await _context.TimeSlots
+            .OrderBy(ts => ts.StartTime)
+            .ToListAsync();
+
+        // Get booked slot IDs for this court on this date (IsActive = true)
+        var bookedSlotIds = await _context.BookingTimeSlots
+            .Where(bts => bts.CourtId == courtId && bts.BookingDate == bookingDate && bts.IsActive)
+            .Select(bts => bts.TimeSlotId)
+            .ToListAsync();
+
+        // Get maintenance slot data for this court
+        var maintenanceSlots = await _context.CourtTimeSlots
+            .Where(cts => cts.CourtId == courtId && cts.AvailabilityStatus == CourtTimeSlotStatus.Maintenance)
+            .Select(cts => cts.TimeSlotId)
+            .ToListAsync();
+
+        // Build availability list
+        var result = new List<SlotAvailability>();
+        foreach (var slot in timeSlots)
+        {
+            result.Add(new SlotAvailability
+            {
+                TimeSlotId = slot.Id,
+                StartTime = slot.StartTime,
+                EndTime = slot.EndTime,
+                IsAvailable = !bookedSlotIds.Contains(slot.Id) && !maintenanceSlots.Contains(slot.Id),
+                IsMaintenance = maintenanceSlots.Contains(slot.Id)
+            });
+        }
+
+        return result;
+    }
+
+    public async Task<BookingResult> CancelBookingAsync(int bookingId)
+    {
+        var booking = await _context.Bookings.FindAsync(bookingId);
+        if (booking is null)
+        {
+            return BookingResult.Fail("Booking not found.");
+        }
+
+        if (booking.BookingStatus == BookingStatus.Cancelled)
+        {
+            return BookingResult.Fail("Booking is already cancelled.");
+        }
+
+        if (booking.BookingStatus == BookingStatus.Completed)
+        {
+            return BookingResult.Fail("Cannot cancel a completed booking.");
+        }
+
+        // Set all BookingTimeSlot records to IsActive = false to release slots
+        var bookingTimeSlots = await _context.BookingTimeSlots
+            .Where(bts => bts.BookingId == bookingId && bts.IsActive)
+            .ToListAsync();
+
+        foreach (var bts in bookingTimeSlots)
+        {
+            bts.IsActive = false;
+            bts.UpdatedAt = DateTime.UtcNow;
+        }
+
+        // Update booking status
+        booking.BookingStatus = BookingStatus.Cancelled;
+        booking.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return BookingResult.Ok(booking);
+    }
+
     public async Task<BookingResult> CreateBookingAsync(
         int courtId,
         DateOnly bookingDate,
@@ -176,6 +390,20 @@ public class BookingService : IBookingService
             return BookingResult.Fail($"Cannot change booking status from {booking.BookingStatus} to {newStatus}.");
         }
 
+        // If transitioning to Cancelled, release all BookingTimeSlot records
+        if (newStatus == BookingStatus.Cancelled)
+        {
+            var bookingTimeSlots = await _context.BookingTimeSlots
+                .Where(bts => bts.BookingId == id && bts.IsActive)
+                .ToListAsync();
+
+            foreach (var bts in bookingTimeSlots)
+            {
+                bts.IsActive = false;
+                bts.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
         booking.BookingStatus = newStatus;
         booking.UpdatedAt = DateTime.UtcNow;
 
@@ -211,6 +439,41 @@ public class BookingService : IBookingService
     {
         return ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.ExclusionViolation } postgresException
             && postgresException.ConstraintName == constraintName;
+    }
+
+    public async Task<(bool IsValid, string? ErrorMessage)> ValidateContinuousSlotsAsync(List<int> timeSlotIds)
+    {
+        if (timeSlotIds == null || timeSlotIds.Count == 0)
+        {
+            return (false, "At least one TimeSlot must be selected.");
+        }
+
+        if (timeSlotIds.Count == 1)
+        {
+            return (true, null);
+        }
+
+        // Get all selected TimeSlots ordered by StartTime
+        var slots = await _context.TimeSlots
+            .Where(ts => timeSlotIds.Contains(ts.Id))
+            .OrderBy(ts => ts.StartTime)
+            .ToListAsync();
+
+        if (slots.Count != timeSlotIds.Count)
+        {
+            return (false, "One or more selected TimeSlots do not exist.");
+        }
+
+        // Verify slots are continuous (no gaps)
+        for (int i = 1; i < slots.Count; i++)
+        {
+            if (slots[i].StartTime != slots[i - 1].EndTime)
+            {
+                return (false, "Selected TimeSlots must be continuous with no gaps.");
+            }
+        }
+
+        return (true, null);
     }
 
     private async Task<PriceCalculationResult> ValidateAndGetPriceAsync(int? courtId, DateOnly bookingDate, TimeSpan startTime, TimeSpan endTime)

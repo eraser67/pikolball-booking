@@ -1,0 +1,82 @@
+@page "/Admin/Courts/Maintenance"
+@model PickleBallBooking.Pages.Admin.Courts.MaintenanceModel
+@{
+    ViewData["Title"] = "Court Maintenance Schedule";
+}
+
+<h1>Court Maintenance Schedule</h1>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<form method="get" class="row row-cols-lg-auto g-2 align-items-end mb-4">
+    <div class="col-12">
+        <label asp-for="SelectedCourtId" class="form-label">Court</label>
+        <select asp-for="SelectedCourtId" class="form-select">
+            <option value="">All Courts</option>
+            @foreach (var court in Model.Courts)
+            {
+                <option value="@court.Id">@court.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Filter</button>
+    </div>
+</form>
+
+@if (Model.Courts.Count == 0)
+{
+    <div class="alert alert-info">No active courts configured.</div>
+}
+else if (Model.TimeSlots.Count == 0)
+{
+    <div class="alert alert-info">No active time slots configured.</div>
+}
+else
+{
+    <p class="text-muted mb-3">Click a cell to toggle maintenance status (Green = Active, Red = Maintenance)</p>
+
+    <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    @foreach (var court in Model.Courts)
+                    {
+                        <th>@court.Name</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var timeSlot in Model.TimeSlots)
+                {
+                    <tr>
+                        <td>@timeSlot.StartTime.ToString(@"hh\:mm") - @timeSlot.EndTime.ToString(@"hh\:mm")</td>
+                        @foreach (var court in Model.Courts)
+                        {
+                            var status = Model.MaintenanceMatrix.TryGetValue((court.Id, timeSlot.Id), out var value)
+                                ? value
+                                : PickleBallBooking.Models.CourtTimeSlotStatus.Active;
+                            var bgClass = status == PickleBallBooking.Models.CourtTimeSlotStatus.Maintenance ? "bg-danger" : "bg-success";
+                            <td>
+                                <form method="post" asp-page-handler="ToggleMaintenance" style="display:inline;">
+                                    <input type="hidden" name="courtId" value="@court.Id" />
+                                    <input type="hidden" name="timeSlotId" value="@timeSlot.Id" />
+                                    <button type="submit" class="btn btn-sm @bgClass text-white w-100">
+                                        @status
+                                    </button>
+                                </form>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

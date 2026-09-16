@@ -29,3 +29,332 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+/* Phase 17 - Modern Calendar Availability Styles */
+
+/* Date Calendar Buttons */
+.calendar-date-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.calendar-date-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  padding: 0.75rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.calendar-date-btn-day {
+  font-weight: 600;
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.calendar-date-btn-date {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* Time Range Cards */
+.time-range-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 576px) {
+  .time-range-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  .time-range-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 992px) {
+  .time-range-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.time-range-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 2px solid #dee2e6;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #fff;
+  text-decoration: none;
+  color: inherit;
+}
+
+.time-range-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Available State */
+.time-range-card.available {
+  border-color: #198754;
+  background-color: #f0f9f7;
+}
+
+.time-range-card.available:hover {
+  border-color: #198754;
+  background-color: #e8f6f2;
+  box-shadow: 0 4px 12px rgba(25, 135, 84, 0.2);
+}
+
+.time-range-card.available .status-badge {
+  color: #198754;
+  font-weight: 600;
+}
+
+/* Booked State */
+.time-range-card.booked {
+  border-color: #6c757d;
+  background-color: #e9ecef;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.time-range-card.booked:hover {
+  border-color: #6c757d;
+  background-color: #e9ecef;
+  box-shadow: none;
+  transform: none;
+}
+
+.time-range-card.booked .status-badge {
+  color: #6c757d;
+  font-weight: 600;
+}
+
+/* Unavailable State */
+.time-range-card.unavailable {
+  border-color: #ffc107;
+  background-color: #fff8e1;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.time-range-card.unavailable:hover {
+  border-color: #ffc107;
+  background-color: #fff8e1;
+  box-shadow: none;
+  transform: none;
+}
+
+.time-range-card.unavailable .status-badge {
+  color: #ffc107;
+  font-weight: 600;
+}
+
+/* Selected State */
+.time-range-card.selected {
+  border-color: #0d6efd;
+  background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+}
+
+.time-range-card.selected:hover {
+  border-color: #0b5ed7;
+  background: linear-gradient(135deg, #0b5ed7 0%, #0a58ca 100%);
+  box-shadow: 0 6px 16px rgba(13, 110, 253, 0.4);
+  transform: translateY(-2px);
+}
+
+.time-range-card.selected .status-badge {
+  color: #fff;
+  font-weight: 700;
+}
+
+.time-range-card.selected .time-range-label {
+  color: #fff;
+  font-weight: 600;
+}
+
+.time-range-card.selected .time-range-price {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+/* Card Content */
+.time-range-label {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  flex-grow: 1;
+}
+
+.status-badge {
+  display: inline-block;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  background-color: rgba(0, 0, 0, 0.05);
+  margin-bottom: 0.75rem;
+  width: fit-content;
+}
+
+.time-range-price {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.time-range-card.available .time-range-price {
+  color: #198754;
+}
+
+.time-range-card.booked .time-range-price,
+.time-range-card.unavailable .time-range-price {
+  display: none;
+}
+
+/* Duration Display */
+.duration-display {
+  font-size: 0.875rem;
+  color: rgba(0, 0, 0, 0.6);
+  margin-top: 0.5rem;
+}
+
+.time-range-card.selected .duration-display {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Button Styles for Responsive Layout */
+.time-selection-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 576px) {
+  .time-selection-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+.time-selection-label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* Summary Section */
+.booking-summary {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.booking-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.booking-summary-item:last-child {
+  border-bottom: none;
+}
+
+.booking-summary-label {
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.booking-summary-value {
+  font-weight: 600;
+  color: #212529;
+  font-size: 1.125rem;
+}
+
+/* Price Alert */
+.price-alert {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background-color: #d1ecf1;
+  border: 1px solid #bee5eb;
+  color: #0c5460;
+}
+
+.price-alert-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0c5460;
+}
+
+/* Form Layout */
+.booking-form-section {
+  margin-bottom: 2rem;
+}
+
+.booking-form-section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #dee2e6;
+}
+
+/* Accessibility Improvements */
+.time-range-card:focus {
+  outline: 2px solid #0d6efd;
+  outline-offset: 2px;
+}
+
+.time-range-card.booked:focus,
+.time-range-card.unavailable:focus {
+  outline: 2px solid #6c757d;
+}
+
+/* Loading State */
+.calendar-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: #6c757d;
+}
+
+.calendar-alert {
+  margin-bottom: 1.5rem;
+}
+
+/* Empty State */
+.calendar-empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.calendar-empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
