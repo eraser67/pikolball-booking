@@ -827,3 +827,166 @@ Then report:
 Do not make major changes until I approve the plan.
 
 After my approval, begin Phase 1.
+
+# UI AND AVAILABILITY ENHANCEMENT REQUIREMENTS
+
+The original Phase 1–15 functionality has already been implemented.
+
+The next development phases must enhance the existing application without unnecessarily rebuilding working features.
+
+## Existing Functionality Protection
+
+Before making changes:
+
+1. Inspect the existing implementation.
+2. Read the current models, services, Razor Pages, database configuration, and tests.
+3. Identify existing business rules.
+4. Preserve working functionality.
+5. Do not replace or rewrite working code unless required by the enhancement.
+6. Do not change the database schema unless a change is genuinely required.
+7. Maintain existing authentication and authorization.
+8. Maintain existing pricing calculations.
+9. Maintain existing double-booking protection.
+
+## Court Availability
+
+Create a customer-facing Court Availability feature.
+
+The customer should be able to:
+
+1. Open the Court Availability page.
+2. Select a date.
+3. View all active courts.
+4. View all active time slots.
+5. Clearly see whether each court/time-slot combination is:
+
+   * Available
+   * Booked
+   * Unavailable
+6. Select an available court and time slot.
+7. Continue directly to the existing booking process with the selected court, date, and time slot.
+8. Have the booking page revalidate availability on the server before creating the booking.
+
+The availability display must use the existing booking rules.
+
+Cancelled bookings must not block a slot.
+
+The feature must not weaken existing double-booking protection.
+
+## Availability UI
+
+Prefer a court/time-slot matrix on desktop.
+
+Example:
+
+| Time        | Court 1   | Court 2   | Court 3   |
+| ----------- | --------- | --------- | --------- |
+| 08:00–09:00 | Available | Booked    | Available |
+| 09:00–10:00 | Available | Available | Booked    |
+
+Available slots should be selectable.
+
+Booked and unavailable slots must not be selectable.
+
+The mobile version does not need to force a wide table. Use a mobile-friendly layout if necessary.
+
+## UI Framework
+
+Continue using:
+
+* ASP.NET Core Razor Pages
+* Bootstrap 5
+* Bootstrap Icons
+* HTML
+* CSS
+* Minimal JavaScript only when necessary
+
+Do not introduce:
+
+* React
+* Angular
+* Vue
+* Next.js
+* Node.js
+* A separate frontend application
+
+## UI Design Goals
+
+The UI should feel:
+
+* Modern
+* Clean
+* Professional
+* Sports-oriented
+* Mobile-friendly
+* Easy to understand
+
+Improve:
+
+* Navigation
+* Homepage
+* Booking flow
+* Availability page
+* Booking confirmation
+* Booking lookup
+* Admin dashboard
+* Admin management pages
+* Forms
+* Tables
+* Buttons
+* Cards
+* Empty states
+* Error states
+
+## UI Enhancement Rules
+
+Do not change business functionality only for visual reasons.
+
+Separate UI changes from business logic changes where practical.
+
+Reuse existing services and business logic.
+
+Create reusable UI components or partial views where appropriate.
+
+Ensure responsive behavior for:
+
+* Desktop
+* Laptop
+* Tablet
+* Mobile
+
+## Testing Requirements
+
+After implementing each phase:
+
+1. Build the application.
+2. Run existing automated tests.
+3. Add tests for new business behavior.
+4. Verify that existing booking functionality still works.
+5. Verify that double-booking protection still works.
+6. Perform manual responsive testing.
+7. Test desktop and mobile layouts.
+8. Fix compilation errors and relevant test failures before completing the phase.
+
+## Development Process
+
+Do not implement Phases 16, 17, and 18 all at once.
+
+Work in this order:
+
+Phase 16 — Court Availability
+
+Wait for review and confirmation.
+
+Phase 17 — UI/UX Redesign
+
+Wait for review and confirmation.
+
+Phase 18 — UI Polish
+
+Wait for review and confirmation.
+
+Before starting each phase, inspect the current implementation and provide a short implementation plan.
+
+Do not make unrelated changes.
+
