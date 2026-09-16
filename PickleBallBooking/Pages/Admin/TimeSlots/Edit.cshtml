@@ -1,0 +1,28 @@
+@page "/Admin/TimeSlots/Edit/{id:int}"
+@model PickleBallBooking.Pages.Admin.TimeSlots.EditModel
+@{
+    ViewData["Title"] = "Edit Time Slot";
+}
+
+<h1>Edit Time Slot</h1>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" asp-for="Id" />
+    <div class="mb-3">
+        <label asp-for="TimeSlot.StartTime" class="form-label"></label>
+        <input asp-for="TimeSlot.StartTime" type="time" class="form-control" />
+        <span asp-validation-for="TimeSlot.StartTime" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="TimeSlot.EndTime" class="form-label"></label>
+        <input asp-for="TimeSlot.EndTime" type="time" class="form-control" />
+        <span asp-validation-for="TimeSlot.EndTime" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-page="Index" class="btn btn-secondary">Cancel</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

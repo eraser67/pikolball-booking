@@ -1,0 +1,59 @@
+@page "/Admin"
+@model PickleBallBooking.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<h1>Admin Dashboard</h1>
+
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-5 g-3 mb-4">
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h5 class="card-title">@Model.TodaysBookingsCount</h5>
+                <p class="card-text">Today's Bookings</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h5 class="card-title">@Model.PendingBookingsCount</h5>
+                <p class="card-text">Pending Bookings</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h5 class="card-title">@Model.ConfirmedBookingsCount</h5>
+                <p class="card-text">Confirmed Bookings</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h5 class="card-title">@Model.CompletedBookingsCount</h5>
+                <p class="card-text">Completed Bookings</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h5 class="card-title">@Model.ActiveCourtsCount</h5>
+                <p class="card-text">Active Courts</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2>Manage</h2>
+<div class="list-group col-sm-6">
+    <a asp-page="/Admin/Bookings/Index" class="list-group-item list-group-item-action">Bookings</a>
+    <a asp-page="/Admin/Courts/Index" class="list-group-item list-group-item-action">Courts</a>
+    <a asp-page="/Admin/TimeSlots/Index" class="list-group-item list-group-item-action">Time Slots</a>
+    <a asp-page="/Admin/Pricing/Index" class="list-group-item list-group-item-action">Pricing</a>
+    <a asp-page="/Admin/Schedule/Index" class="list-group-item list-group-item-action">Schedule</a>
+</div>

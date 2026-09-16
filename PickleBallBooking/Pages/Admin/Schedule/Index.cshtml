@@ -1,0 +1,76 @@
+@page "/Admin/Schedule"
+@model PickleBallBooking.Pages.Admin.Schedule.IndexModel
+@{
+    ViewData["Title"] = "Schedule";
+}
+
+<h1>Schedule</h1>
+
+<form method="get" class="row row-cols-lg-auto g-2 align-items-end mb-4">
+    <div class="col-12">
+        <label asp-for="Date" class="form-label">Date</label>
+        <input asp-for="Date" type="date" class="form-control" />
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Go</button>
+        <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(-1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">&laquo; Previous Day</a>
+        <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">Next Day &raquo;</a>
+        <a asp-page="Index" asp-route-Date="@DateOnly.FromDateTime(DateTime.UtcNow.Date).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">Today</a>
+    </div>
+</form>
+
+@if (Model.Courts.Count == 0)
+{
+    <div class="alert alert-info">No active courts configured.</div>
+}
+else if (Model.TimeSlots.Count == 0)
+{
+    <div class="alert alert-info">No active time slots configured.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    @foreach (var court in Model.Courts)
+                    {
+                        <th>@court.Name</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var timeSlot in Model.TimeSlots)
+                {
+                    <tr>
+                        <td>@timeSlot.StartTime.ToString(@"hh\:mm") - @timeSlot.EndTime.ToString(@"hh\:mm")</td>
+                        @foreach (var court in Model.Courts)
+                        {
+                            <td>
+                                @if (Model.BookingsByCourtAndSlot.TryGetValue((court.Id, timeSlot.Id), out var booking))
+                                {
+                                    var badgeClass = booking.BookingStatus switch
+                                    {
+                                        PickleBallBooking.Models.BookingStatus.Pending => "bg-warning text-dark",
+                                        PickleBallBooking.Models.BookingStatus.Confirmed => "bg-success",
+                                        PickleBallBooking.Models.BookingStatus.Completed => "bg-secondary",
+                                        _ => "bg-light text-dark"
+                                    };
+                                    <a asp-page="/Admin/Bookings/Details" asp-route-id="@booking.Id" class="text-decoration-none">
+                                        <span class="badge @badgeClass d-block mb-1">@booking.BookingStatus</span>
+                                        <span class="small">@booking.CustomerName</span>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Available</span>
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

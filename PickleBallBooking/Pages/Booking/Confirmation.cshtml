@@ -1,0 +1,40 @@
+@page "/Booking/Confirmation/{reference}"
+@model PickleBallBooking.Pages.Booking.ConfirmationModel
+@{
+    ViewData["Title"] = "Booking Confirmation";
+}
+
+@if (Model.Booking is null)
+{
+    <div class="alert alert-danger">Booking not found.</div>
+}
+else
+{
+    <h1>Booking Submitted</h1>
+
+    <div class="alert alert-success">
+        Thank you, @Model.Booking.CustomerName! Your booking has been submitted and is now <strong>@Model.Booking.BookingStatus</strong>.
+    </div>
+
+    <dl class="row">
+        <dt class="col-sm-3">Booking Reference</dt>
+        <dd class="col-sm-9">@Model.Booking.BookingReference</dd>
+
+        <dt class="col-sm-3">Court</dt>
+        <dd class="col-sm-9">@Model.Booking.Court?.Name</dd>
+
+        <dt class="col-sm-3">Date</dt>
+        <dd class="col-sm-9">@Model.Booking.BookingDate.ToString("D")</dd>
+
+        <dt class="col-sm-3">Time</dt>
+        <dd class="col-sm-9">@Model.Booking.TimeSlot?.StartTime.ToString(@"hh\:mm") - @Model.Booking.TimeSlot?.EndTime.ToString(@"hh\:mm")</dd>
+
+        <dt class="col-sm-3">Price</dt>
+        <dd class="col-sm-9">@Model.Booking.Price.ToString("C2")</dd>
+
+        <dt class="col-sm-3">Status</dt>
+        <dd class="col-sm-9">@Model.Booking.BookingStatus</dd>
+    </dl>
+
+    <a asp-page="Index" class="btn btn-primary">Book Another Court</a>
+}

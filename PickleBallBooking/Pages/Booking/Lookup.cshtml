@@ -1,0 +1,61 @@
+@page "/Booking/Lookup"
+@model PickleBallBooking.Pages.Booking.LookupModel
+@{
+    ViewData["Title"] = "Look Up Booking";
+}
+
+<h1>Look Up Booking</h1>
+
+<p>Enter your booking reference along with the mobile number or email you used when booking.</p>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="Input.BookingReference" class="form-label"></label>
+        <input asp-for="Input.BookingReference" class="form-control" />
+        <span asp-validation-for="Input.BookingReference" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.ContactInfo" class="form-label"></label>
+        <input asp-for="Input.ContactInfo" class="form-control" />
+        <span asp-validation-for="Input.ContactInfo" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Look Up Booking</button>
+</form>
+
+@if (Model.Searched)
+{
+    if (Model.Booking is null)
+    {
+        <div class="alert alert-danger mt-3">No booking was found matching that reference and contact information.</div>
+    }
+    else
+    {
+        <dl class="row mt-3">
+            <dt class="col-sm-3">Booking Reference</dt>
+            <dd class="col-sm-9">@Model.Booking.BookingReference</dd>
+
+            <dt class="col-sm-3">Court</dt>
+            <dd class="col-sm-9">@Model.Booking.Court?.Name</dd>
+
+            <dt class="col-sm-3">Date</dt>
+            <dd class="col-sm-9">@Model.Booking.BookingDate.ToString("D")</dd>
+
+            <dt class="col-sm-3">Time</dt>
+            <dd class="col-sm-9">@Model.Booking.TimeSlot?.StartTime.ToString(@"hh\:mm") - @Model.Booking.TimeSlot?.EndTime.ToString(@"hh\:mm")</dd>
+
+            <dt class="col-sm-3">Price</dt>
+            <dd class="col-sm-9">@Model.Booking.Price.ToString("C2")</dd>
+
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">@Model.Booking.BookingStatus</dd>
+        </dl>
+    }
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

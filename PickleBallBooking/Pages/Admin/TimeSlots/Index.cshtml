@@ -1,0 +1,59 @@
+@page "/Admin/TimeSlots"
+@model PickleBallBooking.Pages.Admin.TimeSlots.IndexModel
+@{
+    ViewData["Title"] = "Manage Time Slots";
+}
+
+<h1>Manage Time Slots</h1>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+
+<p>
+    <a asp-page="Create" class="btn btn-primary">Add Time Slot</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var slot in Model.TimeSlots)
+        {
+            <tr>
+                <td>@slot.StartTime.ToString(@"hh\:mm")</td>
+                <td>@slot.EndTime.ToString(@"hh\:mm")</td>
+                <td>
+                    @if (slot.Status == PickleBallBooking.Models.TimeSlotStatus.Active)
+                    {
+                        <span class="badge bg-success">Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Inactive</span>
+                    }
+                </td>
+                <td>
+                    <a asp-page="Edit" asp-route-id="@slot.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@slot.Id" class="d-inline">
+                        @if (slot.Status == PickleBallBooking.Models.TimeSlotStatus.Active)
+                        {
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                        }
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -1,0 +1,28 @@
+@page "/Admin/Courts/Edit/{id:int}"
+@model PickleBallBooking.Pages.Admin.Courts.EditModel
+@{
+    ViewData["Title"] = "Edit Court";
+}
+
+<h1>Edit Court</h1>
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" asp-for="Id" />
+    <div class="mb-3">
+        <label asp-for="Court.Name" class="form-label"></label>
+        <input asp-for="Court.Name" class="form-control" />
+        <span asp-validation-for="Court.Name" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Court.Description" class="form-label"></label>
+        <textarea asp-for="Court.Description" class="form-control"></textarea>
+        <span asp-validation-for="Court.Description" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-page="Index" class="btn btn-secondary">Cancel</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

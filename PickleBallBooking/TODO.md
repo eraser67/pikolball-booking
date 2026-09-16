@@ -1,23 +1,23 @@
 # TODO
 
-- [ ] Verify development environment
-- [ ] Create ASP.NET Core project
+- [x] Verify development environment
+- [x] Create ASP.NET Core project
 - [ ] Configure GitHub
 - [ ] Configure Copilot
 - [ ] Configure Supabase
-- [ ] Create database models
-- [ ] Create migrations
-- [ ] Build Court Management
-- [ ] Build Time Slot Management
-- [ ] Build Pricing
-- [ ] Build Customer Booking
-- [ ] Build Availability
-- [ ] Prevent Double Booking
-- [ ] Build Booking Lookup
-- [ ] Build Admin Authentication
-- [ ] Build Admin Dashboard
-- [ ] Build Booking Management
-- [ ] Build Schedule
-- [ ] Add Automated Tests
-- [ ] Security Review
+- [x] Create database models
+- [x] Create migrations
+- [x] Build Court Management
+- [x] Build Time Slot Management
+- [x] Build Pricing
+- [x] Build Customer Booking
+- [x] Build Availability
+- [x] Prevent Double Booking
+- [x] Build Booking Lookup
+- [x] Build Admin Authentication
+- [x] Build Admin Dashboard
+- [x] Build Booking Management
+- [x] Build Schedule
+- [x] Add Automated Tests
+- [x] Security Review
 - [ ] Deploy

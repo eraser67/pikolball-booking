@@ -1,0 +1,44 @@
+@page "/Admin/Bookings/{id:int}"
+@model PickleBallBooking.Pages.Admin.Bookings.DetailsModel
+@{
+    ViewData["Title"] = "Booking Details";
+}
+
+<h1>Booking Details</h1>
+
+<dl class="row">
+    <dt class="col-sm-3">Booking Reference</dt>
+    <dd class="col-sm-9">@Model.Booking!.BookingReference</dd>
+
+    <dt class="col-sm-3">Customer Name</dt>
+    <dd class="col-sm-9">@Model.Booking.CustomerName</dd>
+
+    <dt class="col-sm-3">Customer Phone</dt>
+    <dd class="col-sm-9">@Model.Booking.CustomerPhone</dd>
+
+    <dt class="col-sm-3">Customer Email</dt>
+    <dd class="col-sm-9">@Model.Booking.CustomerEmail</dd>
+
+    <dt class="col-sm-3">Court</dt>
+    <dd class="col-sm-9">@Model.Booking.Court?.Name</dd>
+
+    <dt class="col-sm-3">Date</dt>
+    <dd class="col-sm-9">@Model.Booking.BookingDate.ToString("yyyy-MM-dd")</dd>
+
+    <dt class="col-sm-3">Time</dt>
+    <dd class="col-sm-9">@Model.Booking.TimeSlot?.StartTime.ToString(@"hh\:mm") - @Model.Booking.TimeSlot?.EndTime.ToString(@"hh\:mm")</dd>
+
+    <dt class="col-sm-3">Price</dt>
+    <dd class="col-sm-9">@Model.Booking.Price.ToString("C")</dd>
+
+    <dt class="col-sm-3">Status</dt>
+    <dd class="col-sm-9">@Model.Booking.BookingStatus</dd>
+
+    <dt class="col-sm-3">Created At</dt>
+    <dd class="col-sm-9">@Model.Booking.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+
+    <dt class="col-sm-3">Updated At</dt>
+    <dd class="col-sm-9">@Model.Booking.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+</dl>
+
+<a asp-page="Index" class="btn btn-secondary">Back to Bookings</a>

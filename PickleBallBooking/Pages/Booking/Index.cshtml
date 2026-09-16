@@ -1,0 +1,74 @@
+@page "/Booking"
+@model PickleBallBooking.Pages.Booking.IndexModel
+@{
+    ViewData["Title"] = "Book a Court";
+}
+
+<h1>Book a Court</h1>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<form method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="Input.BookingDate" class="form-label"></label>
+        <input asp-for="Input.BookingDate" type="date" class="form-control" />
+        <span asp-validation-for="Input.BookingDate" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.CourtId" class="form-label"></label>
+        <select asp-for="Input.CourtId" asp-items="Model.Courts" class="form-select">
+            <option value="">-- Select a court --</option>
+        </select>
+        <span asp-validation-for="Input.CourtId" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.TimeSlotId" class="form-label"></label>
+        <select asp-for="Input.TimeSlotId" asp-items="Model.TimeSlots" class="form-select">
+            <option value="">-- Select a time --</option>
+        </select>
+        <span asp-validation-for="Input.TimeSlotId" class="text-danger"></span>
+    </div>
+
+    <button type="submit" asp-page-handler="Calculate" class="btn btn-outline-primary">Check Price</button>
+
+    @if (Model.CalculatedPrice.HasValue)
+    {
+        <div class="alert alert-info mt-3">
+            Price for this booking: <strong>@Model.CalculatedPrice.Value.ToString("C2")</strong>
+        </div>
+
+        <hr />
+        <h4>Your Details</h4>
+
+        <div class="mb-3">
+            <label asp-for="Input.CustomerName" class="form-label"></label>
+            <input asp-for="Input.CustomerName" class="form-control" />
+            <span asp-validation-for="Input.CustomerName" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.CustomerPhone" class="form-label"></label>
+            <input asp-for="Input.CustomerPhone" class="form-control" />
+            <span asp-validation-for="Input.CustomerPhone" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.CustomerEmail" class="form-label"></label>
+            <input asp-for="Input.CustomerEmail" class="form-control" />
+            <span asp-validation-for="Input.CustomerEmail" class="text-danger"></span>
+        </div>
+
+        <button type="submit" asp-page-handler="Confirm" class="btn btn-primary">Confirm Booking</button>
+    }
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,119 @@
+@page "/Admin/Bookings"
+@model PickleBallBooking.Pages.Admin.Bookings.IndexModel
+@{
+    ViewData["Title"] = "Manage Bookings";
+}
+
+<h1>Manage Bookings</h1>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<form method="get" class="row row-cols-lg-auto g-2 align-items-end mb-4">
+    <div class="col-12">
+        <label asp-for="BookingDate" class="form-label">Date</label>
+        <input asp-for="BookingDate" type="date" class="form-control" />
+    </div>
+    <div class="col-12">
+        <label asp-for="CourtId" class="form-label">Court</label>
+        <select asp-for="CourtId" class="form-select">
+            <option value="">All Courts</option>
+            @foreach (var court in Model.Courts)
+            {
+                <option value="@court.Id">@court.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-12">
+        <label asp-for="Status" class="form-label">Status</label>
+        <select asp-for="Status" class="form-select">
+            <option value="">All Statuses</option>
+            @foreach (var status in Enum.GetValues<PickleBallBooking.Models.BookingStatus>())
+            {
+                <option value="@status">@status</option>
+            }
+        </select>
+    </div>
+    <div class="col-12">
+        <label asp-for="CustomerSearch" class="form-label">Customer</label>
+        <input asp-for="CustomerSearch" type="text" class="form-control" placeholder="Name, phone, email or reference" />
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a asp-page="Index" class="btn btn-outline-secondary">Reset</a>
+    </div>
+</form>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Reference</th>
+            <th>Customer</th>
+            <th>Court</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var booking in Model.Bookings)
+        {
+            <tr>
+                <td>@booking.BookingReference</td>
+                <td>@booking.CustomerName</td>
+                <td>@booking.Court?.Name</td>
+                <td>@booking.BookingDate.ToString("yyyy-MM-dd")</td>
+                <td>@booking.TimeSlot?.StartTime.ToString(@"hh\:mm") - @booking.TimeSlot?.EndTime.ToString(@"hh\:mm")</td>
+                <td>@booking.Price.ToString("C")</td>
+                <td>
+                    @switch (booking.BookingStatus)
+                    {
+                        case PickleBallBooking.Models.BookingStatus.Pending:
+                            <span class="badge bg-warning text-dark">Pending</span>
+                            break;
+                        case PickleBallBooking.Models.BookingStatus.Confirmed:
+                            <span class="badge bg-success">Confirmed</span>
+                            break;
+                        case PickleBallBooking.Models.BookingStatus.Cancelled:
+                            <span class="badge bg-danger">Cancelled</span>
+                            break;
+                        case PickleBallBooking.Models.BookingStatus.Completed:
+                            <span class="badge bg-secondary">Completed</span>
+                            break;
+                    }
+                </td>
+                <td>@booking.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                <td class="text-nowrap">
+                    <a asp-page="Details" asp-route-id="@booking.Id" class="btn btn-sm btn-outline-primary">View</a>
+                    @if (booking.BookingStatus == PickleBallBooking.Models.BookingStatus.Pending)
+                    {
+                        <form method="post" asp-page-handler="Confirm" asp-route-id="@booking.Id" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-success">Confirm</button>
+                        </form>
+                    }
+                    @if (booking.BookingStatus is PickleBallBooking.Models.BookingStatus.Pending or PickleBallBooking.Models.BookingStatus.Confirmed)
+                    {
+                        <form method="post" asp-page-handler="Cancel" asp-route-id="@booking.Id" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
+                        </form>
+                    }
+                    @if (booking.BookingStatus == PickleBallBooking.Models.BookingStatus.Confirmed)
+                    {
+                        <form method="post" asp-page-handler="Complete" asp-route-id="@booking.Id" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Complete</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

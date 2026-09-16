@@ -1,0 +1,76 @@
+@page "/Availability"
+@model PickleBallBooking.Pages.Availability.IndexModel
+@{
+    ViewData["Title"] = "Court Availability";
+}
+
+<h1>Court Availability</h1>
+<p class="text-muted">Select a date to see which courts and time slots are open, then click an available slot to start booking.</p>
+
+<form method="get" class="row row-cols-lg-auto g-2 align-items-end mb-4">
+    <div class="col-12">
+        <label asp-for="Date" class="form-label">Date</label>
+        <input asp-for="Date" type="date" class="form-control" />
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Go</button>
+        <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(-1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">&laquo; Previous Day</a>
+        <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">Next Day &raquo;</a>
+        <a asp-page="Index" asp-route-Date="@DateOnly.FromDateTime(DateTime.UtcNow.Date).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">Today</a>
+    </div>
+</form>
+
+@if (Model.IsPastDate)
+{
+    <div class="alert alert-warning">This date is in the past. Please choose today or a future date to book.</div>
+}
+
+@if (Model.Courts.Count == 0)
+{
+    <div class="alert alert-info">No active courts are currently available.</div>
+}
+else if (Model.TimeSlots.Count == 0)
+{
+    <div class="alert alert-info">No active time slots are currently available.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    @foreach (var court in Model.Courts)
+                    {
+                        <th>@court.Name</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var timeSlot in Model.TimeSlots)
+                {
+                    <tr>
+                        <td>@timeSlot.StartTime.ToString(@"hh\:mm") - @timeSlot.EndTime.ToString(@"hh\:mm")</td>
+                        @foreach (var court in Model.Courts)
+                        {
+                            <td>
+                                @if (Model.IsAvailable(court.Id, timeSlot.Id))
+                                {
+                                    <a asp-page="/Booking/Index"
+                                       asp-route-date="@Model.Date.ToString("yyyy-MM-dd")"
+                                       asp-route-courtId="@court.Id"
+                                       asp-route-timeSlotId="@timeSlot.Id"
+                                       class="badge bg-success text-decoration-none">Available</a>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Booked</span>
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

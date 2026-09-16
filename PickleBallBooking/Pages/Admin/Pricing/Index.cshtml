@@ -1,0 +1,63 @@
+@page "/Admin/Pricing"
+@model PickleBallBooking.Pages.Admin.Pricing.IndexModel
+@{
+    ViewData["Title"] = "Manage Pricing";
+}
+
+<h1>Manage Pricing</h1>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+
+<p>
+    <a asp-page="Create" class="btn btn-primary">Add Pricing</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Day Type</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var pricing in Model.Pricings)
+        {
+            <tr>
+                <td>@pricing.DayType</td>
+                <td>@pricing.StartTime.ToString(@"hh\:mm")</td>
+                <td>@pricing.EndTime.ToString(@"hh\:mm")</td>
+                <td>@pricing.Price.ToString("C2")</td>
+                <td>
+                    @if (pricing.Status == PickleBallBooking.Models.PricingStatus.Active)
+                    {
+                        <span class="badge bg-success">Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Inactive</span>
+                    }
+                </td>
+                <td>
+                    <a asp-page="Edit" asp-route-id="@pricing.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@pricing.Id" class="d-inline">
+                        @if (pricing.Status == PickleBallBooking.Models.PricingStatus.Active)
+                        {
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                        }
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
