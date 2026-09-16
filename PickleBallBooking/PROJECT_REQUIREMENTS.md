@@ -164,114 +164,256 @@ Prefer deactivation.
 
 ---
 
-# 5. TIME SLOTS
+# 5. TIME CONFIGURATION
 
-Create a TimeSlots table.
+The system must support configurable booking time boundaries.
 
-Fields:
+The existing TimeSlots concept must NOT automatically be deleted.
 
-* Id
-* StartTime
-* EndTime
-* Status
+Before changing the existing TimeSlots implementation, inspect how it is currently used.
 
-Administrators can:
+Time configuration may be used to define:
 
-* Add
-* Edit
-* Activate
-* Deactivate
+Allowed booking start times
+Allowed booking end times
+Booking intervals
+Operating hours
+Other configurable time boundaries required by the booking system
 
-Time slots must be dynamic.
+The administrator must be able to:
 
-Do not hard-code time slots in customer booking pages.
+Add time configuration
+Edit time configuration
+Activate time configuration
+Deactivate time configuration
+
+Time configuration must be dynamic.
+
+Do not hard-code booking times into customer booking pages.
+
+The final design must allow the customer to create a continuous booking using a StartTime and EndTime.
+
+Example:
+
+Start Time:
+18:00
+
+End Time:
+22:00
+
+Result:
+
+4-hour continuous booking.
+
+The exact implementation must be determined after inspecting the existing TimeSlot model, services, pages, and database structure.
+
+Do not remove the existing TimeSlot table or functionality until the impact has been assessed.
 
 ---
 
 # 6. BOOKINGS
 
-Create a Bookings table.
+Create and maintain a Bookings table.
 
-Fields:
+The booking represents a continuous reservation for a court during a specific date and time range.
 
-* Id
-* BookingReference
-* CustomerName
-* CustomerPhone
-* CustomerEmail
-* CourtId
-* BookingDate
-* TimeSlotId
-* Price
-* BookingStatus
-* CreatedAt
-* UpdatedAt
+The target booking fields should include:
+
+Id
+BookingReference
+CustomerName
+CustomerPhone
+CustomerEmail
+CourtId
+BookingDate
+StartTime
+EndTime
+DurationHours
+Price
+BookingStatus
+CreatedAt
+UpdatedAt
+
+The final database design must be determined after inspecting the existing implementation.
+
+The existing TimeSlotId must not be removed blindly.
+
+If existing booking records use TimeSlotId, determine how existing data can be migrated safely.
+
+Booking Time
+
+A booking consists of:
+
+BookingDate
++
+CourtId
++
+StartTime
++
+EndTime
+
+Example:
+
+Date:
+September 20, 2026
+
+Court:
+Court 2
+
+Start:
+18:00
+
+End:
+22:00
+
+Duration:
+4 hours
+
+The customer should create this as ONE booking.
+
+The customer should not be required to create four separate one-hour bookings.
+
+Booking Status
 
 BookingStatus:
 
-* Pending
-* Confirmed
-* Cancelled
-* Completed
+Pending
+Confirmed
+Cancelled
+Completed
 
 Initial booking status:
 
 Pending
 
+Cancelled bookings must not block future availability.
+
+Time Validation
+
+The system must reject:
+
+EndTime earlier than StartTime
+EndTime equal to StartTime
+Booking outside configured operating hours
+Invalid booking intervals
+Invalid time ranges
+
+The system must calculate DurationHours from StartTime and EndTime.
+
+Duration must not be trusted from the client.
+
+The server must calculate the duration.
+
 ---
 
 # 7. PRICING
 
-Create a Pricing table.
+MULTI-HOUR BOOKING PRICING
 
-Fields:
+Pricing must support bookings that span multiple hours.
 
-* Id
-* DayType
-* StartTime
-* EndTime
-* Price
-* Status
-* CreatedAt
-* UpdatedAt
+The system must calculate the price from:
 
-DayType:
+Booking date
+StartTime
+EndTime
+DayType
+Applicable pricing configuration
 
-* Weekday
-* Weekend
+Example:
 
-Prices must be configurable by administrators.
+Booking:
 
-Do not hard-code final business prices.
+18:00–22:00
 
-Example development prices:
+Duration:
 
-Weekday 08:00–17:00 = ₱300
+4 hours
 
-Weekday 17:00–22:00 = ₱400
+If the applicable rate is:
 
-Weekend 08:00–22:00 = ₱400
+₱400/hour
 
-These are sample values only.
+Then:
+
+4 × ₱400 = ₱1,600
+
+The price must be calculated server-side.
+
+The customer must not be able to submit an arbitrary price.
+
+If a booking crosses multiple pricing periods, the system must calculate the applicable rate for each portion of the booking.
+
+Example:
+
+16:00–18:00
+
+If:
+
+16:00–17:00 = ₱300/hour
+
+17:00–22:00 = ₱400/hour
+
+Then the system must calculate:
+
+1 × ₱300
++
+1 × ₱400
+
+Total:
+
+₱700
+
+The final pricing algorithm must be implemented using the existing Pricing configuration and must be covered by automated tests.
 
 ---
 
 # 8. BOOKING FLOW
 
+The customer booking experience should use a modern calendar-style interface.
+
 Customer:
 
-1. Open website.
-2. Select date.
-3. View available courts.
-4. Select court.
-5. Select available time.
-6. View calculated price.
-7. Enter name.
-8. Enter mobile number.
-9. Enter email.
-10. Review booking.
-11. Submit booking.
-12. Receive booking reference.
+Open website.
+Open the booking/calendar page.
+Select a booking date.
+View available courts.
+Select a court.
+Select a Start Time.
+Select an End Time.
+System validates the selected time range.
+System calculates the booking duration.
+System calculates the applicable price.
+Customer reviews the booking.
+Customer enters name.
+Customer enters mobile number.
+Customer enters email.
+Customer submits the booking.
+System performs a final server-side availability check.
+System creates the booking.
+System displays the booking reference.
+
+Example:
+
+Date:
+September 20, 2026
+
+Court:
+Court 2
+
+Start:
+6:00 PM
+
+End:
+10:00 PM
+
+Duration:
+4 hours
+
+Price:
+Calculated from the configured pricing rules.
+
+The customer should create one booking for the complete continuous period.
 
 Do not require customer registration in Version 1.
 
@@ -285,25 +427,69 @@ Court
 +
 Booking Date
 +
-Time Slot
+Requested StartTime
++
+Requested EndTime
 
-Example:
+The system must determine whether the requested continuous time range overlaps an existing active booking.
 
-Court 1
+Example
+
+Existing booking:
+
+Court 2
 September 20
-10:00–11:00
+18:00–20:00
 
-If already booked:
+Requested booking:
+
+Court 2
+September 20
+19:00–22:00
+
+Result:
 
 NOT AVAILABLE
 
-Otherwise:
+Reason:
+
+The requested period overlaps the existing booking.
+
+Back-to-Back Booking
+
+Existing:
+
+18:00–20:00
+
+Requested:
+
+20:00–22:00
+
+Result:
 
 AVAILABLE
 
-The server must perform the final availability check.
+The end time of one booking may equal the start time of another booking.
 
-Do not rely only on frontend checks.
+Cancelled Booking
+
+Cancelled bookings must not block availability.
+
+Availability Status
+
+The customer-facing interface should clearly distinguish:
+
+Available
+Booked
+Unavailable
+Selected
+Server Validation
+
+The server must perform the final availability check immediately before creating the booking.
+
+The frontend availability display must never be treated as authoritative.
+
+The system must protect against two customers attempting to book overlapping periods at approximately the same time.
 
 ---
 
@@ -311,25 +497,95 @@ Do not rely only on frontend checks.
 
 This is a critical business rule.
 
-The system must never allow two active bookings for:
+The system must never allow two active bookings for the same:
 
-Same Court
-+
-Same Date
-+
-Same Time Slot
+Court
+Booking Date
+Overlapping time period
+
+The system must detect overlapping time ranges.
+
+Conceptually, a requested booking overlaps an existing active booking when:
+
+ExistingStartTime < RequestedEndTime
+
+AND
+
+ExistingEndTime > RequestedStartTime
+
+Example 1 — Overlap
+
+Existing:
+
+18:00–20:00
+
+Requested:
+
+19:00–22:00
+
+Result:
+
+REJECTED
+
+Example 2 — Overlap
+
+Existing:
+
+18:00–22:00
+
+Requested:
+
+19:00–20:00
+
+Result:
+
+REJECTED
+
+Example 3 — Back-to-Back
+
+Existing:
+
+18:00–20:00
+
+Requested:
+
+20:00–22:00
+
+Result:
+
+ALLOWED
+
+Example 4 — Before Existing Booking
+
+Existing:
+
+18:00–20:00
+
+Requested:
+
+16:00–18:00
+
+Result:
+
+ALLOWED
+
+Protection Requirements
 
 Before creating a booking:
 
-1. Check availability.
-2. Validate again on the server.
-3. Reject if unavailable.
-4. Return a friendly message.
-5. Use a database-level uniqueness constraint where appropriate.
+Check availability.
+Validate the requested time range.
+Validate the court.
+Validate the booking date.
+Validate operating hours.
+Perform the final server-side overlap check.
+Use appropriate database constraints, transactions, or concurrency protection.
+Reject the booking if an overlapping active booking exists.
+Return a friendly message to the customer.
 
-Cancelled bookings should not block the slot.
+The implementation must handle two customers attempting to reserve overlapping periods at approximately the same time.
 
-The system must handle two customers attempting to book the same slot at approximately the same time.
+Cancelled bookings must not block the requested period.
 
 ---
 
@@ -538,25 +794,35 @@ Use ASP.NET Core logging for technical errors.
 
 # 20. TESTING
 
-Build the application to be testable.
+# ADDITIONAL BOOKING AND CALENDAR TESTS
 
-Create automated tests using xUnit where appropriate.
+Automated tests must include:
 
-Test:
+1. Valid multi-hour booking creation.
+2. StartTime is stored correctly.
+3. EndTime is stored correctly.
+4. Duration is calculated correctly.
+5. EndTime before StartTime is rejected.
+6. EndTime equal to StartTime is rejected.
+7. Booking outside operating hours is rejected.
+8. Overlapping booking is rejected.
+9. Back-to-back booking is allowed.
+10. Existing booking completely contains requested booking.
+11. Requested booking completely contains existing booking.
+12. Partial overlap at the beginning.
+13. Partial overlap at the end.
+14. Cancelled booking does not block availability.
+15. Correct price for a multi-hour booking.
+16. Correct price when crossing pricing periods.
+17. Client-provided price cannot override server-calculated price.
+18. Inactive court is rejected.
+19. Past booking date is rejected.
+20. Two concurrent booking attempts cannot both create overlapping bookings.
+21. Booking reference remains unique.
+22. Booking lookup continues to work.
+23. Existing admin booking functionality continues to work.
+24. Existing booking status transitions continue to work.
 
-1. Booking creation.
-2. Past booking date rejection.
-3. Inactive court rejection.
-4. Inactive time slot rejection.
-5. Double booking rejection.
-6. Cancelled booking releases slot.
-7. Correct price calculation.
-8. Unique booking reference.
-9. Booking lookup authorization.
-10. Admin authorization.
-11. Court management.
-12. Time slot management.
-13. Pricing management.
 
 ---
 
@@ -759,13 +1025,23 @@ Do not add paid services without asking me first.
 
 CUSTOMER:
 
+CUSTOMER:
+
 ✓ View website
-✓ Select date
-✓ View courts
-✓ View available slots
+✓ Open modern booking/calendar interface
+✓ Navigate/select booking date
+✓ View active courts
+✓ View court availability
 ✓ Select court
-✓ Select time
-✓ See price
+✓ Select Start Time
+✓ Select End Time
+✓ Book multiple consecutive hours as one booking
+✓ See calculated duration
+✓ See calculated price
+✓ Cannot select an invalid time range
+✓ Cannot select an unavailable period
+✓ Cannot overlap another active booking
+✓ Can book back-to-back with another booking
 ✓ Enter name
 ✓ Enter mobile
 ✓ Enter email
@@ -773,7 +1049,8 @@ CUSTOMER:
 ✓ Receive booking reference
 ✓ Look up booking
 ✓ Cannot book past date
-✓ Cannot double-book
+✓ Cannot manipulate the server-calculated price
+✓ Booking works on mobile
 
 ADMIN:
 
@@ -812,181 +1089,191 @@ SYSTEM:
 
 # CURRENT TASK
 
-Do not build the whole system.
+# CURRENT TASK
 
-First inspect the existing repository and determine whether the basic ASP.NET Core Razor Pages project is correctly configured.
+The Pickleball Booking System has already completed the original Phases 1–15.
 
-Then report:
+The current task is to redesign the booking and availability experience while preserving the existing working application.
 
-1. Current project structure.
-2. .NET version.
-3. Existing packages.
-4. Existing configuration.
-5. Any problems you find.
+## IMPORTANT
 
-Do not make major changes until I approve the plan.
+Do NOT immediately modify the application.
 
-After my approval, begin Phase 1.
+First inspect the existing repository and implementation.
 
-# UI AND AVAILABILITY ENHANCEMENT REQUIREMENTS
+Read:
 
-The original Phase 1–15 functionality has already been implemented.
+* PROJECT_REQUIREMENTS.md
+* DEVELOPMENT_PLAN.md
+* TODO.md
+* README.md
 
-The next development phases must enhance the existing application without unnecessarily rebuilding working features.
+Then inspect:
 
-## Existing Functionality Protection
+* Booking model
+* Court model
+* TimeSlot model
+* Pricing model
+* ApplicationDbContext
+* EF Core configurations
+* Existing migrations
+* Booking services
+* Availability services
+* Pricing services
+* Customer booking pages
+* Admin booking pages
+* Existing validation
+* Existing database constraints
+* Existing automated tests
 
-Before making changes:
+## New Booking Requirement
 
-1. Inspect the existing implementation.
-2. Read the current models, services, Razor Pages, database configuration, and tests.
-3. Identify existing business rules.
-4. Preserve working functionality.
-5. Do not replace or rewrite working code unless required by the enhancement.
-6. Do not change the database schema unless a change is genuinely required.
-7. Maintain existing authentication and authorization.
-8. Maintain existing pricing calculations.
-9. Maintain existing double-booking protection.
+The customer must be able to create a continuous booking by selecting:
 
-## Court Availability
-
-Create a customer-facing Court Availability feature.
-
-The customer should be able to:
-
-1. Open the Court Availability page.
-2. Select a date.
-3. View all active courts.
-4. View all active time slots.
-5. Clearly see whether each court/time-slot combination is:
-
-   * Available
-   * Booked
-   * Unavailable
-6. Select an available court and time slot.
-7. Continue directly to the existing booking process with the selected court, date, and time slot.
-8. Have the booking page revalidate availability on the server before creating the booking.
-
-The availability display must use the existing booking rules.
-
-Cancelled bookings must not block a slot.
-
-The feature must not weaken existing double-booking protection.
-
-## Availability UI
-
-Prefer a court/time-slot matrix on desktop.
+1. Date
+2. Court
+3. Start Time
+4. End Time
 
 Example:
 
-| Time        | Court 1   | Court 2   | Court 3   |
-| ----------- | --------- | --------- | --------- |
-| 08:00–09:00 | Available | Booked    | Available |
-| 09:00–10:00 | Available | Available | Booked    |
+Court 2
+September 20, 2026
+6:00 PM–10:00 PM
 
-Available slots should be selectable.
+This is ONE booking with:
 
-Booked and unavailable slots must not be selectable.
+Duration = 4 hours
 
-The mobile version does not need to force a wide table. Use a mobile-friendly layout if necessary.
+## New Availability Requirement
 
-## UI Framework
+Availability must be calculated using:
 
-Continue using:
+Court
++
+Booking Date
++
+StartTime
++
+EndTime
 
-* ASP.NET Core Razor Pages
+The system must prevent overlapping active bookings.
+
+Back-to-back bookings are allowed.
+
+Cancelled bookings do not block availability.
+
+## New UI Requirement
+
+The customer booking experience should eventually use a modern calendar/schedule-style interface.
+
+Use Bootstrap 5 and Bootstrap Icons.
+
+Keep the existing ASP.NET Core Razor Pages architecture.
+
+Do not introduce React, Angular, Vue, Next.js, Node.js, or a separate frontend application.
+
+## Copilot Working Rule
+
+Do not make code changes yet.
+
+Do not create migrations yet.
+
+Do not delete TimeSlot functionality yet.
+
+First provide:
+
+1. Current Booking architecture
+2. Current TimeSlot architecture
+3. Current Pricing architecture
+4. Current Availability architecture
+5. Current database schema
+6. Existing database constraints
+7. Existing booking tests
+8. Proposed Booking model changes
+9. Proposed TimeSlot changes
+10. Proposed pricing changes
+11. Proposed availability algorithm
+12. Proposed overlap protection
+13. Proposed database migration
+14. Existing files that need modification
+15. New files that may be required
+16. Tests that need modification
+17. New tests required
+18. Data migration riskss
+19. Recommended implementation order
+
+Wait for approval before making any implementation changes.
+
+Do not make unrelated changes.
+
+# MODERN CALENDAR BOOKING UI
+
+The customer booking interface should use a modern calendar/schedule-style experience.
+
+The design should be inspired by modern reservation and sports facility booking interfaces.
+
+## Customer Calendar
+
+The customer should be able to:
+
+* Navigate between dates
+* Select a date
+* View available courts
+* View booked periods
+* Select a court
+* Select a Start Time
+* Select an End Time
+* Visually see the selected continuous period
+* See the calculated duration
+* See the calculated price
+* Continue to booking
+
+## Desktop
+
+Prefer a schedule/calendar layout where practical.
+
+Example:
+
+| Time  | Court 1   | Court 2   | Court 3   |
+| ----- | --------- | --------- | --------- |
+| 18:00 | Available | Booked    | Available |
+| 19:00 | Available | Booked    | Available |
+| 20:00 | Available | Available | Available |
+| 21:00 | Available | Available | Available |
+
+A customer selecting:
+
+18:00–22:00
+
+should see the entire selected period visually represented as one continuous selection.
+
+## Mobile
+
+Do not force a wide desktop calendar onto a mobile screen.
+
+Use a mobile-friendly layout that may present:
+
+* Date selector
+* Court selector
+* Start time
+* End time
+* Selected booking summary
+
+The booking process must remain easy to use on a phone.
+
+## UI Technology
+
+Use:
+
 * Bootstrap 5
 * Bootstrap Icons
 * HTML
 * CSS
-* Minimal JavaScript only when necessary
+* Minimal JavaScript
 
-Do not introduce:
+Do not introduce React, Angular, Vue, Next.js, Node.js, or a separate frontend application.
 
-* React
-* Angular
-* Vue
-* Next.js
-* Node.js
-* A separate frontend application
+A lightweight JavaScript calendar/scheduling component may be considered only if it is compatible with the existing ASP.NET Core Razor Pages architecture and does not introduce unnecessary complexity or paid dependencies.
 
-## UI Design Goals
-
-The UI should feel:
-
-* Modern
-* Clean
-* Professional
-* Sports-oriented
-* Mobile-friendly
-* Easy to understand
-
-Improve:
-
-* Navigation
-* Homepage
-* Booking flow
-* Availability page
-* Booking confirmation
-* Booking lookup
-* Admin dashboard
-* Admin management pages
-* Forms
-* Tables
-* Buttons
-* Cards
-* Empty states
-* Error states
-
-## UI Enhancement Rules
-
-Do not change business functionality only for visual reasons.
-
-Separate UI changes from business logic changes where practical.
-
-Reuse existing services and business logic.
-
-Create reusable UI components or partial views where appropriate.
-
-Ensure responsive behavior for:
-
-* Desktop
-* Laptop
-* Tablet
-* Mobile
-
-## Testing Requirements
-
-After implementing each phase:
-
-1. Build the application.
-2. Run existing automated tests.
-3. Add tests for new business behavior.
-4. Verify that existing booking functionality still works.
-5. Verify that double-booking protection still works.
-6. Perform manual responsive testing.
-7. Test desktop and mobile layouts.
-8. Fix compilation errors and relevant test failures before completing the phase.
-
-## Development Process
-
-Do not implement Phases 16, 17, and 18 all at once.
-
-Work in this order:
-
-Phase 16 — Court Availability
-
-Wait for review and confirmation.
-
-Phase 17 — UI/UX Redesign
-
-Wait for review and confirmation.
-
-Phase 18 — UI Polish
-
-Wait for review and confirmation.
-
-Before starting each phase, inspect the current implementation and provide a short implementation plan.
-
-Do not make unrelated changes.
 

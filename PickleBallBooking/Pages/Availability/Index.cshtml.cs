@@ -25,7 +25,7 @@ public class IndexModel : PageModel
 
     public List<TimeSlot> TimeSlots { get; set; } = new();
 
-    public HashSet<(int CourtId, int TimeSlotId)> BookedSlots { get; set; } = new();
+    public HashSet<(int CourtId, int? TimeSlotId)> BookedSlots { get; set; } = new();
 
     public bool IsPastDate { get; set; }
 

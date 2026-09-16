@@ -25,7 +25,7 @@ public class IndexModel : PageModel
 
     public List<TimeSlot> TimeSlots { get; set; } = new();
 
-    public Dictionary<(int CourtId, int TimeSlotId), Models.Booking> BookingsByCourtAndSlot { get; set; } = new();
+    public Dictionary<(int CourtId, int? TimeSlotId), Models.Booking> BookingsByCourtAndSlot { get; set; } = new();
 
     public async Task OnGetAsync()
     {

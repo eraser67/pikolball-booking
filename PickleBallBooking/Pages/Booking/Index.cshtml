@@ -28,12 +28,21 @@
         <span asp-validation-for="Input.CourtId" class="text-danger"></span>
     </div>
 
-    <div class="mb-3">
-        <label asp-for="Input.TimeSlotId" class="form-label"></label>
-        <select asp-for="Input.TimeSlotId" asp-items="Model.TimeSlots" class="form-select">
-            <option value="">-- Select a time --</option>
-        </select>
-        <span asp-validation-for="Input.TimeSlotId" class="text-danger"></span>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="Input.StartTime" class="form-label"></label>
+            <select asp-for="Input.StartTime" asp-items="Model.StartTimes" class="form-select">
+                <option value="">-- Select a start time --</option>
+            </select>
+            <span asp-validation-for="Input.StartTime" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label asp-for="Input.EndTime" class="form-label"></label>
+            <select asp-for="Input.EndTime" asp-items="Model.EndTimes" class="form-select">
+                <option value="">-- Select an end time --</option>
+            </select>
+            <span asp-validation-for="Input.EndTime" class="text-danger"></span>
+        </div>
     </div>
 
     <button type="submit" asp-page-handler="Calculate" class="btn btn-outline-primary">Check Price</button>

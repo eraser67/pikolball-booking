@@ -14,18 +14,19 @@ public class BookingService : IBookingService
         _context = context;
     }
 
-    public async Task<bool> IsAvailableAsync(int courtId, int timeSlotId, DateOnly bookingDate)
+    public async Task<bool> IsAvailableAsync(int courtId, DateOnly bookingDate, TimeSpan startTime, TimeSpan endTime)
     {
         var alreadyBooked = await _context.Bookings.AnyAsync(b =>
             b.CourtId == courtId
-            && b.TimeSlotId == timeSlotId
             && b.BookingDate == bookingDate
-            && b.BookingStatus != BookingStatus.Cancelled);
+            && b.BookingStatus != BookingStatus.Cancelled
+            && b.StartTime < endTime
+            && b.EndTime > startTime);
 
         return !alreadyBooked;
     }
 
-    public async Task<Models.Booking?> LookupBookingAsync(string bookingReference, string contactInfo)
+    public async Task<Booking?> LookupBookingAsync(string bookingReference, string contactInfo)
     {
         if (string.IsNullOrWhiteSpace(bookingReference) || string.IsNullOrWhiteSpace(contactInfo))
         {
@@ -43,21 +44,22 @@ public class BookingService : IBookingService
                 && (b.CustomerPhone == contact || b.CustomerEmail.ToLower() == contact.ToLower()));
     }
 
-    public async Task<PriceCalculationResult> CalculatePriceAsync(int courtId, int timeSlotId, DateOnly bookingDate)
+    public async Task<PriceCalculationResult> CalculatePriceAsync(DateOnly bookingDate, TimeSpan startTime, TimeSpan endTime)
     {
-        var validation = await ValidateAndGetPriceAsync(courtId, timeSlotId, bookingDate);
+        var validation = await ValidateAndGetPriceAsync(null, bookingDate, startTime, endTime);
         return validation;
     }
 
     public async Task<BookingResult> CreateBookingAsync(
         int courtId,
-        int timeSlotId,
         DateOnly bookingDate,
+        TimeSpan startTime,
+        TimeSpan endTime,
         string customerName,
         string customerPhone,
         string customerEmail)
     {
-        var priceResult = await ValidateAndGetPriceAsync(courtId, timeSlotId, bookingDate);
+        var priceResult = await ValidateAndGetPriceAsync(courtId, bookingDate, startTime, endTime);
         if (!priceResult.Success)
         {
             return BookingResult.Fail(priceResult.ErrorMessage!);
@@ -66,18 +68,17 @@ public class BookingService : IBookingService
         const int maxAttempts = 5;
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            // Re-validate availability on every attempt: the slot may have just been
-            // booked by another customer between the initial check and this attempt.
-            var isAvailable = await IsAvailableAsync(courtId, timeSlotId, bookingDate);
+            var isAvailable = await IsAvailableAsync(courtId, bookingDate, startTime, endTime);
             if (!isAvailable)
             {
-                return BookingResult.Fail("Sorry, this time slot is no longer available. Please select another time.");
+                return BookingResult.Fail("Sorry, this time range is no longer available. Please select another time.");
             }
 
             var countForDate = await _context.Bookings.CountAsync(b => b.BookingDate == bookingDate);
             var sequence = countForDate + 1 + attempt;
             var reference = $"PB-{bookingDate:yyyyMMdd}-{sequence:D4}";
 
+            var durationHours = Math.Round((endTime - startTime).TotalHours, 2);
             var booking = new Booking
             {
                 BookingReference = reference,
@@ -86,7 +87,9 @@ public class BookingService : IBookingService
                 CustomerEmail = customerEmail,
                 CourtId = courtId,
                 BookingDate = bookingDate,
-                TimeSlotId = timeSlotId,
+                StartTime = startTime,
+                EndTime = endTime,
+                DurationHours = (decimal)durationHours,
                 Price = priceResult.Price,
                 BookingStatus = BookingStatus.Pending,
                 CreatedAt = DateTime.UtcNow,
@@ -100,22 +103,18 @@ public class BookingService : IBookingService
                 await _context.SaveChangesAsync();
                 return BookingResult.Ok(booking);
             }
-            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex, "IX_Bookings_CourtId_BookingDate_TimeSlotId"))
-            {
-                // Another request won the race and booked this slot first (database-level
-                // double booking protection). Do not retry with a new reference; the slot
-                // is genuinely taken.
-                _context.Entry(booking).State = EntityState.Detached;
-                return BookingResult.Fail("Sorry, this time slot is no longer available. Please select another time.");
-            }
             catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex, "IX_Bookings_BookingReference"))
             {
-                // Extremely unlikely reference collision: retry with a freshly computed reference.
                 _context.Entry(booking).State = EntityState.Detached;
+            }
+            catch (DbUpdateException ex) when (IsExclusionConstraintViolation(ex, "EX_Bookings_NoOverlap"))
+            {
+                _context.Entry(booking).State = EntityState.Detached;
+                return BookingResult.Fail("The selected time is no longer available. Please choose another time.");
             }
         }
 
-        return BookingResult.Fail("Sorry, this time slot is no longer available. Please select another time.");
+        return BookingResult.Fail("The selected time is no longer available. Please choose another time.");
     }
 
     public async Task<List<Booking>> GetBookingsForAdminAsync(BookingAdminFilter filter)
@@ -152,7 +151,7 @@ public class BookingService : IBookingService
 
         return await query
             .OrderByDescending(b => b.BookingDate)
-            .ThenBy(b => b.TimeSlot!.StartTime)
+            .ThenBy(b => b.StartTime)
             .ToListAsync();
     }
 
@@ -208,47 +207,98 @@ public class BookingService : IBookingService
             && postgresException.ConstraintName == indexName;
     }
 
-    private async Task<PriceCalculationResult> ValidateAndGetPriceAsync(int courtId, int timeSlotId, DateOnly bookingDate)
+    private static bool IsExclusionConstraintViolation(DbUpdateException ex, string constraintName)
+    {
+        return ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.ExclusionViolation } postgresException
+            && postgresException.ConstraintName == constraintName;
+    }
+
+    private async Task<PriceCalculationResult> ValidateAndGetPriceAsync(int? courtId, DateOnly bookingDate, TimeSpan startTime, TimeSpan endTime)
     {
         if (bookingDate < DateOnly.FromDateTime(DateTime.UtcNow.Date))
         {
             return PriceCalculationResult.Fail("Booking date cannot be in the past.");
         }
 
-        var court = await _context.Courts.FindAsync(courtId);
-        if (court is null || court.Status != CourtStatus.Active)
+        if (endTime <= startTime)
         {
-            return PriceCalculationResult.Fail("The selected court is not available.");
+            return PriceCalculationResult.Fail("End time must be after start time.");
         }
 
-        var timeSlot = await _context.TimeSlots.FindAsync(timeSlotId);
-        if (timeSlot is null || timeSlot.Status != TimeSlotStatus.Active)
+        var durationHours = (endTime - startTime).TotalHours;
+        if (durationHours <= 0)
         {
-            return PriceCalculationResult.Fail("The selected time slot is not available.");
+            return PriceCalculationResult.Fail("Booking duration must be greater than zero.");
+        }
+
+        if (courtId.HasValue)
+        {
+            var court = await _context.Courts.FindAsync(courtId.Value);
+            if (court is null || court.Status != CourtStatus.Active)
+            {
+                return PriceCalculationResult.Fail("The selected court is not available.");
+            }
         }
 
         var dayType = bookingDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
             ? DayType.Weekend
             : DayType.Weekday;
 
-        var pricing = await _context.Pricings
-            .Where(p => p.Status == PricingStatus.Active
-                        && p.DayType == dayType
-                        && p.StartTime <= timeSlot.StartTime
-                        && p.EndTime >= timeSlot.EndTime)
-            .FirstOrDefaultAsync();
+        var pricingBands = await _context.Pricings
+            .Where(p => p.Status == PricingStatus.Active && p.DayType == dayType)
+            .OrderBy(p => p.StartTime)
+            .ToListAsync();
 
-        if (pricing is null)
+        if (pricingBands.Count == 0)
         {
             return PriceCalculationResult.Fail("Pricing is not configured for the selected date and time.");
         }
 
-        var isAvailable = await IsAvailableAsync(courtId, timeSlotId, bookingDate);
-        if (!isAvailable)
+        var cursor = startTime;
+        decimal totalPrice = 0m;
+
+        while (cursor < endTime)
         {
-            return PriceCalculationResult.Fail("Sorry, this time slot is no longer available. Please select another time.");
+            var band = pricingBands.FirstOrDefault(p => p.StartTime <= cursor && p.EndTime > cursor);
+            if (band is null)
+            {
+                return PriceCalculationResult.Fail("Pricing is not configured for the selected date and time.");
+            }
+
+            var segmentEnd = pricingBands
+                .Where(p => p.StartTime > cursor)
+                .Select(p => p.StartTime)
+                .DefaultIfEmpty(endTime)
+                .Min();
+
+            if (segmentEnd > band.EndTime)
+            {
+                segmentEnd = band.EndTime;
+            }
+
+            if (segmentEnd > endTime)
+            {
+                segmentEnd = endTime;
+            }
+
+            if (segmentEnd <= cursor)
+            {
+                return PriceCalculationResult.Fail("Pricing is not configured for the selected date and time.");
+            }
+
+            totalPrice += (decimal)(segmentEnd - cursor).TotalHours * band.Price;
+            cursor = segmentEnd;
         }
 
-        return PriceCalculationResult.Ok(pricing.Price);
+        if (courtId.HasValue)
+        {
+            var isAvailable = await IsAvailableAsync(courtId.Value, bookingDate, startTime, endTime);
+            if (!isAvailable)
+            {
+                return PriceCalculationResult.Fail("Sorry, this time range is no longer available. Please select another time.");
+            }
+        }
+
+        return PriceCalculationResult.Ok(decimal.Round(totalPrice, 2));
     }
 }

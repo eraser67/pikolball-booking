@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using NpgsqlTypes;
 using PickleBallBooking.Models;
 
 namespace PickleBallBooking.Data;
@@ -31,11 +32,17 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         {
             entity.HasIndex(b => b.BookingReference).IsUnique();
 
-            // Prevent double booking at the database level: only one non-cancelled
-            // booking may exist for a given Court + Date + TimeSlot combination.
+            // Legacy discrete-slot protection retained until booking logic is migrated.
             entity.HasIndex(b => new { b.CourtId, b.BookingDate, b.TimeSlotId })
                 .IsUnique()
                 .HasFilter("\"BookingStatus\" <> 2"); // 2 = Cancelled
+
+            // Range-friendly query index for future overlap checks and availability lookups.
+            entity.HasIndex(b => new { b.CourtId, b.BookingDate, b.StartTime, b.EndTime });
+
+            entity.Property<NpgsqlRange<DateTime>>("BookingPeriod")
+                .HasColumnType("tsrange")
+                .HasComputedColumnSql("tsrange((\"BookingDate\"::timestamp + \"StartTime\"), (\"BookingDate\"::timestamp + \"EndTime\"), '[)')", stored: true);
 
             entity.HasOne(b => b.Court)
                 .WithMany()

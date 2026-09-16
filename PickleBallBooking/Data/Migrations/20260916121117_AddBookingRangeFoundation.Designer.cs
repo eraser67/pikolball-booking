@@ -2,9 +2,9 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using NpgsqlTypes;
 using PickleBallBooking.Data;
 
 #nullable disable
@@ -12,9 +12,11 @@ using PickleBallBooking.Data;
 namespace PickleBallBooking.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260916121117_AddBookingRangeFoundation")]
+    partial class AddBookingRangeFoundation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -230,11 +232,6 @@ namespace PickleBallBooking.Data.Migrations
                     b.Property<DateOnly>("BookingDate")
                         .HasColumnType("date");
 
-                    b.Property<NpgsqlRange<DateTime>>("BookingPeriod")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("tsrange")
-                        .HasComputedColumnSql("tsrange((\"BookingDate\"::timestamp + \"StartTime\"), (\"BookingDate\"::timestamp + \"EndTime\"), '[)')", true);
-
                     b.Property<string>("BookingReference")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -268,13 +265,13 @@ namespace PickleBallBooking.Data.Migrations
                         .HasColumnType("numeric(6,2)");
 
                     b.Property<TimeSpan>("EndTime")
-                        .HasColumnType("time without time zone");
+                        .HasColumnType("interval");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(10,2)");
 
                     b.Property<TimeSpan>("StartTime")
-                        .HasColumnType("time without time zone");
+                        .HasColumnType("interval");
 
                     b.Property<int?>("TimeSlotId")
                         .HasColumnType("integer");

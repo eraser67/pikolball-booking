@@ -2,16 +2,17 @@ namespace PickleBallBooking.Services;
 
 public interface IBookingService
 {
-    Task<bool> IsAvailableAsync(int courtId, int timeSlotId, DateOnly bookingDate);
+    Task<bool> IsAvailableAsync(int courtId, DateOnly bookingDate, TimeSpan startTime, TimeSpan endTime);
 
-    Task<PriceCalculationResult> CalculatePriceAsync(int courtId, int timeSlotId, DateOnly bookingDate);
+    Task<PriceCalculationResult> CalculatePriceAsync(DateOnly bookingDate, TimeSpan startTime, TimeSpan endTime);
 
     Task<Models.Booking?> LookupBookingAsync(string bookingReference, string contactInfo);
 
     Task<BookingResult> CreateBookingAsync(
         int courtId,
-        int timeSlotId,
         DateOnly bookingDate,
+        TimeSpan startTime,
+        TimeSpan endTime,
         string customerName,
         string customerPhone,
         string customerEmail);

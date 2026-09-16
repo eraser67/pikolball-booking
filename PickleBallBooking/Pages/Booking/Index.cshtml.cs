@@ -24,13 +24,15 @@ public class IndexModel : PageModel
 
     public List<SelectListItem> Courts { get; set; } = new();
 
-    public List<SelectListItem> TimeSlots { get; set; } = new();
+    public List<SelectListItem> StartTimes { get; set; } = new();
+
+    public List<SelectListItem> EndTimes { get; set; } = new();
 
     public decimal? CalculatedPrice { get; set; }
 
     public string? ErrorMessage { get; set; }
 
-    public async Task OnGetAsync(DateOnly? date, int? courtId, int? timeSlotId)
+    public async Task OnGetAsync(DateOnly? date, int? courtId, TimeSpan? startTime, TimeSpan? endTime)
     {
         await LoadOptionsAsync();
 
@@ -44,15 +46,17 @@ public class IndexModel : PageModel
             Input.CourtId = courtId.Value;
         }
 
-        if (timeSlotId.HasValue)
+        if (startTime.HasValue)
         {
-            Input.TimeSlotId = timeSlotId.Value;
+            Input.StartTime = startTime.Value;
         }
 
-        // When arriving from the Court Availability page with a pre-selected
-        // court/date/time slot, immediately show the calculated price. The
-        // server still re-validates availability here and again on submit.
-        if (courtId.HasValue && timeSlotId.HasValue && date.HasValue)
+        if (endTime.HasValue)
+        {
+            Input.EndTime = endTime.Value;
+        }
+
+        if (courtId.HasValue && startTime.HasValue && endTime.HasValue && date.HasValue)
         {
             await TryCalculatePriceAsync();
         }
@@ -81,7 +85,7 @@ public class IndexModel : PageModel
 
         if (!ModelState.IsValid)
         {
-            var priceResult = await _bookingService.CalculatePriceAsync(Input.CourtId, Input.TimeSlotId, Input.BookingDate);
+            var priceResult = await _bookingService.CalculatePriceAsync(Input.BookingDate, Input.StartTime!.Value, Input.EndTime!.Value);
             if (priceResult.Success)
             {
                 CalculatedPrice = priceResult.Price;
@@ -92,8 +96,9 @@ public class IndexModel : PageModel
 
         var result = await _bookingService.CreateBookingAsync(
             Input.CourtId,
-            Input.TimeSlotId,
             Input.BookingDate,
+            Input.StartTime!.Value,
+            Input.EndTime!.Value,
             Input.CustomerName,
             Input.CustomerPhone,
             Input.CustomerEmail);
@@ -109,7 +114,7 @@ public class IndexModel : PageModel
 
     private async Task<bool> TryCalculatePriceAsync()
     {
-        var result = await _bookingService.CalculatePriceAsync(Input.CourtId, Input.TimeSlotId, Input.BookingDate);
+        var result = await _bookingService.CalculatePriceAsync(Input.BookingDate, Input.StartTime!.Value, Input.EndTime!.Value);
         if (!result.Success)
         {
             ErrorMessage = result.ErrorMessage;
@@ -128,8 +133,18 @@ public class IndexModel : PageModel
             .ToList();
 
         var timeSlots = await _timeSlotService.GetActiveAsync();
-        TimeSlots = timeSlots
-            .Select(t => new SelectListItem($"{t.StartTime:hh\\:mm} - {t.EndTime:hh\\:mm}", t.Id.ToString()))
+        var selectableTimes = timeSlots
+            .SelectMany(t => new[] { t.StartTime, t.EndTime })
+            .Distinct()
+            .OrderBy(t => t)
+            .ToList();
+
+        StartTimes = selectableTimes
+            .Select(t => new SelectListItem(t.ToString(@"hh\:mm"), t.ToString(@"c")))
+            .ToList();
+
+        EndTimes = selectableTimes
+            .Select(t => new SelectListItem(t.ToString(@"hh\:mm"), t.ToString(@"c")))
             .ToList();
     }
 
@@ -144,9 +159,15 @@ public class IndexModel : PageModel
         [Display(Name = "Court")]
         public int CourtId { get; set; }
 
-        [Required(ErrorMessage = "Please select a time slot.")]
-        [Display(Name = "Time Slot")]
-        public int TimeSlotId { get; set; }
+        [Required(ErrorMessage = "Please select a start time.")]
+        [Display(Name = "Start Time")]
+        [DataType(DataType.Time)]
+        public TimeSpan? StartTime { get; set; }
+
+        [Required(ErrorMessage = "Please select an end time.")]
+        [Display(Name = "End Time")]
+        [DataType(DataType.Time)]
+        public TimeSpan? EndTime { get; set; }
 
         [Required(ErrorMessage = "Please enter your name.")]
         [MaxLength(100)]

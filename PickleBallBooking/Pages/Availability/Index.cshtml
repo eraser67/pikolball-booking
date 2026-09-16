@@ -5,7 +5,7 @@
 }
 
 <h1>Court Availability</h1>
-<p class="text-muted">Select a date to see which courts and time slots are open, then click an available slot to start booking.</p>
+<p class="text-muted">Select a date to see which courts are open, then click an available period to start booking.</p>
 
 <form method="get" class="row row-cols-lg-auto g-2 align-items-end mb-4">
     <div class="col-12">
@@ -59,7 +59,8 @@ else
                                     <a asp-page="/Booking/Index"
                                        asp-route-date="@Model.Date.ToString("yyyy-MM-dd")"
                                        asp-route-courtId="@court.Id"
-                                       asp-route-timeSlotId="@timeSlot.Id"
+                                       asp-route-startTime="@timeSlot.StartTime.ToString(@"c")"
+                                       asp-route-endTime="@timeSlot.EndTime.ToString(@"c")"
                                        class="badge bg-success text-decoration-none">Available</a>
                                 }
                                 else

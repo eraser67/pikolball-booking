@@ -30,13 +30,22 @@ public class Booking
 
     public DateOnly BookingDate { get; set; }
 
-    public int TimeSlotId { get; set; }
+    [Column(TypeName = "time without time zone")]
+    public TimeSpan StartTime { get; set; }
 
-    [ForeignKey(nameof(TimeSlotId))]
-    public TimeSlot? TimeSlot { get; set; }
+    [Column(TypeName = "time without time zone")]
+    public TimeSpan EndTime { get; set; }
+
+    [Column(TypeName = "numeric(6,2)")]
+    public decimal? DurationHours { get; set; }
 
     [Column(TypeName = "decimal(10,2)")]
     public decimal Price { get; set; }
+
+    public int? TimeSlotId { get; set; }
+
+    [ForeignKey(nameof(TimeSlotId))]
+    public TimeSlot? TimeSlot { get; set; }
 
     public BookingStatus BookingStatus { get; set; } = BookingStatus.Pending;
 
