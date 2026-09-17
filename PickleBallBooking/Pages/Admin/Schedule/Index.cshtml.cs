@@ -25,10 +25,10 @@ public class IndexModel : PageModel
 
     public List<TimeSlot> TimeSlots { get; set; } = new();
 
-    /// <summary>
-    /// Maps (CourtId, TimeSlotId) to booking for legacy range display.
+        /// <summary>
+    /// Maps (CourtId, TimeSlotId) to booking for display.
     /// </summary>
-    public Dictionary<(int CourtId, int? TimeSlotId), Models.Booking> BookingsByCourtAndSlot { get; set; } = new();
+    public Dictionary<(int CourtId, int TimeSlotId), Models.Booking> BookingsByCourtAndSlot { get; set; } = new();
 
     /// <summary>
     /// Slot availability matrix per court: courts[i][j] where i=courtId, j=slotId with SlotAvailability status.
@@ -39,13 +39,13 @@ public class IndexModel : PageModel
     {
         if (Date == default)
         {
-            Date = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+            Date = AppClock.TodayLocal;
         }
 
         Courts = await _courtService.GetActiveAsync();
         TimeSlots = await _timeSlotService.GetActiveAsync();
 
-        // Load legacy range-based bookings for backward compatibility
+        // Load slot-based bookings for the selected date.
         var bookings = await _bookingService.GetBookingsForAdminAsync(new BookingAdminFilter
         {
             BookingDate = Date
@@ -53,14 +53,15 @@ public class IndexModel : PageModel
 
         BookingsByCourtAndSlot = bookings
             .Where(b => b.BookingStatus != BookingStatus.Cancelled)
-            .ToDictionary(b => (b.CourtId, b.TimeSlotId));
+            .SelectMany(b => b.TimeSlots
+                .Where(bts => bts.IsActive)
+                .Select(bts => new { bts.CourtId, bts.TimeSlotId, Booking = b }))
+            .GroupBy(x => (x.CourtId, x.TimeSlotId))
+            .ToDictionary(g => g.Key, g => g.First().Booking);
 
-        // Load slot-based availability for each court (new fixed-slot model)
-        SlotAvailabilityByCourtId = new Dictionary<int, List<SlotAvailability>>();
-        foreach (var court in Courts)
-        {
-            var slotAvailability = await _bookingService.GetAvailableSlotsAsync(court.Id, Date);
-            SlotAvailabilityByCourtId[court.Id] = slotAvailability;
-        }
+        // Load slot-based availability for all courts in a single round-trip.
+        SlotAvailabilityByCourtId = await _bookingService.GetAvailabilityForAllCourtsAsync(
+            Courts.Select(c => c.Id),
+            Date);
     }
 }

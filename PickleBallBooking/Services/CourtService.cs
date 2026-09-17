@@ -74,9 +74,38 @@ public class CourtService : ICourtService
             return false;
         }
 
-        court.Status = status;
+                court.Status = status;
         court.UpdatedAt = DateTime.UtcNow;
 
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DeleteAsync(int id)
+    {
+        var court = await _context.Courts.FindAsync(id);
+        if (court is null)
+        {
+            return false;
+        }
+
+        var hasBookings = await _context.BookingTimeSlots.AnyAsync(bts => bts.CourtId == id)
+            || await _context.Bookings.AnyAsync(b => b.CourtId == id);
+        if (hasBookings)
+        {
+            throw new InvalidOperationException(
+                $"Court '{court.Name}' cannot be deleted because it has existing bookings. Deactivate it instead.");
+        }
+
+        var courtTimeSlots = await _context.CourtTimeSlots
+            .Where(cts => cts.CourtId == id)
+            .ToListAsync();
+        if (courtTimeSlots.Count > 0)
+        {
+            _context.CourtTimeSlots.RemoveRange(courtTimeSlots);
+        }
+
+        _context.Courts.Remove(court);
         await _context.SaveChangesAsync();
         return true;
     }

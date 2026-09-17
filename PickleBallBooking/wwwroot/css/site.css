@@ -358,3 +358,952 @@ body {
   margin-bottom: 1rem;
   opacity: 0.5;
 }
+
+/* ========================================================= */
+/* PHASE 18 - BRAND DESIGN SYSTEM                            */
+/* ========================================================= */
+
+:root {
+  /* Brand palette: court green + energetic lime accent */
+  --pb-green-900: #0f3d2e;
+  --pb-green-700: #146c43;
+  --pb-green-600: #198754;
+  --pb-green-500: #22a06b;
+  --pb-green-100: #d1f0e0;
+  --pb-lime-400: #b4e33d;
+  --pb-lime-500: #9fd227;
+  --pb-ink: #1c2b26;
+  --pb-muted: #5c6b66;
+  --pb-surface: #ffffff;
+  --pb-surface-alt: #f4f8f6;
+  --pb-border: #e3ebe7;
+  --pb-shadow-sm: 0 1px 2px rgba(15, 61, 46, 0.06), 0 4px 12px rgba(15, 61, 46, 0.06);
+  --pb-shadow-md: 0 6px 24px rgba(15, 61, 46, 0.10);
+  --pb-radius: 0.75rem;
+  --pb-radius-lg: 1.25rem;
+}
+
+body {
+  color: var(--pb-ink);
+  background-color: var(--pb-surface-alt);
+}
+
+a {
+  color: var(--pb-green-700);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--pb-green-900);
+}
+
+h1, h2, h3, h4, h5, .display-4, .display-5 {
+  color: var(--pb-green-900);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* -------- Navbar -------- */
+.pb-navbar {
+  background-color: var(--pb-surface);
+  border-bottom: 1px solid var(--pb-border);
+  box-shadow: var(--pb-shadow-sm);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.pb-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--pb-green-900) !important;
+  letter-spacing: -0.01em;
+  white-space: normal;
+}
+
+.pb-brand:hover {
+  color: var(--pb-green-900) !important;
+}
+
+.pb-brand-logo {
+  height: 40px;
+  width: 40px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(15, 61, 46, 0.25));
+}
+
+.pb-brand-text small {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pb-green-600);
+  line-height: 1;
+}
+
+.navbar .nav-link {
+  color: var(--pb-muted) !important;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.85rem !important;
+  margin: 0 0.1rem;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.navbar .nav-link:hover {
+  background-color: var(--pb-surface-alt);
+  color: var(--pb-green-900) !important;
+}
+
+.navbar .nav-link.active {
+  color: var(--pb-green-900) !important;
+  background-color: var(--pb-green-100);
+}
+
+.navbar .nav-link.pb-nav-cta {
+  background-color: var(--pb-green-600);
+  color: #fff !important;
+}
+
+.navbar .nav-link.pb-nav-cta:hover {
+  background-color: var(--pb-green-700);
+}
+
+.navbar .nav-link.pb-nav-cta.active {
+  background-color: var(--pb-green-700);
+  color: #fff !important;
+}
+
+.navbar-toggler {
+  border-color: var(--pb-border);
+}
+
+/* -------- Buttons -------- */
+.btn-primary {
+  background-color: var(--pb-green-600);
+  border-color: var(--pb-green-600);
+  font-weight: 600;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background-color: var(--pb-green-700);
+  border-color: var(--pb-green-700);
+}
+
+.btn-outline-primary {
+  color: var(--pb-green-700);
+  border-color: var(--pb-green-600);
+  font-weight: 600;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-primary:active {
+  background-color: var(--pb-green-600);
+  border-color: var(--pb-green-600);
+  color: #fff;
+}
+
+.btn-success {
+  background-color: var(--pb-green-600);
+  border-color: var(--pb-green-600);
+}
+
+.btn-lg {
+  border-radius: 0.6rem;
+}
+
+/* -------- Cards -------- */
+.card {
+  border: 1px solid var(--pb-border);
+  border-radius: var(--pb-radius);
+  background-color: var(--pb-surface);
+}
+
+.pb-card-hover {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.pb-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--pb-shadow-md);
+}
+
+.badge.bg-success { background-color: var(--pb-green-600) !important; }
+
+/* -------- Hero / Homepage -------- */
+.pb-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--pb-radius-lg);
+  background:
+    radial-gradient(circle at 85% 15%, rgba(180, 227, 61, 0.28), transparent 45%),
+    linear-gradient(135deg, var(--pb-green-900) 0%, var(--pb-green-700) 55%, var(--pb-green-600) 100%);
+  color: #eafaf2;
+  padding: 3.5rem 2.5rem;
+  margin-bottom: 2.5rem;
+  box-shadow: var(--pb-shadow-md);
+}
+
+.pb-hero h1 {
+  color: #ffffff;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.1;
+}
+
+.pb-hero .pb-hero-lead {
+  color: rgba(234, 250, 242, 0.9);
+  font-size: 1.125rem;
+  max-width: 34rem;
+}
+
+.pb-hero-eyebrow {
+  display: inline-block;
+  background-color: rgba(180, 227, 61, 0.18);
+  color: var(--pb-lime-400);
+  border: 1px solid rgba(180, 227, 61, 0.45);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  margin-bottom: 1.25rem;
+}
+
+.pb-hero .btn-lime {
+  background-color: var(--pb-lime-400);
+  border-color: var(--pb-lime-400);
+  color: var(--pb-green-900);
+  font-weight: 700;
+}
+
+.pb-hero .btn-lime:hover {
+  background-color: var(--pb-lime-500);
+  border-color: var(--pb-lime-500);
+  color: var(--pb-green-900);
+}
+
+.pb-hero .btn-ghost {
+  background-color: transparent;
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.pb-hero .btn-ghost:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
+.pb-hero-art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pb-hero-art img {
+  max-height: 340px;
+  width: auto;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.35));
+}
+
+@media (max-width: 767.98px) {
+  .pb-hero {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+  }
+  .pb-hero .pb-hero-lead {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .pb-hero-art {
+    margin-top: 2rem;
+  }
+  .pb-hero-art img {
+    max-height: 240px;
+  }
+}
+
+/* -------- Feature / Step Cards -------- */
+.pb-section-title {
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.pb-section-subtitle {
+  color: var(--pb-muted);
+  margin-bottom: 2rem;
+}
+
+.pb-feature-icon {
+  height: 56px;
+  width: 56px;
+  object-fit: contain;
+  margin-bottom: 1rem;
+}
+
+.pb-feature-card {
+  background-color: var(--pb-surface);
+  border: 1px solid var(--pb-border);
+  border-radius: var(--pb-radius);
+  padding: 1.75rem;
+  height: 100%;
+}
+
+.pb-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background-color: var(--pb-green-600);
+  color: #fff;
+  font-weight: 700;
+  margin-bottom: 0.85rem;
+}
+
+/* -------- Skip link -------- */
+.pb-skip-link {
+  position: absolute;
+  left: -999px;
+  top: 0.5rem;
+  z-index: 1080;
+  background-color: var(--pb-green-700);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+}
+
+.pb-skip-link:focus {
+  left: 0.5rem;
+  color: #fff;
+}
+
+/* -------- Footer -------- */
+.pb-footer {
+  background-color: var(--pb-green-900);
+  color: rgba(234, 250, 242, 0.75);
+  margin-top: 3rem;
+  padding: 2rem 0;
+  position: relative;
+}
+
+.pb-footer a {
+  color: var(--pb-lime-400);
+}
+
+.pb-footer a:hover {
+  color: #ffffff;
+}
+
+/* -------- Forms -------- */
+.form-control:focus, .form-select:focus {
+  border-color: var(--pb-green-500);
+  box-shadow: 0 0 0 0.2rem rgba(34, 160, 107, 0.2);
+}
+
+/* ========================================================= */
+/* PHASE 18 - HOME PAGE                                       */
+/* ========================================================= */
+
+.pb-section {
+  padding: 3.5rem 0;
+}
+
+.pb-section-alt {
+  background-color: var(--pb-surface);
+  border-radius: var(--pb-radius-lg);
+  margin: 1rem 0;
+}
+
+.pb-hero-tagline {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--pb-lime-400);
+  letter-spacing: -0.01em;
+}
+
+.pb-hero-benefits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.75rem;
+  color: rgba(234, 250, 242, 0.92);
+  font-weight: 500;
+}
+
+.pb-hero-benefits .bi {
+  color: var(--pb-lime-400);
+}
+
+.pb-empty-state {
+  background-color: var(--pb-surface);
+  border: 1px dashed var(--pb-border);
+  border-radius: var(--pb-radius);
+  padding: 3rem 1.5rem;
+  color: var(--pb-muted);
+}
+
+/* -------- Court cards -------- */
+.pb-court-card {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--pb-surface);
+  border: 1px solid var(--pb-border);
+  border-radius: var(--pb-radius);
+  overflow: hidden;
+  box-shadow: var(--pb-shadow-sm);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.pb-court-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--pb-shadow-md);
+}
+
+.pb-court-card-img {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--pb-green-900), var(--pb-green-600));
+}
+
+.pb-court-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.pb-court-card:hover .pb-court-card-img img {
+  transform: scale(1.05);
+}
+
+.pb-court-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+  color: #fff;
+}
+
+.pb-badge-open {
+  background-color: rgba(25, 135, 84, 0.92);
+}
+
+.pb-badge-closed {
+  background-color: rgba(108, 117, 125, 0.92);
+}
+
+.pb-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background-color: var(--pb-lime-400);
+}
+
+.pb-badge-closed .pb-dot {
+  background-color: #e9ecef;
+}
+
+.pb-court-card-body {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  padding: 1.25rem;
+}
+
+.pb-court-name {
+  margin-bottom: 0.4rem;
+  color: var(--pb-green-900);
+  font-weight: 700;
+}
+
+.pb-court-desc {
+  color: var(--pb-muted);
+  font-size: 0.925rem;
+  margin-bottom: 0.75rem;
+}
+
+.pb-court-preview {
+  font-size: 0.8rem;
+  color: var(--pb-green-700);
+  background-color: var(--pb-green-100);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  margin-bottom: 1rem;
+}
+
+/* -------- Feature icon tile -------- */
+.pb-feature-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 1rem;
+  background-color: var(--pb-green-100);
+  color: var(--pb-green-700);
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+}
+
+/* -------- Contact / map -------- */
+.pb-contact-list li {
+  margin-bottom: 0.75rem;
+  color: var(--pb-ink);
+}
+
+.pb-contact-list .bi {
+  color: var(--pb-green-600);
+}
+
+.pb-map-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  border-radius: var(--pb-radius);
+  background: linear-gradient(135deg, var(--pb-green-100), var(--pb-surface-alt));
+  border: 1px solid var(--pb-border);
+  color: var(--pb-green-700);
+  text-align: center;
+  padding: 2rem;
+}
+
+/* -------- FAQ accordion -------- */
+.pb-accordion .accordion-item {
+  border: 1px solid var(--pb-border);
+  border-radius: var(--pb-radius) !important;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+
+.pb-accordion .accordion-button {
+  font-weight: 600;
+  color: var(--pb-green-900);
+  background-color: var(--pb-surface);
+}
+
+.pb-accordion .accordion-button:not(.collapsed) {
+  color: var(--pb-green-900);
+  background-color: var(--pb-green-100);
+  box-shadow: none;
+}
+
+.pb-accordion .accordion-button:focus {
+  box-shadow: 0 0 0 0.2rem rgba(34, 160, 107, 0.2);
+}
+
+/* -------- Final CTA band -------- */
+.pb-cta-band {
+  background:
+    radial-gradient(circle at 15% 20%, rgba(180, 227, 61, 0.25), transparent 45%),
+    linear-gradient(135deg, var(--pb-green-900) 0%, var(--pb-green-700) 100%);
+  border-radius: var(--pb-radius-lg);
+  padding: 3rem 1.5rem;
+  margin: 2rem 0 1rem;
+}
+
+/* -------- Footer extras -------- */
+.pb-footer-brand {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #ffffff;
+}
+
+.pb-footer-heading {
+  color: #ffffff;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.85rem;
+}
+
+.pb-footer .list-unstyled li {
+  margin-bottom: 0.4rem;
+}
+
+.pb-footer-divider {
+  border-color: rgba(255, 255, 255, 0.12);
+  margin: 1.75rem 0 1rem;
+}
+
+/* ========================================================= */
+/* PHASE 18 - BOOKING EXPERIENCE (presentation only)         */
+/* ========================================================= */
+
+.pb-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  list-style: none;
+  padding: 0;
+}
+
+.pb-steps .pb-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--pb-muted);
+  background-color: var(--pb-surface);
+  border: 1px solid var(--pb-border);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+}
+
+.pb-steps .pb-step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  background-color: var(--pb-green-100);
+  color: var(--pb-green-700);
+  font-size: 0.75rem;
+}
+
+.pb-steps .pb-step.is-active {
+  color: var(--pb-green-900);
+  border-color: var(--pb-green-600);
+  background-color: var(--pb-green-100);
+}
+
+.pb-steps .pb-step.is-active .pb-step-index {
+  background-color: var(--pb-green-600);
+  color: #fff;
+}
+
+.pb-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  color: var(--pb-muted);
+  margin-bottom: 1rem;
+}
+
+.pb-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pb-legend-swatch {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.3rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.pb-legend-swatch.is-available { background-color: #d4edda; border-color: #28a745; }
+.pb-legend-swatch.is-selected { background-color: #0d6efd; border-color: #0d6efd; }
+.pb-legend-swatch.is-booked { background-color: #f8d7da; border-color: #f5c6cb; }
+.pb-legend-swatch.is-maintenance { background-color: #f0f0f0; border-color: #cccccc; }
+.pb-legend-swatch.is-past {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+  background-image: linear-gradient(135deg, transparent 45%, #adb5bd 45%, #adb5bd 55%, transparent 55%);
+}
+
+.booking-form-section {
+  border-left: 4px solid var(--pb-green-600);
+}
+
+@media (min-width: 992px) {
+  .pb-sticky-summary {
+    position: sticky;
+    top: 5.5rem;
+  }
+}
+
+.pb-loading-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.72);
+  z-index: 1090;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.75rem;
+  color: var(--pb-green-700);
+  font-weight: 600;
+}
+
+.pb-loading-overlay.is-visible {
+  display: flex;
+}
+
+.btn .pb-btn-spinner {
+  display: none;
+}
+
+.btn.is-loading .pb-btn-spinner {
+  display: inline-block;
+}
+
+.btn.is-loading .pb-btn-label,
+.btn.is-loading > .bi {
+  display: none;
+}
+
+.pb-visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ========================================================= */
+/* PHASE 18 - SCHEDULE / CALENDAR (presentation only)        */
+/* ========================================================= */
+
+.pb-schedule-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  color: var(--pb-muted);
+  margin-bottom: 1rem;
+}
+
+.pb-schedule-legend .pb-legend-swatch.is-open { background-color: #d1f0e0; border-color: #198754; }
+.pb-schedule-legend .pb-legend-swatch.is-taken { background-color: #f8d7da; border-color: #dc3545; }
+.pb-schedule-legend .pb-legend-swatch.is-maint { background-color: #f0f0f0; border-color: #cccccc; }
+
+.pb-schedule-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+
+.pb-schedule-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--pb-green-900);
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pb-schedule-table tbody th {
+  background-color: var(--pb-surface);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--pb-green-900);
+}
+
+.pb-schedule-cell {
+  min-width: 96px;
+  height: 44px;
+  vertical-align: middle;
+  text-align: center;
+  border-color: var(--pb-border) !important;
+}
+
+.pb-schedule-cell.is-open { background-color: #f2fbf6; }
+.pb-schedule-cell.is-taken { background-color: #fdf3f4; }
+.pb-schedule-cell.is-maint {
+  background-color: #f4f4f4;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 6px,
+    rgba(0, 0, 0, 0.05) 6px,
+    rgba(0, 0, 0, 0.05) 12px
+  );
+}
+
+.pb-schedule-cell .pb-schedule-badge {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.pb-schedule-cell .pb-schedule-badge + .pb-schedule-name {
+  font-size: 0.7rem;
+  color: var(--pb-muted);
+}
+
+/* ========================================================= */
+/* PHASE 18 - TIME SLOT GRID (moved from Booking page)       */
+/* ========================================================= */
+
+.timeslot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.timeslot-btn {
+  position: relative;
+  padding: 12px 8px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.timeslot-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.timeslot-time {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.timeslot-status {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.timeslot-btn.available {
+  background-color: #d4edda;
+  border-color: #28a745;
+  color: #155724;
+  cursor: pointer;
+}
+
+.timeslot-btn.available:hover {
+  background-color: #c3e6cb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.timeslot-btn.selected {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  color: #ffffff !important;
+  font-weight: bold;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.35);
+}
+
+.timeslot-btn.selected .timeslot-status {
+  color: #ffffff;
+  opacity: 1;
+}
+
+.timeslot-btn.booked {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.timeslot-btn.booked:hover {
+  background-color: #f8d7da;
+  transform: none;
+  box-shadow: none;
+}
+
+.timeslot-btn.maintenance {
+  background-color: #f0f0f0;
+  border-color: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.timeslot-btn.maintenance:hover {
+  background-color: #e2e3e5;
+  transform: none;
+  box-shadow: none;
+}
+
+.timeslot-btn.unavailable {
+  background-color: #e2e3e5;
+  border-color: #6c757d;
+  color: #383d41;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.timeslot-btn.unavailable:hover {
+  background-color: #e2e3e5;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ========================================================= */
+/* PAST (slot has already started today) — not bookable */
+/* ========================================================= */
+
+.timeslot-btn.past {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+  color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.65;
+  /* Diagonal strikethrough pattern to read clearly as "unavailable time". */
+  background-image: linear-gradient(135deg, transparent 45%, #adb5bd 45%, #adb5bd 55%, transparent 55%);
+}
+
+.timeslot-btn.past:hover {
+  background-color: #e9ecef;
+  transform: none;
+  box-shadow: none;
+}
+
+.timeslot-btn.past .timeslot-status {
+  opacity: 1;
+  font-style: italic;
+}
+
+/* Keyboard focus parity for the custom slot cards */
+.timeslot-btn:focus-within {
+  outline: 2px solid var(--pb-green-600);
+  outline-offset: 2px;
+}
+
+.error-message {
+  color: #dc3545;
+  font-weight: 500;
+  margin-top: 10px;
+}

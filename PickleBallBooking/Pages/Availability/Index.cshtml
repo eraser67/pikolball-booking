@@ -16,7 +16,7 @@
         <button type="submit" class="btn btn-primary">Go</button>
         <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(-1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">&laquo; Previous Day</a>
         <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">Next Day &raquo;</a>
-        <a asp-page="Index" asp-route-Date="@DateOnly.FromDateTime(DateTime.UtcNow.Date).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">Today</a>
+        <a asp-page="Index" asp-route-Date="@PickleBallBooking.Services.AppClock.TodayLocal.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">Today</a>
     </div>
 </form>
 

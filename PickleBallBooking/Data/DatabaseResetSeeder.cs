@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PickleBallBooking.Models;
+using PickleBallBooking.Services;
 
 namespace PickleBallBooking.Data;
 
@@ -19,8 +20,10 @@ public static class DatabaseResetSeeder
         {
             logger.LogInformation("Starting database reset and seeding...");
 
-            // Delete all data in the correct order (respecting foreign keys)
+                        // Delete all data in the correct order (respecting foreign keys)
             logger.LogInformation("Clearing existing data...");
+            context.BookingTimeSlots.RemoveRange(context.BookingTimeSlots);
+            context.CourtTimeSlots.RemoveRange(context.CourtTimeSlots);
             context.Bookings.RemoveRange(context.Bookings);
             context.Pricings.RemoveRange(context.Pricings);
             context.TimeSlots.RemoveRange(context.TimeSlots);
@@ -142,9 +145,9 @@ public static class DatabaseResetSeeder
 
             await context.SaveChangesAsync();
 
-            logger.LogInformation("Adding fresh sample bookings...");
+                        logger.LogInformation("Adding fresh sample bookings...");
             var activeCourts = courts.Where(c => c.Status == CourtStatus.Active).ToList();
-            var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+            var today = AppClock.TodayLocal;
 
             // Create varied bookings for realistic demo data
             var bookingData = new (int CourtIndex, int TimeSlotIndex, int DayOffset, string Name, string Phone, string Email, BookingStatus Status)[]
@@ -179,14 +182,15 @@ public static class DatabaseResetSeeder
                 (3, 5, 3, "Sophia Santos", "09331234567", "sophia.santos@example.com", BookingStatus.Cancelled)
             };
 
-            var sequence = 0;
+                        var sequence = 0;
+            var bookingSlots = new List<BookingTimeSlot>();
             var bookings = bookingData.Select(data =>
             {
                 var bookingDate = today.AddDays(data.DayOffset);
                 var timeSlot = timeSlots[data.TimeSlotIndex];
                 var pricePerHour = CalculatePrice(pricings, bookingDate, timeSlot);
 
-                return new Booking
+                var booking = new Booking
                 {
                     BookingReference = $"PB-{bookingDate:yyyyMMdd}-{++sequence:D4}",
                     CustomerName = data.Name,
@@ -202,9 +206,28 @@ public static class DatabaseResetSeeder
                     CreatedAt = DateTime.UtcNow.AddHours(-24),
                     UpdatedAt = DateTime.UtcNow
                 };
+
+                // Only active (non-cancelled) bookings hold slot rows; cancelled ones release them.
+                if (data.Status != BookingStatus.Cancelled)
+                {
+                    bookingSlots.Add(new BookingTimeSlot
+                    {
+                        Booking = booking,
+                        CourtId = booking.CourtId,
+                        BookingDate = bookingDate,
+                        TimeSlotId = timeSlot.Id,
+                        SlotOrder = 0,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow.AddHours(-24),
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+
+                return booking;
             }).ToList();
 
             context.Bookings.AddRange(bookings);
+            context.BookingTimeSlots.AddRange(bookingSlots);
             await context.SaveChangesAsync();
 
             logger.LogInformation("✅ Database reset complete! Added:");

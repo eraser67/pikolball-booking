@@ -49,9 +49,11 @@ Security and Error Handling
 
 ---
 
-## Upcoming Phases (16–18)
+## Enhancement Phases (16–18)
 
 The following enhancement phases apply to the redesigned booking system using fixed hourly TimeSlots.
+
+> Phases 16 and 17 are complete. Phase 18 is in progress (see below).
 
 ### Phase 16 — Booking Model Redesign to Fixed Hourly TimeSlots
 
@@ -105,22 +107,40 @@ The following enhancement phases apply to the redesigned booking system using fi
 - Updated tests for TimeSlot-based availability
 - Responsive design tests
 
-### Phase 18 — UI/UX Refinement
+### Phase 18 — UI/UX Refinement (In Progress)
 
 **Objective:** Improve overall application UI/UX using Bootstrap 5.
 
-**Tasks:**
+**Status:** In progress. Homepage, navigation, Bootstrap Icons, and the brand design system
+are implemented in the working tree (uncommitted). Remaining items are pending.
 
-- Improve Homepage
-- Enhance Navigation
-- Refine Booking Experience
-- Improve Schedule/Calendar View
-- Bootstrap 5 components
-- Bootstrap Icons integration
-- Accessibility improvements
-- Mobile responsiveness review
-- Error message refinement
-- Loading state indicators
+**Completed:**
+
+- ✅ Improve Homepage — hero section, dynamically loaded court cards (with
+  availability preview), How It Works, Play Your Way benefits, Find Us, FAQ
+  accordion, and final CTA band (`Pages/Index.cshtml`, `Pages/Index.cshtml.cs`)
+- ✅ Enhance Navigation — branded responsive navbar with logo, customer links,
+  admin dropdown (auth-gated), active-link highlighting, and a modern footer
+  (`Pages/Shared/_Layout.cshtml`)
+- ✅ Bootstrap Icons integration — icons in navbar, cards, buttons, footer
+- ✅ Bootstrap 5 enhancements / design system — brand tokens (CSS variables),
+  buttons, cards, forms, badges, hero, footer styles (`wwwroot/css/site.css`)
+
+**Pending:**
+
+- [ ] Refine Booking Experience (current UI carried over from Phase 17; further polish pending)
+- [ ] Improve Schedule/Calendar View (still a plain Bootstrap table)
+- [ ] Accessibility improvements (partial: skip link + aria labels; full audit pending)
+- [ ] Mobile responsiveness review (partial; formal review pending)
+- [ ] Error message refinement (partial)
+- [ ] Loading state indicators (not started)
+
+**Notes:**
+
+- Court images are sourced from `wwwroot/images/`.
+- Home page availability is a **preview only**; authoritative availability
+  remains on the existing Availability/Booking pages.
+- No backend, database, or booking/availability logic was changed.
 
 ---
 

@@ -39,13 +39,8 @@ public class Booking
     [Column(TypeName = "numeric(6,2)")]
     public decimal? DurationHours { get; set; }
 
-    [Column(TypeName = "decimal(10,2)")]
+        [Column(TypeName = "decimal(10,2)")]
     public decimal Price { get; set; }
-
-    public int? TimeSlotId { get; set; }
-
-    [ForeignKey(nameof(TimeSlotId))]
-    public TimeSlot? TimeSlot { get; set; }
 
     public BookingStatus BookingStatus { get; set; } = BookingStatus.Pending;
 

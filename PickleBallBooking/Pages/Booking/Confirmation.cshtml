@@ -26,8 +26,8 @@ else
         <dt class="col-sm-3">Date</dt>
         <dd class="col-sm-9">@Model.Booking.BookingDate.ToString("D")</dd>
 
-        <dt class="col-sm-3">Time</dt>
-        <dd class="col-sm-9">@Model.Booking.StartTime.ToString(@"hh\:mm") - @Model.Booking.EndTime.ToString(@"hh\:mm")</dd>
+                <dt class="col-sm-3">Time</dt>
+        <dd class="col-sm-9">@PickleBallBooking.Services.AppClock.To12HourRange(Model.Booking.StartTime, Model.Booking.EndTime)</dd>
 
         <dt class="col-sm-3">Price</dt>
         <dd class="col-sm-9">@Model.Booking.Price.ToString("C2")</dd>

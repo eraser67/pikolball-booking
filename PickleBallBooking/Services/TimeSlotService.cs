@@ -71,8 +71,36 @@ public class TimeSlotService : ITimeSlotService
             return false;
         }
 
-        timeSlot.Status = status;
+                timeSlot.Status = status;
 
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DeleteAsync(int id)
+    {
+        var timeSlot = await _context.TimeSlots.FindAsync(id);
+        if (timeSlot is null)
+        {
+            return false;
+        }
+
+        var hasBookings = await _context.BookingTimeSlots.AnyAsync(bts => bts.TimeSlotId == id);
+        if (hasBookings)
+        {
+            throw new InvalidOperationException(
+                $"Time slot {AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime)} cannot be deleted because it has existing bookings. Deactivate it instead.");
+        }
+
+        var courtTimeSlots = await _context.CourtTimeSlots
+            .Where(cts => cts.TimeSlotId == id)
+            .ToListAsync();
+        if (courtTimeSlots.Count > 0)
+        {
+            _context.CourtTimeSlots.RemoveRange(courtTimeSlots);
+        }
+
+        _context.TimeSlots.Remove(timeSlot);
         await _context.SaveChangesAsync();
         return true;
     }

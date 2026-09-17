@@ -32,8 +32,16 @@ public class LookupModel : PageModel
             return Page();
         }
 
-        Searched = true;
+                Searched = true;
         Booking = await _bookingService.LookupBookingAsync(Input.BookingReference, Input.ContactInfo);
+
+        // Reflect automatic completion so an expired confirmed booking shows as Completed.
+        await _bookingService.AutoCompleteExpiredBookingsAsync();
+
+        if (Booking is not null)
+        {
+            Booking = await _bookingService.LookupBookingAsync(Input.BookingReference, Input.ContactInfo);
+        }
 
         return Page();
     }

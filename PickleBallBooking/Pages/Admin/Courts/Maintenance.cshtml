@@ -57,7 +57,7 @@ else
                 @foreach (var timeSlot in Model.TimeSlots)
                 {
                     <tr>
-                        <td>@timeSlot.StartTime.ToString(@"hh\:mm") - @timeSlot.EndTime.ToString(@"hh\:mm")</td>
+                        <td>@PickleBallBooking.Services.AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime)</td>
                         @foreach (var court in Model.Courts)
                         {
                             var status = Model.MaintenanceMatrix.TryGetValue((court.Id, timeSlot.Id), out var value)

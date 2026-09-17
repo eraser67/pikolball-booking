@@ -15,4 +15,11 @@ public interface ICourtService
     Task<bool> UpdateAsync(int id, string name, string? description);
 
     Task<bool> SetStatusAsync(int id, CourtStatus status);
+
+    /// <summary>
+    /// Deletes a court. Returns false if the court does not exist.
+    /// Throws <see cref="InvalidOperationException"/> if the court is referenced by
+    /// existing bookings or court time-slot configuration.
+    /// </summary>
+    Task<bool> DeleteAsync(int id);
 }

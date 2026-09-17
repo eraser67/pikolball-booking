@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using NpgsqlTypes;
 using PickleBallBooking.Models;
 
 namespace PickleBallBooking.Data;
@@ -32,31 +31,17 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure Booking entity
+                // Configure Booking entity
         modelBuilder.Entity<Booking>(entity =>
         {
             entity.HasIndex(b => b.BookingReference).IsUnique();
 
-            // Legacy discrete-slot protection retained until booking logic is migrated.
-            entity.HasIndex(b => new { b.CourtId, b.BookingDate, b.TimeSlotId })
-                .IsUnique()
-                .HasFilter("\"BookingStatus\" <> 2"); // 2 = Cancelled
-
-            // Range-friendly query index for future overlap checks and availability lookups.
+            // Range-friendly query index for overlap checks and availability lookups.
             entity.HasIndex(b => new { b.CourtId, b.BookingDate, b.StartTime, b.EndTime });
-
-            entity.Property<NpgsqlRange<DateTime>>("BookingPeriod")
-                .HasColumnType("tsrange")
-                .HasComputedColumnSql("tsrange((\"BookingDate\"::timestamp + \"StartTime\"), (\"BookingDate\"::timestamp + \"EndTime\"), '[)')", stored: true);
 
             entity.HasOne(b => b.Court)
                 .WithMany()
                 .HasForeignKey(b => b.CourtId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(b => b.TimeSlot)
-                .WithMany()
-                .HasForeignKey(b => b.TimeSlotId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Configure BookingTimeSlot relationship
@@ -76,19 +61,19 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             entity.HasIndex(bts => new { bts.CourtId, bts.BookingDate, bts.TimeSlotId, bts.IsActive })
                 .IsUnique()
                 .HasFilter("\"IsActive\" = true")
-                .HasName("IX_BookingTimeSlot_CourtId_BookingDate_TimeSlotId_Active");
+                .HasDatabaseName("IX_BookingTimeSlot_CourtId_BookingDate_TimeSlotId_Active");
 
             // Index on BookingId for fast lookups of all slots in a booking
             entity.HasIndex(bts => bts.BookingId)
-                .HasName("IX_BookingTimeSlot_BookingId");
+                .HasDatabaseName("IX_BookingTimeSlot_BookingId");
 
             // Index on TimeSlotId for availability queries
             entity.HasIndex(bts => bts.TimeSlotId)
-                .HasName("IX_BookingTimeSlot_TimeSlotId");
+                .HasDatabaseName("IX_BookingTimeSlot_TimeSlotId");
 
             // Index for availability queries: find booked slots for a court on a date
             entity.HasIndex(bts => new { bts.CourtId, bts.BookingDate, bts.IsActive })
-                .HasName("IX_BookingTimeSlot_CourtId_BookingDate_IsActive");
+                .HasDatabaseName("IX_BookingTimeSlot_CourtId_BookingDate_IsActive");
 
             // FK to Booking (already configured on Booking side)
             entity.HasOne(bts => bts.Booking)
@@ -111,7 +96,7 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             // Unique constraint: one court can have each time slot status defined only once
             entity.HasIndex(cts => new { cts.CourtId, cts.TimeSlotId })
                 .IsUnique()
-                .HasName("IX_CourtTimeSlot_CourtId_TimeSlotId");
+                .HasDatabaseName("IX_CourtTimeSlot_CourtId_TimeSlotId");
 
             // FK to Court
             entity.HasOne(cts => cts.Court)

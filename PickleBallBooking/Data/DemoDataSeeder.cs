@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PickleBallBooking.Models;
+using PickleBallBooking.Services;
 
 namespace PickleBallBooking.Data;
 
@@ -52,8 +53,8 @@ public static class DemoDataSeeder
 
         await context.SaveChangesAsync();
 
-        var activeCourts = courts.Where(c => c.Status == CourtStatus.Active).ToList();
-        var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+                var activeCourts = courts.Where(c => c.Status == CourtStatus.Active).ToList();
+        var today = AppClock.TodayLocal;
 
         var sampleBookings = new (Court Court, TimeSlot TimeSlot, DateOnly Date, string Name, string Phone, string Email, BookingStatus Status, decimal Price)[]
         {
@@ -66,22 +67,47 @@ public static class DemoDataSeeder
         };
 
         var sequence = 1;
-        var bookings = sampleBookings.Select(sample => new Booking
+        var bookingSlots = new List<BookingTimeSlot>();
+        var bookings = sampleBookings.Select(sample =>
         {
-            BookingReference = $"PB-{sample.Date:yyyyMMdd}-{sequence++:D4}",
-            CustomerName = sample.Name,
-            CustomerPhone = sample.Phone,
-            CustomerEmail = sample.Email,
-            CourtId = sample.Court.Id,
-            BookingDate = sample.Date,
-            TimeSlotId = sample.TimeSlot.Id,
-            Price = sample.Price,
-            BookingStatus = sample.Status,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            var booking = new Booking
+            {
+                BookingReference = $"PB-{sample.Date:yyyyMMdd}-{sequence++:D4}",
+                CustomerName = sample.Name,
+                CustomerPhone = sample.Phone,
+                CustomerEmail = sample.Email,
+                CourtId = sample.Court.Id,
+                BookingDate = sample.Date,
+                StartTime = sample.TimeSlot.StartTime,
+                EndTime = sample.TimeSlot.EndTime,
+                DurationHours = (decimal)(sample.TimeSlot.EndTime - sample.TimeSlot.StartTime).TotalHours,
+                Price = sample.Price,
+                BookingStatus = sample.Status,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            // Only active (non-cancelled) bookings hold slot rows; cancelled ones release them.
+            if (sample.Status != BookingStatus.Cancelled)
+            {
+                bookingSlots.Add(new BookingTimeSlot
+                {
+                    Booking = booking,
+                    CourtId = sample.Court.Id,
+                    BookingDate = sample.Date,
+                    TimeSlotId = sample.TimeSlot.Id,
+                    SlotOrder = 0,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
+
+            return booking;
         }).ToList();
 
         context.Bookings.AddRange(bookings);
+        context.BookingTimeSlots.AddRange(bookingSlots);
         await context.SaveChangesAsync();
     }
 }

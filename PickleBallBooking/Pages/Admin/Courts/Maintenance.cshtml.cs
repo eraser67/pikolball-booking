@@ -22,8 +22,8 @@ public class MaintenanceModel : PageModel
     [BindProperty(SupportsGet = true)]
     public int? SelectedCourtId { get; set; }
 
-    [BindProperty(SupportsGet = true)]
-    public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        [BindProperty(SupportsGet = true)]
+    public DateOnly Date { get; set; } = AppClock.TodayLocal;
 
     public List<Court> Courts { get; set; } = new();
 
@@ -42,9 +42,9 @@ public class MaintenanceModel : PageModel
         Courts = await _courtService.GetActiveAsync();
         TimeSlots = await _timeSlotService.GetActiveAsync();
 
-        if (Date == default)
+                if (Date == default)
         {
-            Date = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+            Date = AppClock.TodayLocal;
         }
 
         // Load court-timeslot maintenance status
@@ -90,7 +90,10 @@ public class MaintenanceModel : PageModel
         var court = await _courtService.GetByIdAsync(courtId);
         var timeSlot = await _timeSlotService.GetByIdAsync(timeSlotId);
 
-        StatusMessage = $"{court?.Name} at {timeSlot?.StartTime:hh\\:mm}-{timeSlot?.EndTime:hh\\:mm} is now {courtTimeSlot.AvailabilityStatus.ToString()}.";
+        var slotLabel = timeSlot is null
+            ? "(unknown)"
+            : AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime);
+        StatusMessage = $"{court?.Name} at {slotLabel} is now {courtTimeSlot.AvailabilityStatus}.";
 
         return RedirectToPage(new { selectedCourtId = SelectedCourtId, date = Date.ToString("yyyy-MM-dd") });
     }

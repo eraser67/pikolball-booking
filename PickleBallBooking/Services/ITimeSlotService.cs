@@ -15,4 +15,11 @@ public interface ITimeSlotService
     Task<bool> UpdateAsync(int id, TimeSpan startTime, TimeSpan endTime);
 
     Task<bool> SetStatusAsync(int id, TimeSlotStatus status);
+
+    /// <summary>
+    /// Deletes a time slot. Returns false if the time slot does not exist.
+    /// Throws <see cref="InvalidOperationException"/> if the time slot is referenced by
+    /// existing bookings or court time-slot configuration.
+    /// </summary>
+    Task<bool> DeleteAsync(int id);
 }

@@ -56,7 +56,7 @@ public class AvailabilityIndexModelTests
 
         await model.OnGetAsync();
 
-        Assert.Equal(DateOnly.FromDateTime(DateTime.UtcNow.Date), model.Date);
+        Assert.Equal(AppClock.TodayLocal, model.Date);
         Assert.False(model.IsPastDate);
         Assert.Equal(7, model.DateOptions.Count);
     }
@@ -82,7 +82,7 @@ public class AvailabilityIndexModelTests
         await using var context = await SeedAsync();
         var model = CreateModel(context);
 
-        model.Date = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+                model.Date = AppClock.TodayLocal;
         await model.OnGetAsync();
 
         Assert.Contains(model.TimeSlotAvailabilities, slot => slot.HasAvailableSlots);
@@ -94,7 +94,7 @@ public class AvailabilityIndexModelTests
         await using var context = await SeedAsync();
         var model = CreateModel(context);
 
-        model.Date = DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(-1));
+                model.Date = AppClock.TodayLocal.AddDays(-1);
         await model.OnGetAsync();
 
         Assert.True(model.IsPastDate);

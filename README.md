@@ -10,7 +10,7 @@ Built with:
 - **Bootstrap 5** for responsive design
 - **ASP.NET Core Identity** for authentication
 
-**Status:** Phases 1–15 Complete | Documentation Updated for Phases 16–18
+**Status:** Phases 1–17 Complete | Phase 18 (UI/UX Refinement) In Progress
 
 ---
 
@@ -18,6 +18,7 @@ Built with:
 
 ### Customer Experience
 
+- Modern branded homepage (hero, dynamic court cards, FAQ, CTA)
 - Modern calendar-style booking interface
 - Browse available courts
 - Select booking date
@@ -219,16 +220,29 @@ Tests cover:
 - [x] Schedule view
 - [x] Security and error handling
 
-### In Progress (Documentation)
+### Completed (Documentation)
 - [x] Update PROJECT_REQUIREMENTS.md for fixed hourly TimeSlot design
 - [x] Update DEVELOPMENT_PLAN.md with new phases
 - [x] Update TODO.md
 - [x] Update README.md
+- [x] Document Phase 18 completed vs pending items
 
-### Upcoming (Pending Approval)
-- **Phase 16:** Booking Model Redesign to fixed hourly TimeSlots
-- **Phase 17:** Fixed-TimeSlot Availability UI
-- **Phase 18:** UI/UX Refinement (Bootstrap 5)
+### Completed (Phases 16–17)
+- [x] **Phase 16:** Booking Model Redesign to fixed hourly TimeSlots
+- [x] **Phase 17:** Fixed-TimeSlot Availability UI
+
+### In Progress (Phase 18 — UI/UX Refinement)
+- [x] Improve Homepage (hero, dynamic court cards, how-it-works, benefits, location, FAQ, CTA)
+- [x] Enhance Navigation (branded navbar, footer, active links, admin dropdown)
+- [x] Bootstrap Icons integration
+- [x] Brand design system (CSS variables, buttons, cards, forms, badges)
+- [ ] Refine Booking Experience (further polish pending)
+- [ ] Improve Schedule/Calendar View (redesign pending)
+- [ ] Accessibility improvements (partial)
+- [ ] Error message refinement (partial)
+- [ ] Loading state indicators (not started)
+
+> Phase 18 work is currently uncommitted working-tree changes; commit once reviewed.
 
 ---
 
@@ -263,5 +277,5 @@ MIT License
 
 ---
 
-**Last Updated:** 2026-01-XX  
-**Documentation Version:** Updated for Phases 16–18 redesign
+**Last Updated:** 2026-09-18  
+**Documentation Version:** Phases 16–17 complete, Phase 18 in progress

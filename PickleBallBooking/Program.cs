@@ -13,7 +13,12 @@ builder.Services.AddRazorPages(options =>
 });
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsql => npgsql.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorCodesToAdd: null)));
 
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
@@ -83,3 +88,4 @@ await AdminSeeder.SeedAsync(app);
 await DemoDataSeeder.SeedAsync(app);
 
 app.Run();
+

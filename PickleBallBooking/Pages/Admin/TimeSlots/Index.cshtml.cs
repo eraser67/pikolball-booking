@@ -35,7 +35,28 @@ public class IndexModel : PageModel
         var newStatus = timeSlot.Status == TimeSlotStatus.Active ? TimeSlotStatus.Inactive : TimeSlotStatus.Active;
         await _timeSlotService.SetStatusAsync(id, newStatus);
 
-        StatusMessage = $"Time slot '{timeSlot.StartTime:hh\\:mm}-{timeSlot.EndTime:hh\\:mm}' has been {(newStatus == TimeSlotStatus.Active ? "activated" : "deactivated")}.";
+                StatusMessage = $"Time slot '{AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime)}' has been {(newStatus == TimeSlotStatus.Active ? "activated" : "deactivated")}.";
+
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostDeleteAsync(int id)
+    {
+        var timeSlot = await _timeSlotService.GetByIdAsync(id);
+        if (timeSlot is null)
+        {
+            return NotFound();
+        }
+
+        try
+        {
+            await _timeSlotService.DeleteAsync(id);
+            StatusMessage = $"Time slot '{AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime)}' has been deleted.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            StatusMessage = ex.Message;
+        }
 
         return RedirectToPage();
     }

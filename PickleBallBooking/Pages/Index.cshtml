@@ -1,14 +1,301 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-    <p>
-        <a asp-page="/Availability/Index" class="btn btn-primary">Check Court Availability</a>
-        <a asp-page="/Booking/Index" class="btn btn-outline-primary">Book a Court</a>
-    </p>
-</div>
+<!-- ===================== HERO ===================== -->
+<section class="pb-hero">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-6">
+            <span class="pb-hero-eyebrow">Premium Pickleball Club</span>
+            <h1 class="mb-3">PLAY MORE.<br />BOOK EASIER.</h1>
+            <p class="pb-hero-tagline mb-2">Your court. Your time. Your game.</p>
+            <p class="pb-hero-lead mb-4">
+                Book your pickleball court in just a few clicks. Real-time availability,
+                flexible time slots, and instant confirmation &mdash; no fuss.
+            </p>
+            <div class="d-flex flex-wrap gap-3 mb-4">
+                <a asp-page="/Booking/Index" class="btn btn-lime btn-lg px-4">
+                    <i class="bi bi-lightning-charge-fill me-1"></i>Book a Court
+                </a>
+                <a asp-page="/Availability/Index" class="btn btn-ghost btn-lg px-4">
+                    <i class="bi bi-calendar3 me-1"></i>View Availability
+                </a>
+            </div>
+            <ul class="pb-hero-benefits list-unstyled mb-0">
+                <li><i class="bi bi-check-circle-fill me-2"></i>Real-time availability</li>
+                <li><i class="bi bi-check-circle-fill me-2"></i>No account required</li>
+                <li><i class="bi bi-check-circle-fill me-2"></i>Choose your court &amp; time</li>
+            </ul>
+        </div>
+        <div class="col-lg-6">
+            <div class="pb-hero-art">
+                <img src="~/images/hero-player.png" alt="Pickleball player ready to serve" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== OUR COURTS ===================== -->
+<section class="pb-section" id="courts">
+    <div class="text-center mb-4">
+        <h2 class="pb-section-title">OUR COURTS</h2>
+        <p class="pb-section-subtitle">Choose a court and check its availability.</p>
+    </div>
+
+    @if (Model.Courts.Count == 0)
+    {
+        <div class="pb-empty-state text-center">
+            <i class="bi bi-info-circle display-5 d-block mb-2"></i>
+            <p class="mb-0">No courts are available right now. Please check back soon.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var c in Model.Courts)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="pb-court-card h-100">
+                        <div class="pb-court-card-img">
+                            <img src="@c.ImageUrl" alt="@c.Court.Name" loading="lazy" />
+                            @if (c.HasAvailabilityData)
+                            {
+                                @if (c.HasLiveAvailability)
+                                {
+                                    <span class="pb-court-badge pb-badge-open">
+                                        <span class="pb-dot"></span>@c.AvailableSlots slot@(c.AvailableSlots == 1 ? "" : "s") open today
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="pb-court-badge pb-badge-closed">
+                                        <span class="pb-dot"></span>Fully booked today
+                                    </span>
+                                }
+                            }
+                        </div>
+                        <div class="pb-court-card-body">
+                            <h5 class="pb-court-name">
+                                <i class="bi bi-dribbble me-1"></i>@c.Court.Name
+                            </h5>
+                            @if (!string.IsNullOrWhiteSpace(c.Court.Description))
+                            {
+                                <p class="pb-court-desc">@c.Court.Description</p>
+                            }
+                            else
+                            {
+                                <p class="pb-court-desc text-muted">Quality court ready for your next game.</p>
+                            }
+
+                            @if (c.HasAvailabilityData)
+                            {
+                                <p class="pb-court-preview">
+                                    <i class="bi bi-clock-history me-1"></i>Preview for @Model.PreviewDate.ToString("MMM d") &mdash; view exact time slots below.
+                                </p>
+                            }
+
+                            <div class="d-grid gap-2 mt-auto">
+                                <a asp-page="/Availability/Index" class="btn btn-outline-primary">
+                                    <i class="bi bi-calendar3 me-1"></i>View Availability
+                                </a>
+                                <a asp-page="/Booking/Index" asp-route-courtId="@c.Court.Id" class="btn btn-primary">
+                                    <i class="bi bi-lightning-charge-fill me-1"></i>Book
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+<!-- ===================== HOW IT WORKS ===================== -->
+<section class="pb-section pb-section-alt" id="how-it-works">
+    <div class="text-center mb-4">
+        <h2 class="pb-section-title">HOW IT WORKS</h2>
+        <p class="pb-section-subtitle">Three simple steps to your next game.</p>
+    </div>
+    <div class="row g-4 text-center">
+        <div class="col-md-4">
+            <div class="pb-feature-card pb-card-hover">
+                <span class="pb-step-number">01</span>
+                <h5 class="mb-2">Choose Date</h5>
+                <p class="mb-0 text-muted">Select the date you want to play.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="pb-feature-card pb-card-hover">
+                <span class="pb-step-number">02</span>
+                <h5 class="mb-2">Select Court</h5>
+                <p class="mb-0 text-muted">Choose your preferred court.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="pb-feature-card pb-card-hover">
+                <span class="pb-step-number">03</span>
+                <h5 class="mb-2">Select Time</h5>
+                <p class="mb-0 text-muted">Select one or more consecutive available time slots.</p>
+            </div>
+        </div>
+    </div>
+    <div class="text-center mt-4">
+        <a asp-page="/Booking/Index" class="btn btn-primary btn-lg px-5">
+            <i class="bi bi-lightning-charge-fill me-1"></i>Book Now
+        </a>
+    </div>
+</section>
+
+<!-- ===================== PLAY YOUR WAY ===================== -->
+<section class="pb-section" id="why-us">
+    <div class="text-center mb-4">
+        <h2 class="pb-section-title">PLAY YOUR WAY</h2>
+        <p class="pb-section-subtitle">Everything you need for a great game.</p>
+    </div>
+    <div class="row g-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="pb-feature-card pb-card-hover text-center h-100">
+                <div class="pb-feature-icon-wrap"><i class="bi bi-geo-alt"></i></div>
+                <h6 class="mb-2">LOCATION</h6>
+                <p class="mb-0 text-muted">Conveniently located for your next game.</p>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="pb-feature-card pb-card-hover text-center h-100">
+                <div class="pb-feature-icon-wrap"><i class="bi bi-clock"></i></div>
+                <h6 class="mb-2">OPEN HOURS</h6>
+                <p class="mb-0 text-muted">Choose a time that works for you.</p>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="pb-feature-card pb-card-hover text-center h-100">
+                <div class="pb-feature-icon-wrap"><i class="bi bi-cash-coin"></i></div>
+                <h6 class="mb-2">FLEXIBLE PRICING</h6>
+                <p class="mb-0 text-muted">View applicable court rates when you book.</p>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="pb-feature-card pb-card-hover text-center h-100">
+                <div class="pb-feature-icon-wrap"><i class="bi bi-dribbble"></i></div>
+                <h6 class="mb-2">QUALITY COURTS</h6>
+                <p class="mb-0 text-muted">Enjoy your game on our available courts.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== LOCATION ===================== -->
+<section class="pb-section pb-section-alt" id="location">
+    <div class="row g-4 align-items-center">
+        <div class="col-lg-5">
+            <h2 class="pb-section-title">FIND US</h2>
+            <p class="pb-section-subtitle mb-4">Come play at our venue.</p>
+            <ul class="list-unstyled pb-contact-list">
+                <li><i class="bi bi-building me-2"></i><strong>Pikol Bol Pickleball Club</strong></li>
+                <li><i class="bi bi-geo-alt me-2"></i>Venue address to be confirmed</li>
+                <li><i class="bi bi-clock me-2"></i>Open daily &mdash; book any available time slot</li>
+                <li><i class="bi bi-info-circle me-2"></i>Full directions available at the venue</li>
+            </ul>
+            <a asp-page="/Availability/Index" class="btn btn-outline-primary mt-2">
+                <i class="bi bi-compass me-1"></i>Check Court Availability
+            </a>
+        </div>
+        <div class="col-lg-7">
+            <div class="pb-map-placeholder">
+                <i class="bi bi-map display-4"></i>
+                <p class="mb-0 mt-2">Map / directions will appear here.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== FAQ ===================== -->
+<section class="pb-section" id="faq">
+    <div class="text-center mb-4">
+        <h2 class="pb-section-title">FREQUENTLY ASKED QUESTIONS</h2>
+        <p class="pb-section-subtitle">Everything you need to know before you play.</p>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="accordion pb-accordion" id="homeFaq">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="faqHeading1">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1" aria-expanded="true" aria-controls="faq1">
+                            How do I book a court?
+                        </button>
+                    </h2>
+                    <div id="faq1" class="accordion-collapse collapse show" aria-labelledby="faqHeading1" data-bs-parent="#homeFaq">
+                        <div class="accordion-body">
+                            Pick a date and court on the booking page, choose one or more consecutive available time slots,
+                            enter your details, and confirm. You&rsquo;ll receive a booking reference to manage your reservation.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="faqHeading2">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2" aria-expanded="false" aria-controls="faq2">
+                            Do I need an account?
+                        </button>
+                    </h2>
+                    <div id="faq2" class="accordion-collapse collapse" aria-labelledby="faqHeading2" data-bs-parent="#homeFaq">
+                        <div class="accordion-body">
+                            No. You can book without creating an account &mdash; just provide your name, phone number and email
+                            so we can confirm and help you manage your booking.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="faqHeading3">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3" aria-expanded="false" aria-controls="faq3">
+                            Can I book multiple hours?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" aria-labelledby="faqHeading3" data-bs-parent="#homeFaq">
+                        <div class="accordion-body">
+                            Yes. You can select multiple consecutive fixed time slots back-to-back. Slots must be continuous
+                            (no gaps) so your session forms one uninterrupted booking.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="faqHeading4">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4" aria-expanded="false" aria-controls="faq4">
+                            Can I cancel my booking?
+                        </button>
+                    </h2>
+                    <div id="faq4" class="accordion-collapse collapse" aria-labelledby="faqHeading4" data-bs-parent="#homeFaq">
+                        <div class="accordion-body">
+                            Bookings can be cancelled and the reserved time slots are released, making them available to others
+                            again. Look up your booking with your reference to manage it.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="faqHeading5">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5" aria-expanded="false" aria-controls="faq5">
+                            How do I know my booking is confirmed?
+                        </button>
+                    </h2>
+                    <div id="faq5" class="accordion-collapse collapse" aria-labelledby="faqHeading5" data-bs-parent="#homeFaq">
+                        <div class="accordion-body">
+                            After confirming, you&rsquo;ll see a confirmation page with a unique booking reference. Keep it safe &mdash;
+                            you can use it anytime on the &ldquo;My Booking&rdquo; lookup page to view its status.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== FINAL CTA ===================== -->
+<section class="pb-cta-band">
+    <div class="text-center">
+        <h2 class="text-white mb-3">Ready to hit the court?</h2>
+        <a asp-page="/Booking/Index" class="btn btn-lime btn-lg px-5">
+            <i class="bi bi-lightning-charge-fill me-1"></i>Book a Court
+        </a>
+    </div>
+</section>

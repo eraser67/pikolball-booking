@@ -59,9 +59,9 @@ public class IndexModel : PageModel
 
     public bool IsPastDate { get; set; }
 
-    public async Task OnGetAsync()
+        public async Task OnGetAsync()
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        var today = AppClock.TodayLocal;
 
         if (Date == default)
         {
@@ -93,8 +93,13 @@ public class IndexModel : PageModel
             return;
         }
 
-        // Use ONLY predefined time slots from the database (1-hour slots)
-        // This prevents confusing combinations like 6-9 AM being "fully booked" when really only 6-7 is booked
+                // Use ONLY predefined time slots from the database (1-hour slots)
+        // This prevents confusing combinations like 6-9 AM being "fully booked" when really only 6-7 is booked.
+        // Availability for every court is fetched in a single round-trip to avoid N+1 queries.
+        var availabilityByCourt = IsPastDate
+            ? new Dictionary<int, List<SlotAvailability>>()
+            : await _bookingService.GetAvailabilityForAllCourtsAsync(Courts.Select(c => c.Id), Date);
+
         foreach (var timeSlot in timeSlots.OrderBy(t => t.StartTime))
         {
             var priceResult = await _bookingService.CalculatePriceAsync(Date, timeSlot.StartTime, timeSlot.EndTime);
@@ -102,27 +107,28 @@ public class IndexModel : PageModel
             {
                 StartTime = timeSlot.StartTime,
                 EndTime = timeSlot.EndTime,
-                Label = $"{timeSlot.StartTime:hh\\:mm} - {timeSlot.EndTime:hh\\:mm}",
-                FormattedLabel = Format12HourTime(timeSlot.StartTime, timeSlot.EndTime),
+                Label = AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime),
+                FormattedLabel = AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime),
                 Price = priceResult.Success ? priceResult.Price : null
             };
 
-            // Check availability for each court
-            if (!IsPastDate)
+            if (IsPastDate)
+            {
+                // Past dates have all courts booked
+                slot.BookedCourts.AddRange(Courts);
+            }
+            else
             {
                 foreach (var court in Courts)
                 {
-                    var isAvailable = await _bookingService.IsAvailableAsync(court.Id, Date, timeSlot.StartTime, timeSlot.EndTime);
+                    var isAvailable = availabilityByCourt.TryGetValue(court.Id, out var slots)
+                        && slots.Any(s => s.TimeSlotId == timeSlot.Id && s.IsAvailable);
+
                     if (isAvailable)
                         slot.AvailableCourts.Add(court);
                     else
                         slot.BookedCourts.Add(court);
                 }
-            }
-            else
-            {
-                // Past dates have all courts booked
-                slot.BookedCourts.AddRange(Courts);
             }
 
             TimeSlotAvailabilities.Add(slot);
@@ -144,25 +150,12 @@ public class IndexModel : PageModel
         }
     }
 
-    private string Format12HourTime(TimeSpan start, TimeSpan end)
-    {
-        var startDateTime = DateTime.Today.Add(start);
-        var endDateTime = DateTime.Today.Add(end);
-
-        return $"{startDateTime:hh:mm tt} - {endDateTime:hh:mm tt}".ToUpper();
-    }
-
-    public string GetAvailableCourtsList(List<Court> courts)
+        public string GetAvailableCourtsList(List<Court> courts)
     {
         if (courts.Count == 0)
             return "No courts available";
 
         return string.Join(", ", courts.Select(c => c.Name));
-    }
-
-    public bool IsAvailable(int courtId, int timeSlotId)
-    {
-        return !IsPastDate;
     }
 }
 

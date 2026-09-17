@@ -1,10 +1,19 @@
-@page "/Admin/Schedule"
+ @page "/Admin/Schedule"
 @model PickleBallBooking.Pages.Admin.Schedule.IndexModel
 @{
     ViewData["Title"] = "Schedule";
+    var displayDate = Model.Date.ToDateTime(TimeOnly.MinValue);
 }
 
-<h1>Schedule</h1>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h1 class="mb-1">Schedule</h1>
+        <p class="text-muted mb-0">
+            @displayDate.ToString("dddd, MMMM d, yyyy") &middot;
+            @Model.Courts.Count court(s), @Model.TimeSlots.Count time slot(s)
+        </p>
+    </div>
+</div>
 
 <form method="get" class="row row-cols-lg-auto g-2 align-items-end mb-4">
     <div class="col-12">
@@ -12,31 +21,59 @@
         <input asp-for="Date" type="date" class="form-control" />
     </div>
     <div class="col-12">
-        <button type="submit" class="btn btn-primary">Go</button>
-        <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(-1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">&laquo; Previous Day</a>
-        <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">Next Day &raquo;</a>
-        <a asp-page="Index" asp-route-Date="@DateOnly.FromDateTime(DateTime.UtcNow.Date).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">Today</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-calendar-check me-1" aria-hidden="true"></i>Go
+        </button>
+        <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(-1).ToString("yyyy-MM-dd")"
+           class="btn btn-outline-secondary" aria-label="Previous day">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            <span class="d-none d-sm-inline">Previous Day</span>
+        </a>
+        <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(1).ToString("yyyy-MM-dd")"
+           class="btn btn-outline-secondary" aria-label="Next day">
+            <span class="d-none d-sm-inline">Next Day</span>
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        </a>
+        <a asp-page="Index" asp-route-Date="@PickleBallBooking.Services.AppClock.TodayLocal.ToString("yyyy-MM-dd")"
+           class="btn btn-outline-secondary">
+            Today
+        </a>
     </div>
 </form>
 
 @if (Model.Courts.Count == 0)
 {
-    <div class="alert alert-info">No active courts configured.</div>
+    <div class="alert alert-info d-flex align-items-center" role="status">
+        <i class="bi bi-grid-3x3-gap me-2" aria-hidden="true"></i>
+        No active courts configured.
+    </div>
 }
 else if (Model.TimeSlots.Count == 0)
 {
-    <div class="alert alert-info">No active time slots configured.</div>
+    <div class="alert alert-info d-flex align-items-center" role="status">
+        <i class="bi bi-clock-history me-2" aria-hidden="true"></i>
+        No active time slots configured.
+    </div>
 }
 else
 {
+    <div class="pb-schedule-legend" aria-hidden="true">
+        <span class="pb-legend-item"><span class="pb-legend-swatch is-open"></span>Available</span>
+        <span class="pb-legend-item"><span class="pb-legend-swatch is-taken"></span>Booked</span>
+        <span class="pb-legend-item"><span class="pb-legend-swatch is-maint"></span>Maintenance</span>
+    </div>
+
     <div class="table-responsive">
-        <table class="table table-bordered text-center align-middle">
+        <table class="table table-bordered align-middle pb-schedule-table">
+            <caption class="pb-visually-hidden">
+                Court booking schedule for @displayDate.ToString("MMMM d, yyyy")
+            </caption>
             <thead>
                 <tr>
-                    <th>Time</th>
+                    <th scope="col">Time</th>
                     @foreach (var court in Model.Courts)
                     {
-                        <th>@court.Name</th>
+                        <th scope="col" class="text-center">@court.Name</th>
                     }
                 </tr>
             </thead>
@@ -44,10 +81,19 @@ else
                 @foreach (var timeSlot in Model.TimeSlots)
                 {
                     <tr>
-                        <td>@timeSlot.StartTime.ToString(@"hh\:mm") - @timeSlot.EndTime.ToString(@"hh\:mm")</td>
+                        <th scope="row">
+                            @PickleBallBooking.Services.AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime)
+                        </th>
                         @foreach (var court in Model.Courts)
                         {
-                            <td>
+                            var hasAvailability = Model.SlotAvailabilityByCourtId.TryGetValue(court.Id, out var availability);
+                            var slotStatus = hasAvailability
+                                ? availability!.FirstOrDefault(s => s.TimeSlotId == timeSlot.Id)
+                                : null;
+                            var isMaintenance = slotStatus?.IsMaintenance ?? false;
+                            var isAvailable = slotStatus?.IsAvailable ?? false;
+
+                            <td class="pb-schedule-cell @(isMaintenance ? "is-maint" : (isAvailable ? "is-open" : "is-taken"))">
                                 @if (Model.BookingsByCourtAndSlot.TryGetValue((court.Id, timeSlot.Id), out var booking))
                                 {
                                     var badgeClass = booking.BookingStatus switch
@@ -57,14 +103,23 @@ else
                                         PickleBallBooking.Models.BookingStatus.Completed => "bg-secondary",
                                         _ => "bg-light text-dark"
                                     };
-                                    <a asp-page="/Admin/Bookings/Details" asp-route-id="@booking.Id" class="text-decoration-none">
-                                        <span class="badge @badgeClass d-block mb-1">@booking.BookingStatus</span>
-                                        <span class="small">@booking.CustomerName</span>
+                                    <a asp-page="/Admin/Bookings/Details" asp-route-id="@booking.Id" class="text-decoration-none"
+                                       title="@($"{booking.CustomerName} - {booking.BookingStatus}")">
+                                        <span class="badge @badgeClass pb-schedule-badge">@booking.BookingStatus</span>
+                                        <span class="pb-schedule-name">@booking.CustomerName</span>
                                     </a>
+                                }
+                                else if (isMaintenance)
+                                {
+                                    <span class="pb-schedule-badge text-secondary">
+                                        <i class="bi bi-tools" aria-hidden="true"></i> Maintenance
+                                    </span>
                                 }
                                 else
                                 {
-                                    <span class="text-muted small">Available</span>
+                                    <span class="pb-schedule-badge text-success">
+                                        <i class="bi bi-check-circle" aria-hidden="true"></i> Available
+                                    </span>
                                 }
                             </td>
                         }
@@ -74,3 +129,4 @@ else
         </table>
     </div>
 }
+

@@ -180,7 +180,7 @@ public class IndexModel : PageModel
         var startTime = selectedSlots.First().StartTime;
         var endTime = selectedSlots.Last().EndTime;
 
-        var result = await _bookingService.CalculatePriceAsync(Input.BookingDate, startTime, endTime);
+                var result = await _bookingService.CalculatePriceAsync(Input.BookingDate, startTime, endTime, Input.CourtId);
         if (!result.Success)
         {
             ErrorMessage = result.ErrorMessage;
@@ -207,15 +207,33 @@ public class IndexModel : PageModel
             .OrderBy(ts => ts.StartTime)
             .ToList();
 
-        if (selectedSlots.Count != slotIds.Length)
+                if (selectedSlots.Count != slotIds.Length)
         {
             return (false, "One or more selected time slots not found.");
         }
 
-        // Check continuity
+        // Reject any slot that has already started today (server-side enforcement;
+        // the UI disables these, but a crafted request must not bypass it).
+        if (Input.BookingDate == AppClock.TodayLocal)
+        {
+            var nowHours = AppClock.NowLocal.TimeOfDay.TotalHours;
+            if (selectedSlots.Any(s => s.StartTime.TotalHours <= nowHours))
+            {
+                return (false, "One or more selected time slots have already passed.");
+            }
+        }
+
+                // Check continuity. The final slot (23:00-00:00) ends at TimeSpan.Zero,
+        // so treat a zero end time as the 24:00 boundary.
         for (int i = 0; i < selectedSlots.Count - 1; i++)
         {
-            if (selectedSlots[i].EndTime != selectedSlots[i + 1].StartTime)
+            var previousEnd = selectedSlots[i].EndTime;
+            if (previousEnd == TimeSpan.Zero)
+            {
+                previousEnd = TimeSpan.FromHours(24);
+            }
+
+            if (previousEnd != selectedSlots[i + 1].StartTime)
             {
                 return (false, "Selected time slots must be continuous (no gaps allowed).");
             }
@@ -247,9 +265,9 @@ public class IndexModel : PageModel
         }
     }
 
-    private async Task LoadCalendarAsync()
+        private async Task LoadCalendarAsync()
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        var today = AppClock.TodayLocal;
         DateOptions = Enumerable.Range(0, CalendarWindowDays)
             .Select(offset =>
             {
@@ -278,6 +296,9 @@ public class IndexModel : PageModel
         var timeSlots = await _timeSlotService.GetActiveAsync();
         var availableSlots = await _bookingService.GetAvailableSlotsAsync(Input.CourtId, Input.BookingDate);
 
+                var isToday = Input.BookingDate == AppClock.TodayLocal;
+        var nowHours = AppClock.NowLocal.TimeOfDay.TotalHours;
+
         foreach (var slot in timeSlots.OrderBy(ts => ts.StartTime))
         {
             var availability = availableSlots.FirstOrDefault(a => a.TimeSlotId == slot.Id);
@@ -285,16 +306,30 @@ public class IndexModel : PageModel
             var isAvailable = availability?.IsAvailable ?? false;
             var isMaintenance = availability?.IsMaintenance ?? false;
 
+            // A slot is "past" when the booking is for today and the slot has already
+            // started (its start time is at or before the current local time). Past
+            // slots can never be selected or booked. Future-dated bookings are exempt.
+            var isPast = isToday && slot.StartTime.TotalHours <= nowHours;
+
+            // Past takes precedence over every other status so the UI cannot offer a
+            // slot that the server would reject.
+            var status = isPast
+                ? "past"
+                : isMaintenance
+                    ? "maintenance"
+                    : (isAvailable ? "available" : "booked");
+
             TimeSlotAvailabilities.Add(new TimeSlotAvailabilityView
             {
                 TimeSlotId = slot.Id,
                 StartTime = slot.StartTime,
                 EndTime = slot.EndTime,
-                DisplayTime = $"{slot.StartTime:hh\\:mm}-{slot.EndTime:hh\\:mm}",
-                IsAvailable = isAvailable,
+                DisplayTime = AppClock.To12HourRange(slot.StartTime, slot.EndTime),
+                IsAvailable = isAvailable && !isPast,
                 IsMaintenance = isMaintenance,
+                IsPast = isPast,
                 IsSelected = isSelected,
-                Status = isMaintenance ? "maintenance" : (isAvailable ? "available" : "booked")
+                Status = status
             });
         }
     }
@@ -303,8 +338,8 @@ public class IndexModel : PageModel
     {
         [Required(ErrorMessage = "Please select a booking date.")]
         [DataType(DataType.Date)]
-        [Display(Name = "Booking Date")]
-        public DateOnly BookingDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+                [Display(Name = "Booking Date")]
+        public DateOnly BookingDate { get; set; } = AppClock.TodayLocal;
 
         [Range(1, int.MaxValue, ErrorMessage = "Please select a court.")]
         [Display(Name = "Court")]
@@ -334,10 +369,11 @@ public class IndexModel : PageModel
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
         public string DisplayTime { get; set; } = "";
-        public bool IsAvailable { get; set; }
+                public bool IsAvailable { get; set; }
         public bool IsMaintenance { get; set; }
+        public bool IsPast { get; set; }
         public bool IsSelected { get; set; }
-        public string Status { get; set; } = ""; // "available", "booked", "maintenance"
+        public string Status { get; set; } = ""; // "available", "booked", "maintenance", "past"
     }
 }
 

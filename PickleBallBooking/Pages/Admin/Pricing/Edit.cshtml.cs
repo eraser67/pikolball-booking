@@ -43,9 +43,11 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (Pricing.EndTime <= Pricing.StartTime)
+        // Overnight bands are allowed (e.g. 18:00-02:00, or 18:00-00:00 for a band
+        // that runs to midnight). Only a zero-length band is invalid.
+        if (Pricing.StartTime == Pricing.EndTime)
         {
-            ModelState.AddModelError(string.Empty, "End time must be after start time.");
+            ModelState.AddModelError(string.Empty, "End time must be different from start time.");
         }
 
         if (!ModelState.IsValid)
@@ -84,3 +86,4 @@ public class EditModel : PageModel
         public decimal Price { get; set; }
     }
 }
+

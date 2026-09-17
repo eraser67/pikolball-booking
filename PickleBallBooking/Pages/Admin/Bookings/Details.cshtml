@@ -33,8 +33,8 @@
     <dt class="col-sm-3">Date</dt>
     <dd class="col-sm-9">@Model.Booking.BookingDate.ToString("yyyy-MM-dd")</dd>
 
-    <dt class="col-sm-3">Time</dt>
-    <dd class="col-sm-9">@Model.Booking.StartTime.ToString(@"hh\:mm") - @Model.Booking.EndTime.ToString(@"hh\:mm")</dd>
+        <dt class="col-sm-3">Time</dt>
+    <dd class="col-sm-9">@PickleBallBooking.Services.AppClock.To12HourRange(Model.Booking.StartTime, Model.Booking.EndTime)</dd>
 
     @if (Model.BookingSlots.Count > 0)
     {
@@ -43,7 +43,7 @@
             <ul>
                 @foreach (var (slot, timeSlot) in Model.BookingSlots)
                 {
-                    <li>@timeSlot.StartTime.ToString(@"hh\:mm") - @timeSlot.EndTime.ToString(@"hh\:mm") (#@slot.SlotOrder)</li>
+                    <li>@PickleBallBooking.Services.AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime) (#@slot.SlotOrder)</li>
                 }
             </ul>
         </dd>

@@ -17,9 +17,10 @@ public class ConfirmationModel : PageModel
 
     public async Task OnGetAsync(string reference)
     {
-        Booking = await _context.Bookings
+                Booking = await _context.Bookings
             .Include(b => b.Court)
-            .Include(b => b.TimeSlot)
+            .Include(b => b.TimeSlots)
+                .ThenInclude(bts => bts.TimeSlot)
             .FirstOrDefaultAsync(b => b.BookingReference == reference);
     }
 }

@@ -72,7 +72,7 @@
                 <td>@booking.CustomerName</td>
                 <td>@booking.Court?.Name</td>
                 <td>@booking.BookingDate.ToString("yyyy-MM-dd")</td>
-                <td>@booking.StartTime.ToString(@"hh\:mm") - @booking.EndTime.ToString(@"hh\:mm")</td>
+                <td>@PickleBallBooking.Services.AppClock.To12HourRange(booking.StartTime, booking.EndTime)</td>
                 <td>@booking.Price.ToString("C")</td>
                 <td>
                     @switch (booking.BookingStatus)

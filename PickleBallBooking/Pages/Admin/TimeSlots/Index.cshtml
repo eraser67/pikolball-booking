@@ -28,8 +28,8 @@
         @foreach (var slot in Model.TimeSlots)
         {
             <tr>
-                <td>@slot.StartTime.ToString(@"hh\:mm")</td>
-                <td>@slot.EndTime.ToString(@"hh\:mm")</td>
+                                <td>@PickleBallBooking.Services.AppClock.To12Hour(slot.StartTime)</td>
+                <td>@PickleBallBooking.Services.AppClock.To12Hour(slot.EndTime)</td>
                 <td>
                     @if (slot.Status == PickleBallBooking.Models.TimeSlotStatus.Active)
                     {
@@ -42,7 +42,7 @@
                 </td>
                 <td>
                     <a asp-page="Edit" asp-route-id="@slot.Id" class="btn btn-sm btn-outline-primary">Edit</a>
-                    <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@slot.Id" class="d-inline">
+                                        <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@slot.Id" class="d-inline">
                         @if (slot.Status == PickleBallBooking.Models.TimeSlotStatus.Active)
                         {
                             <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
@@ -51,6 +51,10 @@
                         {
                             <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
                         }
+                    </form>
+                    <form method="post" asp-page-handler="Delete" asp-route-id="@slot.Id" class="d-inline"
+                          onsubmit="return confirm('Delete time slot @PickleBallBooking.Services.AppClock.To12HourRange(slot.StartTime, slot.EndTime)? This cannot be undone.');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                     </form>
                 </td>
             </tr>

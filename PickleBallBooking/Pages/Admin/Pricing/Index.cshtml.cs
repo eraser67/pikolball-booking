@@ -35,7 +35,21 @@ public class IndexModel : PageModel
         var newStatus = pricing.Status == PricingStatus.Active ? PricingStatus.Inactive : PricingStatus.Active;
         await _pricingService.SetStatusAsync(id, newStatus);
 
-        StatusMessage = $"Pricing rule has been {(newStatus == PricingStatus.Active ? "activated" : "deactivated")}.";
+                StatusMessage = $"Pricing rule has been {(newStatus == PricingStatus.Active ? "activated" : "deactivated")}.";
+
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostDeleteAsync(int id)
+    {
+        var pricing = await _pricingService.GetByIdAsync(id);
+        if (pricing is null)
+        {
+            return NotFound();
+        }
+
+        await _pricingService.DeleteAsync(id);
+        StatusMessage = "Pricing rule has been deleted.";
 
         return RedirectToPage();
     }

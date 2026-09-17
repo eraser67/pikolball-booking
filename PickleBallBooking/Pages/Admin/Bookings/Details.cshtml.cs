@@ -31,8 +31,11 @@ public class DetailsModel : PageModel
     [TempData]
     public string? StatusMessage { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(int id)
+        public async Task<IActionResult> OnGetAsync(int id)
     {
+        // Complete any expired confirmed bookings so the details view is accurate.
+        await _bookingService.AutoCompleteExpiredBookingsAsync();
+
         Booking = await _bookingService.GetBookingByIdAsync(id);
 
         if (Booking is null)

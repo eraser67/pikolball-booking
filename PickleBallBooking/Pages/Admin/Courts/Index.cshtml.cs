@@ -35,7 +35,28 @@ public class IndexModel : PageModel
         var newStatus = court.Status == CourtStatus.Active ? CourtStatus.Inactive : CourtStatus.Active;
         await _courtService.SetStatusAsync(id, newStatus);
 
-        StatusMessage = $"Court '{court.Name}' has been {(newStatus == CourtStatus.Active ? "activated" : "deactivated")}.";
+                StatusMessage = $"Court '{court.Name}' has been {(newStatus == CourtStatus.Active ? "activated" : "deactivated")}.";
+
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostDeleteAsync(int id)
+    {
+        var court = await _courtService.GetByIdAsync(id);
+        if (court is null)
+        {
+            return NotFound();
+        }
+
+        try
+        {
+            await _courtService.DeleteAsync(id);
+            StatusMessage = $"Court '{court.Name}' has been deleted.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            StatusMessage = ex.Message;
+        }
 
         return RedirectToPage();
     }

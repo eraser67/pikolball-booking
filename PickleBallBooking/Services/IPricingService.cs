@@ -15,4 +15,9 @@ public interface IPricingService
     Task<bool> UpdateAsync(int id, DayType dayType, TimeSpan startTime, TimeSpan endTime, decimal price);
 
     Task<bool> SetStatusAsync(int id, PricingStatus status);
+
+    /// <summary>
+    /// Deletes a pricing rule. Returns false if the pricing rule does not exist.
+    /// </summary>
+    Task<bool> DeleteAsync(int id);
 }

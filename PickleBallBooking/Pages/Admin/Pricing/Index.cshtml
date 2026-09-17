@@ -31,8 +31,8 @@
         {
             <tr>
                 <td>@pricing.DayType</td>
-                <td>@pricing.StartTime.ToString(@"hh\:mm")</td>
-                <td>@pricing.EndTime.ToString(@"hh\:mm")</td>
+                                <td>@PickleBallBooking.Services.AppClock.To12Hour(pricing.StartTime)</td>
+                <td>@PickleBallBooking.Services.AppClock.To12Hour(pricing.EndTime)</td>
                 <td>@pricing.Price.ToString("C2")</td>
                 <td>
                     @if (pricing.Status == PickleBallBooking.Models.PricingStatus.Active)
@@ -46,7 +46,7 @@
                 </td>
                 <td>
                     <a asp-page="Edit" asp-route-id="@pricing.Id" class="btn btn-sm btn-outline-primary">Edit</a>
-                    <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@pricing.Id" class="d-inline">
+                                        <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@pricing.Id" class="d-inline">
                         @if (pricing.Status == PickleBallBooking.Models.PricingStatus.Active)
                         {
                             <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
@@ -55,6 +55,10 @@
                         {
                             <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
                         }
+                    </form>
+                    <form method="post" asp-page-handler="Delete" asp-route-id="@pricing.Id" class="d-inline"
+                          onsubmit="return confirm('Delete this pricing rule (@pricing.DayType @PickleBallBooking.Services.AppClock.To12HourRange(pricing.StartTime, pricing.EndTime))? This cannot be undone.');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                     </form>
                 </td>
             </tr>

@@ -80,9 +80,22 @@ public class PricingService : IPricingService
             return false;
         }
 
-        pricing.Status = status;
+                pricing.Status = status;
         pricing.UpdatedAt = DateTime.UtcNow;
 
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DeleteAsync(int id)
+    {
+        var pricing = await _context.Pricings.FindAsync(id);
+        if (pricing is null)
+        {
+            return false;
+        }
+
+        _context.Pricings.Remove(pricing);
         await _context.SaveChangesAsync();
         return true;
     }

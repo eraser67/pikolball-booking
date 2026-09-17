@@ -74,8 +74,12 @@ public class IndexModel : PageModel
         }
     }
 
-    private async Task LoadAsync()
+        private async Task LoadAsync()
     {
+        // Automatically complete confirmed bookings whose date/time has passed so
+        // admins don't have to mark them manually.
+        await _bookingService.AutoCompleteExpiredBookingsAsync();
+
         Courts = await _courtService.GetAllAsync();
 
         var filter = new BookingAdminFilter
