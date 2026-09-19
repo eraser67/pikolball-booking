@@ -1,0 +1,36 @@
+@*
+    Reusable Bootstrap confirmation modal for destructive actions.
+
+    Any <form> can opt in by adding a data-pb-confirm attribute. The modal is
+    then shown before the form submits; confirming submits the form, cancelling
+    simply closes the modal (no loading state is shown).
+
+    Optional attributes on the form:
+      data-pb-confirm          - the message to display (required to opt in)
+      data-pb-confirm-title    - custom modal title (defaults to "Please confirm")
+      data-pb-confirm-ok       - custom confirm button text (defaults to "Confirm")
+      data-pb-confirm-variant  - Bootstrap button variant for confirm (defaults to "danger")
+*@
+<div class="modal fade" id="pbConfirmModal" tabindex="-1" aria-labelledby="pbConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content pb-confirm-modal">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pbConfirmModalLabel">Please confirm</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-start gap-3">
+                    <span class="pb-confirm-icon" aria-hidden="true">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </span>
+                    <p class="mb-0" data-pb-confirm-message>Are you sure?</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" data-pb-confirm-accept>Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+

@@ -169,10 +169,18 @@ public class BookingServicePostgresTests
         await using var context = PostgresTestDatabase.CreateContext();
         await using var transaction = await context.Database.BeginTransactionAsync();
 
-        var date = AppClock.TodayLocal.AddDays(1);
+                        var date = AppClock.TodayLocal.AddDays(1);
         var dayType = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
             ? DayType.Weekend
             : DayType.Weekday;
+
+        // Isolate from the live database's existing Pricing seed rows so this test's
+        // bands are the only ones in effect. Changes are rolled back with the transaction.
+        var existing = await context.Pricings.Where(p => p.Status == PricingStatus.Active).ToListAsync();
+        foreach (var p in existing)
+        {
+            p.Status = PricingStatus.Inactive;
+        }
 
         context.Courts.Add(new Court { Id = 401, Name = "Late Night Court", Status = CourtStatus.Active });
         context.Pricings.AddRange(
@@ -185,6 +193,87 @@ public class BookingServicePostgresTests
 
         Assert.True(result.Success, result.ErrorMessage);
         Assert.Equal(300m, result.Price);
+
+        await transaction.RollbackAsync();
+    }
+
+    [Fact]
+    public async Task CreateBookingWithSlotsAsync_AllowsEndOfDaySlotEndingAtMidnight()
+    {
+        // Regression: booking the final hourly slot (23:00-00:00) stores EndTime = 00:00.
+        // The BookingPeriod computed column previously produced an inverted tsrange
+        // (lower 23:00 > upper 00:00) which PostgreSQL rejected with error 22000,
+        // surfacing as a DbUpdateException during booking creation.
+        await using var context = PostgresTestDatabase.CreateContext();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+
+        var date = AppClock.TodayLocal.AddDays(6);
+        var dayType = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
+            ? DayType.Weekend
+            : DayType.Weekday;
+
+        context.Courts.Add(new Court { Id = 501, Name = "Midnight Court", Status = CourtStatus.Active });
+        context.TimeSlots.AddRange(
+            new TimeSlot { Id = 501, StartTime = new TimeSpan(22, 0, 0), EndTime = new TimeSpan(23, 0, 0), Status = TimeSlotStatus.Active },
+            new TimeSlot { Id = 502, StartTime = new TimeSpan(23, 0, 0), EndTime = TimeSpan.Zero, Status = TimeSlotStatus.Active });
+        context.Pricings.Add(
+            new Pricing { Id = 501, DayType = dayType, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(23, 59, 0), Price = 300m, Status = PricingStatus.Active });
+        await context.SaveChangesAsync();
+
+        var service = new BookingService(context);
+
+        // The single 23:00-00:00 slot stores EndTime = 00:00.
+        var singleSlot = await service.CreateBookingWithSlotsAsync(
+            501, date, new List<int> { 502 }, "Alice", "09170000001", "alice@example.com");
+
+        Assert.True(singleSlot.Success, singleSlot.ErrorMessage);
+        Assert.Equal(new TimeSpan(23, 0, 0), singleSlot.Booking!.StartTime);
+        Assert.Equal(TimeSpan.Zero, singleSlot.Booking.EndTime);
+
+        // A multi-slot range ending at midnight (22:00-00:00) must also succeed.
+        // Use a different date so it does not collide with the single-slot booking above.
+        var multiSlot = await service.CreateBookingWithSlotsAsync(
+            501, date.AddDays(1), new List<int> { 501, 502 }, "Bob", "09170000002", "bob@example.com");
+
+        Assert.True(multiSlot.Success, multiSlot.ErrorMessage);
+        Assert.Equal(new TimeSpan(22, 0, 0), multiSlot.Booking!.StartTime);
+        Assert.Equal(TimeSpan.Zero, multiSlot.Booking.EndTime);
+
+        await transaction.RollbackAsync();
+    }
+
+    [Fact]
+    public async Task CreateBookingWithSlotsAsync_RejectsOverlapWithEndOfDaySlot()
+    {
+        // Confirms the corrected exclusion constraint still blocks a second booking
+        // that overlaps a 23:00-00:00 booking on the same court and date.
+        await using var context = PostgresTestDatabase.CreateContext();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+
+        var date = AppClock.TodayLocal.AddDays(7);
+        var dayType = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
+            ? DayType.Weekend
+            : DayType.Weekday;
+
+        context.Courts.Add(new Court { Id = 601, Name = "Overlap Court", Status = CourtStatus.Active });
+        context.TimeSlots.AddRange(
+            new TimeSlot { Id = 601, StartTime = new TimeSpan(22, 0, 0), EndTime = new TimeSpan(23, 0, 0), Status = TimeSlotStatus.Active },
+            new TimeSlot { Id = 602, StartTime = new TimeSpan(23, 0, 0), EndTime = TimeSpan.Zero, Status = TimeSlotStatus.Active });
+        context.Pricings.Add(
+            new Pricing { Id = 601, DayType = dayType, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(23, 59, 0), Price = 300m, Status = PricingStatus.Active });
+        await context.SaveChangesAsync();
+
+        var service = new BookingService(context);
+
+        var first = await service.CreateBookingWithSlotsAsync(
+            601, date, new List<int> { 602 }, "Alice", "09170000001", "alice@example.com");
+        Assert.True(first.Success, first.ErrorMessage);
+
+        // 22:00-00:00 overlaps the existing 23:00-00:00 booking and must be rejected.
+        var overlapping = await service.CreateBookingWithSlotsAsync(
+            601, date, new List<int> { 601, 602 }, "Bob", "09170000002", "bob@example.com");
+        Assert.False(overlapping.Success);
+        Assert.Contains("available", overlapping.ErrorMessage!, StringComparison.OrdinalIgnoreCase);
 
         await transaction.RollbackAsync();
     }

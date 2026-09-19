@@ -53,7 +53,7 @@ Security and Error Handling
 
 The following enhancement phases apply to the redesigned booking system using fixed hourly TimeSlots.
 
-> Phases 16 and 17 are complete. Phase 18 is in progress (see below).
+> Phases 16, 17, and 18 are complete.
 
 ### Phase 16 — Booking Model Redesign to Fixed Hourly TimeSlots
 
@@ -107,12 +107,11 @@ The following enhancement phases apply to the redesigned booking system using fi
 - Updated tests for TimeSlot-based availability
 - Responsive design tests
 
-### Phase 18 — UI/UX Refinement (In Progress)
+### Phase 18 — UI/UX Refinement (Complete)
 
 **Objective:** Improve overall application UI/UX using Bootstrap 5.
 
-**Status:** In progress. Homepage, navigation, Bootstrap Icons, and the brand design system
-are implemented in the working tree (uncommitted). Remaining items are pending.
+**Status:** Complete and merged to `main` (commit `c509b9a`, "BOOKING EXPERIENCE & UX POLISH").
 
 **Completed:**
 
@@ -125,15 +124,16 @@ are implemented in the working tree (uncommitted). Remaining items are pending.
 - ✅ Bootstrap Icons integration — icons in navbar, cards, buttons, footer
 - ✅ Bootstrap 5 enhancements / design system — brand tokens (CSS variables),
   buttons, cards, forms, badges, hero, footer styles (`wwwroot/css/site.css`)
+- ✅ Refine Booking Experience — step indicator, availability legend, past-slot
+  disabling, sticky summary, and booking flow polish
+- ✅ Improve Schedule/Calendar View — redesigned schedule grid with status legend
+- ✅ Error state refinement — consistent alert styling and states
+- ✅ Loading state indicators — page loading overlay and per-button spinners
 
-**Pending:**
+**Dropped items (intentionally out of scope):**
 
-- [ ] Refine Booking Experience (current UI carried over from Phase 17; further polish pending)
-- [ ] Improve Schedule/Calendar View (still a plain Bootstrap table)
-- [ ] Accessibility improvements (partial: skip link + aria labels; full audit pending)
-- [ ] Mobile responsiveness review (partial; formal review pending)
-- [ ] Error message refinement (partial)
-- [ ] Loading state indicators (not started)
+- ~~Full accessibility audit~~ — not pursued; baseline skip link and aria labels kept
+- ~~Formal mobile-responsiveness review~~ — not pursued; responsive layouts remain in place
 
 **Notes:**
 
@@ -223,10 +223,7 @@ Preserve existing business logic.
 * Empty states
 * Error states
 * Confirmation dialogs
-* Toast notifications
 * Better validation feedback
-* Accessibility
-* Mobile optimization
 * Consistent typography
 * Consistent spacing
 * Consistent components

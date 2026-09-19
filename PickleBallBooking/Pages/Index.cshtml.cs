@@ -81,9 +81,9 @@ namespace PickleBallBooking.Pages
         {
             var images = new[]
             {
-                "/images/serve.png",
-                "/images/serve-alt.png",
-                "/images/hero-player.png",
+                "/images/court1.png",
+                "/images/court2.png",
+                "/images/court3.png",
                 "/images/pickleball.png"
             };
 

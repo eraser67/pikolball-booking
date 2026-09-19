@@ -481,6 +481,70 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   border-color: var(--pb-border);
 }
 
+/* -------- Navbar action group (CTA + login/logout) --------
+   On desktop these sit inline and vertically centered. On the
+   collapsed (mobile) navbar they stack full-width so the CTA
+   and Logout/Login buttons line up with the other nav items. */
+.pb-nav-actions {
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pb-nav-actions .nav-item {
+  width: 100%;
+}
+
+/* The form wrapper for Logout must not stretch oddly; keep it block
+   so the button can fill the width on mobile. */
+.pb-nav-action-form {
+  width: 100%;
+}
+
+.pb-nav-actions .btn,
+.pb-nav-actions .nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 992px) {
+  .pb-nav-actions {
+    flex-direction: row;
+    align-items: center;
+    margin-left: 0.5rem;
+  }
+
+  .pb-nav-actions .nav-item {
+    width: auto;
+  }
+
+  .pb-nav-action-form {
+    width: auto;
+  }
+}
+
+@media (max-width: 991.98px) {
+  /* Stacked mobile navbar: give the CTA/actions their own space and
+     make every control full-width and evenly spaced. */
+  .pb-nav-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--pb-border);
+  }
+
+  .pb-nav-actions .nav-link,
+  .pb-nav-actions .btn {
+    width: 100%;
+  }
+
+  .pb-nav-actions .pb-nav-cta {
+    margin: 0;
+  }
+}
+
 /* -------- Buttons -------- */
 .btn-primary {
   background-color: var(--pb-green-600);
@@ -886,6 +950,83 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   color: var(--pb-green-700);
   text-align: center;
   padding: 2rem;
+}
+
+/* -------- Clickable / responsive map embed -------- */
+.pb-map-wrap {
+  position: relative;
+  border-radius: var(--pb-radius);
+  overflow: hidden;
+  border: 1px solid var(--pb-border);
+  box-shadow: var(--pb-shadow-sm);
+  /* Let the iframe scale fluidly but keep a sensible height on all screens. */
+  aspect-ratio: 16 / 10;
+  min-height: 280px;
+}
+
+.pb-map-link {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  line-height: 0;
+}
+
+.pb-map-wrap iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  border: 0;
+  /* The link overlay sits on top; the iframe stays non-interactive so a
+     tap/click anywhere on the map opens Google Maps instead of panning. */
+  pointer-events: none;
+}
+
+/* Full-surface transparent overlay: the whole map is a clickable link.
+   On hover/focus a hint bar fades in at the bottom. */
+.pb-map-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0.65rem 1rem;
+  background: linear-gradient(to top, rgba(15, 61, 46, 0.85), rgba(15, 61, 46, 0) 45%);
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.2;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.pb-map-overlay > * {
+  position: relative;
+  z-index: 1;
+}
+
+.pb-map-link:hover .pb-map-overlay,
+.pb-map-link:focus .pb-map-overlay {
+  opacity: 1;
+}
+
+.pb-map-link:focus-visible {
+  outline: 2px solid var(--pb-green-600);
+  outline-offset: 2px;
+}
+
+/* Touch devices have no hover: always show the "tap to open" hint. */
+@media (hover: none) {
+  .pb-map-overlay {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .pb-map-wrap {
+    aspect-ratio: 4 / 3;
+  }
 }
 
 /* -------- FAQ accordion -------- */
@@ -1306,4 +1447,185 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   color: #dc3545;
   font-weight: 500;
   margin-top: 10px;
+}
+
+/* ========================================================= */
+/* CONFIRMATION MODAL (Bootstrap)                            */
+/* ========================================================= */
+
+.pb-confirm-modal {
+  border: 1px solid var(--pb-border);
+  border-radius: var(--pb-radius);
+  box-shadow: var(--pb-shadow-md);
+}
+
+.pb-confirm-modal .modal-header {
+  border-bottom: 1px solid var(--pb-border);
+}
+
+.pb-confirm-modal .modal-title {
+  color: var(--pb-green-900);
+  font-weight: 700;
+}
+
+.pb-confirm-modal .modal-footer {
+  border-top: 1px solid var(--pb-border);
+}
+
+.pb-confirm-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  background-color: #fde8e8;
+  color: #dc3545;
+  font-size: 1.25rem;
+}
+
+/* ========================================================= */
+/* RESPONSIVE ADMIN TABLES                                   */
+/* Wide data tables collapse into stacked "cards" on small   */
+/* screens so no horizontal scrolling is needed. Each cell   */
+/* shows its column heading via the data-label attribute.    */
+/* ========================================================= */
+
+.pb-table {
+  width: 100%;
+  margin-bottom: 1rem;
+  border-collapse: collapse;
+  vertical-align: middle;
+}
+
+.pb-table thead th {
+  background-color: var(--pb-green-900);
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+  border-color: var(--pb-green-900);
+}
+
+.pb-table th,
+.pb-table td {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--pb-border);
+}
+
+.pb-table tbody tr:hover {
+  background-color: var(--pb-surface-alt);
+}
+
+/* Grouped action buttons live in their own aligned row on desktop. */
+.pb-table .pb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.pb-table .pb-actions form {
+  display: inline;
+  margin: 0;
+}
+
+/* Header shown only in the stacked (mobile) view. */
+.pb-table .pb-cell-label {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .pb-table {
+    border: 0;
+  }
+
+  .pb-table thead {
+    /* Visually hide the header row; labels come from data-label. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .pb-table tbody tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid var(--pb-border);
+    border-radius: var(--pb-radius);
+    background-color: var(--pb-surface);
+    box-shadow: var(--pb-shadow-sm);
+    overflow: hidden;
+  }
+
+  .pb-table tbody tr:hover {
+    background-color: var(--pb-surface);
+  }
+
+  .pb-table tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border: 0;
+    border-bottom: 1px solid var(--pb-border);
+    text-align: right;
+  }
+
+  .pb-table tbody td:last-child {
+    border-bottom: 0;
+  }
+
+  .pb-table tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-weight: 600;
+    color: var(--pb-muted);
+    text-align: left;
+  }
+
+  /* Cells without a label (e.g. the actions cell) span the full width. */
+  .pb-table tbody td.pb-actions-cell {
+    display: block;
+    padding: 0.75rem 0.9rem;
+    background-color: var(--pb-surface-alt);
+  }
+
+  .pb-table tbody td.pb-actions-cell::before {
+    display: none;
+  }
+
+  .pb-table .pb-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .pb-table .pb-actions form,
+  .pb-table .pb-actions .btn,
+  .pb-table .pb-actions a.btn {
+    width: 100%;
+  }
+
+  .pb-table .pb-actions .btn {
+    margin: 0;
+  }
+}
+
+/* Action links on desktop keep tight spacing. */
+.pb-table td:last-child {
+  white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+  .pb-table td:last-child {
+    white-space: normal;
+  }
 }
