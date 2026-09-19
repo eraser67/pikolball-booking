@@ -80,12 +80,132 @@
 
 - [x] Toast notifications (inline alerts enhanced into floating toasts; no logic changes)
 - [x] Confirmation dialogs (reusable modal replaces native confirm for destructive actions)
-- [ ] Empty states refinement
+- [ ] Empty states
 - [ ] Better validation feedback
-- [ ] Remaining component consistency pass
+- [ ] Component consistency
 
 > Presentation-only changes. No functionality, business logic, or POST handlers altered.
 
-## Deployment
+## Phase 20 — Multi-Tenant Database Foundation
 
-- [ ] Deploy to production
+- [ ] Analyze entire repository
+- [ ] Add Organization
+- [ ] Add OrganizationMember
+- [ ] Define roles
+- [ ] Identify tenant-owned entities
+- [ ] Add OrganizationId
+- [ ] Update EF relationships
+- [ ] Update indexes/constraints
+- [ ] Create Organization #1
+- [ ] Migrate existing Pikolball data
+- [ ] Create migration
+- [ ] Apply migration
+- [ ] Run existing tests
+- [ ] Add tenant foundation tests
+
+## Phase 21 — Tenant Context & Isolation
+
+- [ ] IOrganizationContext
+- [ ] Tenant-aware services
+- [ ] Tenant-aware queries
+- [ ] Authorization
+- [ ] Cross-tenant read tests
+- [ ] Cross-tenant write tests
+
+## Phase 22 — Subdomain Tenant Resolution
+
+- [ ] Define subdomain strategy
+- [ ] Resolve tenant from hostname
+- [ ] Unknown tenant handling
+- [ ] Reserved hosts
+- [ ] Local development strategy
+- [ ] Multiple subdomain testing
+
+## Phase 23 — Organization Management & Branding
+
+- [ ] Organization profile
+- [ ] Logo
+- [ ] Contact details
+- [ ] Branding
+- [ ] Organization settings
+- [ ] Organization member management
+
+## Phase 24 — Manual GCash Payment
+
+- [ ] Payment model
+- [ ] Payment settings
+- [ ] GCash QR
+- [ ] GCash instructions
+- [ ] Reference number
+- [ ] Screenshot/proof upload
+- [ ] Admin verification
+- [ ] Admin rejection
+- [ ] Tenant-safe storage
+- [ ] Payment tests
+
+## Phase 25 — Email / Gmail Notifications
+
+- [ ] Email service abstraction
+- [ ] Booking notification
+- [ ] Payment notification
+- [ ] Verification notification
+- [ ] Rejection notification
+- [ ] Cancellation notification
+- [ ] Organization notification
+- [ ] Organization-aware templates
+
+## Phase 26 — Subscription Management
+
+- [ ] SubscriptionPlan
+- [ ] Subscription
+- [ ] Trial
+- [ ] Active
+- [ ] Expired
+- [ ] Suspended
+- [ ] Manual activation
+- [ ] Plan limits
+
+## Phase 27 — Platform Administration
+
+- [ ] PlatformAdmin
+- [ ] Organization management
+- [ ] Organization activation/deactivation
+- [ ] Member management
+- [ ] Subscription management
+- [ ] Platform dashboard
+
+## Phase 28 — Security & Tenant Isolation Audit
+
+- [ ] Cross-tenant tests
+- [ ] Authorization tests
+- [ ] Crafted URL tests
+- [ ] Crafted form tests
+- [ ] Payment proof access tests
+- [ ] Storage security review
+- [ ] Logging review
+- [ ] Secrets review
+
+## Phase 29 — Final UI/UX & Production Readiness
+
+- [ ] Empty states
+- [ ] Validation
+- [ ] Responsive review
+- [ ] Accessibility review
+- [ ] Tenant branding review
+- [ ] Production configuration
+- [ ] Backup/recovery
+- [ ] Final regression
+
+## Phase 30 — Deployment
+
+- [ ] Production deployment
+- [ ] Database migration
+- [ ] Environment configuration
+- [ ] Primary domain
+- [ ] Wildcard subdomain
+- [ ] DNS
+- [ ] Storage
+- [ ] Email
+- [ ] GCash
+- [ ] Multi-tenant smoke test
+- [ ] Final security verification

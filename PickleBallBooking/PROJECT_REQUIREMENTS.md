@@ -27,6 +27,37 @@ Entity Framework Core
 PostgreSQL / Supabase
 ```
 
+### Evolution to Multi-Tenant SaaS (Future Phases)
+
+The system is evolving from a **single-organization booking application** into a
+**multi-tenant SaaS platform**. Multiple independent pickleball court
+organizations will be able to use the same application, each isolated from the
+others.
+
+Example tenant subdomains:
+
+```
+pikolball.example.com
+acepickleball.example.com
+smashzone.example.com
+```
+
+The **subdomain identifies the organization** (the tenant).
+
+- **Tenant abstraction:** `Organization` (the primary tenant abstraction).
+- **Do NOT use `CourtOwner`** as the primary tenant abstraction.
+- **Initial topology (this stage):**
+  - ONE ASP.NET Core application
+  - ONE PostgreSQL / Supabase database
+  - `OrganizationId` used for tenant isolation
+- **Do NOT introduce separate databases per tenant at this stage.**
+
+This evolution is planned across **Phases 20–30** (see Section 22). Until those
+phases are implemented, the system continues to operate as the approved
+single-organization application described in Sections 1–21, and all existing
+functionality (booking, availability, pricing, admin, security, testing) remains
+in effect.
+
 ---
 
 # 1. TECHNOLOGY STACK
@@ -51,6 +82,25 @@ PostgreSQL / Supabase
 - Redis, Kubernetes, Docker (unless required)
 - Paid APIs or SaaS services
 - Payment gateways (GCash, PayMongo, Xendit, Stripe, PayPal)
+
+### Do NOT Introduce (Multi-Tenant SaaS Constraints)
+
+The following must **not** be introduced even as the platform evolves to
+multi-tenant SaaS (see Section 22, Phases 20–30):
+
+- React
+- Angular
+- Vue
+- Next.js
+- Node.js backend
+- TypeScript
+- Microservices
+- Redis
+- Kubernetes
+- Separate database per tenant
+- Custom domains for organizations as a requirement
+- Automatic GCash payment gateway
+- Online subscription billing at this stage
 
 ### Simple Monolithic Architecture
 
@@ -107,6 +157,12 @@ The system must work completely without online payment.
 
 Payment may be added in a future version.
 
+> **Future note (Phase 24 — Manual GCash Payment):** A **manual** GCash payment
+> workflow (customer pays manually, submits a reference number / proof, and an
+> organization admin verifies it) is planned. This is explicitly **NOT** a GCash
+> API integration and does **NOT** change the Version 1 rule above. See
+> Section 25 for details.
+
 ---
 
 # 4. COURTS
@@ -120,6 +176,10 @@ Fields:
 - Status (Active | Inactive)
 - CreatedAt
 - UpdatedAt
+
+> **Future (Phase 20 — Multi-Tenant Database Foundation):** Court becomes
+> **tenant-owned data** and will also carry an `OrganizationId` field to isolate
+> courts by organization. See Section 24 (Tenant-Owned Data).
 
 ### Dynamic Courts
 
@@ -202,6 +262,11 @@ TimeSlots must be dynamic and configurable.
 
 Do not hard-code TimeSlots into customer booking pages.
 
+> **Future (Multi-Tenant SaaS):** The global 24 TimeSlot definitions may remain
+> **shared/global** across all organizations (they are the atomic hourly unit and
+> are not necessarily tenant-owned). Tenant-specific availability/maintenance is
+> what becomes tenant-scoped. See Section 24 (Tenant-Owned Data).
+
 ### Continuous Bookings Across TimeSlots
 
 Customers may reserve **multiple consecutive hourly TimeSlots** in a **single Booking record**.
@@ -250,6 +315,11 @@ One Booking record represents an entire reservation.
 - **BookingStatus** — Pending | Confirmed | Cancelled | Completed
 - **CreatedAt** — Timestamp
 - **UpdatedAt** — Timestamp
+
+> **Future (Phase 20 — Multi-Tenant Database Foundation):** Booking becomes
+> **tenant-owned data** and will also carry an `OrganizationId` field so that
+> each organization's bookings are isolated. The **one-Booking-per-reservation**
+> model is preserved unchanged. See Section 24 (Tenant-Owned Data).
 
 ### Single Booking Per Reservation
 
@@ -550,6 +620,11 @@ Individual TimeSlots can be deactivated globally, making them unavailable for al
 
 Example: If midnight (11:00 PM–12:00 AM) is not bookable, deactivate that TimeSlot globally.
 
+> **Future (Multi-Tenant SaaS):** Court-specific availability / maintenance is
+> **tenant-owned data** and must be isolated by `OrganizationId`. The global
+> TimeSlot definitions themselves may remain shared. See Section 24 (Tenant-Owned
+> Data).
+
 ---
 
 # 13. PRICING
@@ -639,6 +714,10 @@ Price configuration must be dynamic.
 
 Do not hard-code prices into customer booking pages.
 
+> **Future (Phase 20 — Multi-Tenant Database Foundation):** Pricing becomes
+> **tenant-owned data** and will carry an `OrganizationId` field so that each
+> organization's pricing rules are isolated. See Section 24 (Tenant-Owned Data).
+
 ---
 
 # 14. ADMIN FEATURES
@@ -660,6 +739,11 @@ Secrets:
 - Do not store passwords manually
 - Do not place credentials in source code
 - Use secure configuration (User Secrets development, environment variables production)
+
+> **Future (Phase 27 — Platform Administration):** Administration will be split
+> into **PlatformAdmin** (manages all organizations) and **Organization
+> admins/staff** (manage only their own organization). Organization admins must
+> only ever manage their own organization. See Sections 23 and 26.
 
 ### Admin Dashboard
 
@@ -949,6 +1033,12 @@ Automated tests must cover:
 29. ✓ Continuous TimeSlot selection enforced
 30. ✓ Non-continuous selection prevented
 
+> **Future (Multi-Tenant SaaS — Phase 21 / Phase 28):** **Cross-tenant automated
+> tests are mandatory.** They must verify that Tenant A can never see, modify,
+> or access Tenant B's data, bookings, payment information, or payment proof
+> files, and that `OrganizationId` is never trusted from client input. See
+> Section 29 (Tenant Isolation).
+
 ---
 
 # 21. SAMPLE DATA
@@ -1058,9 +1148,71 @@ These are development defaults only.
 **Phase 19** — UI Polish (In Progress)
 - ✅ Toast notifications (inline alerts enhanced into floating toasts)
 - ✅ Confirmation dialogs (reusable modal for destructive actions)
-- [ ] Empty state refinement
-- [ ] Better validation feedback
-- [ ] Remaining component consistency pass
+
+### FUTURE PHASES (20–30) — Multi-Tenant SaaS Evolution
+
+> These phases describe the approved future architecture. They are **planned**
+> and **not yet implemented**. See Sections 24–35 for the underlying
+> requirements.
+
+**Phase 20** — Multi-Tenant Database Foundation
+- Introduce the `Organization` and `OrganizationMember` models
+- Add `OrganizationId` to tenant-owned data (Court, Booking, Pricing,
+  maintenance, settings, payment, payment settings)
+- Migration: create Organization #1 and assign existing data to it
+- Preserve booking history and existing functionality
+
+**Phase 21** — Tenant Context & Isolation
+- Server-side tenant resolution and organization context
+- Enforce `OrganizationId` filtering in services/database queries
+- Never trust `OrganizationId` from client input
+- Cross-tenant automated tests
+
+**Phase 22** — Subdomain Tenant Resolution
+- Map request hostname → subdomain/slug → Organization
+- Reserve platform subdomains (www, app, admin, api, mail, support)
+- Safe local development tenant-resolution strategy
+
+**Phase 23** — Organization Management & Branding
+- Organization profile management (name, logo, description, contact, address)
+- Organization-level branding and booking settings
+- Customer-facing booking page uses the current organization's information
+
+**Phase 24** — Manual GCash Payment
+- Organization-specific GCash instructions and QR
+- Customer reference number + payment proof upload
+- Admin verify/reject workflow
+- `OrganizationPaymentSettings`
+- Tenant-aware payment proof storage
+- (Not a GCash API integration)
+
+**Phase 25** — Email / Gmail Notifications
+- Server-side email service abstraction
+- Customer and organization notifications
+- Organization-specific email content
+- Optional per-organization Gmail OAuth considered later
+
+**Phase 26** — Subscription Management
+- `SubscriptionPlan` and `Subscription` models
+- Trial / Active / Expired / Suspended / Cancelled statuses
+- Manual activation (no online billing yet)
+
+**Phase 27** — Platform Administration
+- PlatformAdmin capabilities (create/view/activate organizations, membership,
+  subscription plans)
+- Organization admins limited to their own organization
+
+**Phase 28** — Security & Tenant Isolation Audit
+- Audit tenant isolation across services and queries
+- Verify no cross-tenant data access (bookings, payments, proof files)
+- Verify `OrganizationId` is never trusted from client input
+
+**Phase 29** — Final UI/UX & Production Readiness
+- Polish organization-aware UI/UX
+- Production readiness checks
+
+**Phase 30** — Deployment
+- Production deployment of the multi-tenant platform
 
 ---
 
@@ -1102,7 +1254,421 @@ These are development defaults only.
 
 ---
 
-# 24. IMPLEMENTATION STATUS
+# 24. TENANT-OWNED DATA
+
+> **Planned — Phase 20 (Multi-Tenant Database Foundation).** This section
+> documents the approved **future** multi-tenant data model. It does **not**
+> change the current single-organization implementation, which continues to
+> operate as described in Sections 1–23 until Phase 20 is implemented.
+
+All tenant-owned data must be **isolated by `OrganizationId`**.
+
+At minimum, the following data must be reviewed and made tenant-scoped:
+
+- **Court**
+- **Booking**
+- **Pricing**
+- **Court-specific availability / maintenance**
+- **Organization settings**
+- **Payment**
+- **Payment settings**
+
+The **global 24 TimeSlot definitions may remain shared/global** (they are the
+atomic hourly unit of booking and are not necessarily tenant-owned).
+
+Every tenant-owned query must be filtered by `OrganizationId` so that data from
+one organization is never visible to another.
+
+---
+
+# 25. MANUAL GCASH PAYMENT
+
+> **Planned — Phase 24 (Manual GCash Payment).** This section documents the
+> approved **future** manual payment workflow. It is **NOT a GCash API
+> integration** and does **not** change the Version 1 "no payment" rule
+> (Section 3). It is not implemented yet.
+
+## Scope
+
+Manual GCash payment is a **manual, human-verified** workflow. There is **no
+GCash API integration**, **no automatic payment verification**, and **no online
+payment gateway**.
+
+## Customer Flow
+
+1. Select court / date / continuous TimeSlots.
+2. Enter customer information.
+3. Create booking.
+4. Display **organization-specific** GCash instructions.
+5. Display **organization-specific** GCash QR.
+6. Customer pays manually.
+7. Customer enters GCash reference number.
+8. Customer may upload payment screenshot / proof.
+9. Organization admin reviews.
+10. Admin verifies or rejects payment.
+
+## Suggested Payment Model
+
+Fields:
+
+- **Id**
+- **OrganizationId**
+- **BookingId**
+- **Amount**
+- **PaymentMethod**
+- **PaymentStatus**
+- **ReferenceNumber**
+- **ProofImageUrl**
+- **SubmittedAt**
+- **VerifiedAt**
+- **VerifiedBy**
+
+### Payment Statuses
+
+- **Pending**
+- **Submitted**
+- **Verified**
+- **Rejected**
+- **Cancelled**
+
+**Security rule:** Customers must **never** be able to mark their own payment as
+**Verified**. Only an authorized organization admin can verify or reject.
+
+## Organization Payment Settings
+
+Add `OrganizationPaymentSettings`:
+
+- **Id**
+- **OrganizationId**
+- **PaymentMethod**
+- **AccountName**
+- **AccountNumber**
+- **QRCodeUrl**
+- **Instructions**
+- **IsActive**
+
+## Payment Proof Storage
+
+Payment proof storage must be **tenant-aware** so one organization can never
+read another organization's proof files.
+
+Example logical path:
+
+```
+payment-proofs/{organization-slug}/{booking-reference}/...
+```
+
+---
+
+# 26. PLATFORM ADMINISTRATION
+
+> **Planned — Phase 27 (Platform Administration).** This section documents the
+> approved **future** platform-level administration model.
+
+## PlatformAdmin Capabilities
+
+A **PlatformAdmin** may:
+
+- Create organizations
+- View organizations
+- Activate / deactivate organizations
+- Manage organization membership
+- Assign subscription plans
+- View subscription status
+- View high-level platform information
+
+## Organization Admin Scope
+
+**Organization admins must only manage their own organization.**
+
+They must never manage, view, or modify another organization's data, bookings,
+payments, or settings.
+
+---
+
+# 27. ORGANIZATION
+
+> **Planned — Phase 20 (Multi-Tenant Database Foundation).** The `Organization`
+> model is the primary tenant abstraction. **Do NOT use `CourtOwner`** as the
+> tenant abstraction.
+
+## Organization Model
+
+Fields:
+
+- **Id**
+- **Name**
+- **Slug**
+- **Description**
+- **LogoUrl**
+- **Phone**
+- **Email**
+- **Address**
+- **TimeZone**
+- **Currency**
+- **Status**
+- **CreatedAt**
+- **UpdatedAt**
+
+**`Slug` must be unique.**
+
+The slug is used to resolve the organization from the request subdomain (see
+Section 30).
+
+---
+
+# 28. ORGANIZATION MEMBERS
+
+> **Planned — Phase 20 (Multi-Tenant Database Foundation).** Organization
+> membership links a platform user to an organization with a role.
+
+## OrganizationMember Model
+
+Fields:
+
+- **Id**
+- **OrganizationId**
+- **UserId**
+- **Role**
+- **CreatedAt**
+
+## Roles
+
+- **PlatformAdmin** — Manages the whole platform (all organizations).
+- **OrganizationOwner** — Owns and manages a single organization.
+- **OrganizationAdmin** — Administers a single organization.
+- **OrganizationStaff** — Operates within a single organization with limited
+  privileges.
+
+Role and membership are always scoped to an organization (except
+`PlatformAdmin`, which is platform-wide).
+
+---
+
+# 29. TENANT ISOLATION
+
+> **Planned — Phase 21 (Tenant Context & Isolation) and audited in Phase 28
+> (Security & Tenant Isolation Audit).** These are mandatory requirements for
+> the multi-tenant platform.
+
+## Isolation Requirements
+
+- Tenant A must **never** see Tenant B data.
+- Tenant A must **never** modify Tenant B data.
+- Tenant A must **never** access Tenant B bookings.
+- Tenant A must **never** access Tenant B payment information.
+- Tenant A must **never** access Tenant B payment proof files.
+- `OrganizationId` must **never** be trusted from customer/client input.
+- Tenant must be resolved **server-side**.
+- Tenant filtering must be enforced in **services / database queries**.
+- **Cross-tenant automated tests are mandatory.**
+
+## Enforcement Principles
+
+- Never accept `OrganizationId` from request bodies, query strings, or hidden
+  form fields.
+- Resolve the tenant server-side (from the resolved organization context) and
+  apply it to every tenant-owned query.
+- Centralize tenant filtering in the service layer to avoid one-off, easily
+  forgotten filters.
+
+---
+
+# 30. SUBDOMAIN TENANT RESOLUTION
+
+> **Planned — Phase 22 (Subdomain Tenant Resolution).** The subdomain identifies
+> the organization.
+
+## Resolution Flow
+
+```
+Request hostname
+  → subdomain / slug
+  → Organization lookup
+  → Organization context
+  → tenant-aware services
+  → tenant-specific data
+```
+
+Example:
+
+```
+pikolball.example.com
+  → pikolball
+  → Organization
+  → OrganizationId
+```
+
+## Reserved Platform Subdomains
+
+Reserved platform subdomains may include:
+
+- **www**
+- **app**
+- **admin**
+- **api**
+- **mail**
+- **support**
+
+These are **not** organization subdomains and must not resolve to an
+organization.
+
+## Local Development
+
+Local development must have a **safe tenant-resolution strategy** before
+production DNS is configured (e.g., a resolvable default/test organization so
+the application does not crash or leak data when no real subdomain exists).
+
+---
+
+# 31. ORGANIZATION BRANDING
+
+> **Planned — Phase 23 (Organization Management & Branding).** Future
+> organization customization includes:
+
+- Organization name
+- Logo
+- Description
+- Contact information
+- Address
+- Branding
+- Booking settings
+
+The **customer-facing booking page must use the current organization's
+information** (name, logo, description, contact, address, branding, booking
+settings).
+
+---
+
+# 32. EMAIL / GMAIL NOTIFICATIONS
+
+> **Planned — Phase 25 (Email / Gmail Notifications).** Email is a **notification
+> channel, NOT the database**. The database remains the source of truth.
+
+## Implementation Approach
+
+- Initial implementation should use a **server-side email service abstraction**.
+- Do **NOT** require every organization owner to connect a personal Gmail
+  initially.
+- Optional **per-organization Gmail OAuth** may be considered later.
+
+## Customer Notifications (may include)
+
+- Booking received
+- Payment instructions
+- Payment submitted
+- Payment verified
+- Payment rejected
+- Booking cancelled
+
+## Organization Notifications (may include)
+
+- New booking
+- Payment submitted
+- Booking cancellation
+
+**Emails must use organization-specific information.**
+
+---
+
+# 33. SUBSCRIPTIONS
+
+> **Planned — Phase 26 (Subscription Management).** Initially support **manual
+> activation**. Do **NOT** implement online billing yet.
+
+## Suggested SubscriptionPlan Model
+
+- **Id**
+- **Name**
+- **Price**
+- **BillingPeriod**
+- **MaxCourts**
+- **MaxStaff**
+- **Features**
+- **IsActive**
+
+## Suggested Subscription Model
+
+- **Id**
+- **OrganizationId**
+- **PlanId**
+- **Status**
+- **StartDate**
+- **EndDate**
+- **TrialEndDate**
+
+### Subscription Statuses
+
+- **Trial**
+- **Active**
+- **Expired**
+- **Suspended**
+- **Cancelled**
+
+Online subscription billing is **out of scope at this stage**.
+
+---
+
+# 34. EXISTING PIKOLBALL DATA MIGRATION
+
+> **Planned — Phase 20 (Multi-Tenant Database Foundation).** Existing Pikolball
+> data becomes **Organization #1**.
+
+Migration must:
+
+- Create **Organization #1**.
+- Assign existing **courts** to Organization #1.
+- Assign existing **bookings** to Organization #1.
+- Assign existing **pricing** to Organization #1.
+- **Preserve booking history.**
+- **Preserve existing functionality.**
+- **Avoid deleting existing data.**
+
+---
+
+# 35. PRESERVED ARCHITECTURE & CONSTRAINTS
+
+> These constraints are **preserved** and must **not** be changed by the
+> multi-tenant evolution.
+
+## Preserved (required to keep)
+
+- C#
+- ASP.NET Core (.NET 10)
+- Razor Pages
+- EF Core
+- PostgreSQL / Supabase
+- Bootstrap
+- ASP.NET Core Identity
+- Existing service-layer architecture
+- Fixed 24 hourly TimeSlots
+- Consecutive TimeSlot selection
+- One Booking per reservation
+- Server-side availability
+- Server-side pricing
+- Double-booking protection
+- Anonymous customer booking
+- Existing admin functionality
+
+## Must NOT Introduce
+
+- React
+- Angular
+- Vue
+- Next.js
+- Node.js backend
+- TypeScript
+- Microservices
+- Redis
+- Kubernetes
+- Separate database per tenant
+- Custom domains for organizations as a requirement
+- Automatic GCash payment gateway
+- Online subscription billing at this stage
+
+---
+
+# 36. IMPLEMENTATION STATUS
 
 This document represents the **approved design**, and the application now
 implements it.
@@ -1115,5 +1681,14 @@ implements it.
 - **Existing functionality** — preserved; no existing workflows were broken.
 - **Phase 19 (UI Polish)** — in progress; current work is presentation-only
   (toast notifications and confirmation dialogs).
+
+## Current Implementation Status
+
+- **Phases 1–18 — Complete.**
+- **Phase 19 — UI Polish — In Progress.**
+- **Phases 20–30 — Planned** (multi-tenant SaaS evolution).
+
+The multi-tenant SaaS requirements in Sections 24–35 describe the **approved
+future architecture** and are **not yet implemented**.
 
 ---
