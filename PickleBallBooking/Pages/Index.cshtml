@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model IndexModel
 @{
     ViewData["Title"] = "Home";
@@ -203,9 +203,25 @@
             </a>
         </div>
         <div class="col-lg-7">
-            <div class="pb-map-placeholder">
-                <i class="bi bi-map display-4"></i>
-                <p class="mb-0 mt-2">Map / directions will appear here.</p>
+            <div class="pb-map-wrap">
+                <a class="pb-map-link"
+                   href="https://www.google.com/maps/search/?api=1&query=10.671029,124.020279"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   aria-label="Open Pikol Bol Pickleball Club location in Google Maps">
+                    <iframe
+                        src="https://www.google.com/maps?q=10.671029,124.020279&z=17&output=embed"
+                        title="Map showing Pikol Bol Pickleball Club location"
+                        width="100%"
+                        height="450"
+                        style="border:0; border-radius:12px;"
+                        allowfullscreen=""
+                        loading="lazy">
+                    </iframe>
+                    <span class="pb-map-overlay">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Tap to open in Google Maps
+                    </span>
+                </a>
             </div>
         </div>
     </div>

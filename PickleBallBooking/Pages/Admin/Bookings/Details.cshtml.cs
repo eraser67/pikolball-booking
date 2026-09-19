@@ -31,6 +31,9 @@ public class DetailsModel : PageModel
     [TempData]
     public string? StatusMessage { get; set; }
 
+    [TempData]
+    public string? ErrorMessage { get; set; }
+
         public async Task<IActionResult> OnGetAsync(int id)
     {
         // Complete any expired confirmed bookings so the details view is accurate.
@@ -62,6 +65,21 @@ public class DetailsModel : PageModel
 
     public async Task<IActionResult> OnPostCancelAsync(int id)
     {
+        return await ChangeStatusAsync(id, BookingStatus.Cancelled);
+    }
+
+    public async Task<IActionResult> OnPostConfirmAsync(int id)
+    {
+        return await ChangeStatusAsync(id, BookingStatus.Confirmed);
+    }
+
+    public async Task<IActionResult> OnPostCompleteAsync(int id)
+    {
+        return await ChangeStatusAsync(id, BookingStatus.Completed);
+    }
+
+    private async Task<IActionResult> ChangeStatusAsync(int id, BookingStatus newStatus)
+    {
         Booking = await _bookingService.GetBookingByIdAsync(id);
 
         if (Booking is null)
@@ -69,16 +87,20 @@ public class DetailsModel : PageModel
             return NotFound();
         }
 
-        if (Booking.BookingStatus == BookingStatus.Cancelled)
+        var result = await _bookingService.UpdateBookingStatusAsync(id, newStatus);
+
+        if (result.Success)
         {
-            StatusMessage = "This booking is already cancelled.";
-            return RedirectToPage(new { id });
+            StatusMessage = $"Booking {Booking.BookingReference} has been updated to {newStatus}.";
+        }
+        else
+        {
+            // Surface the reason (e.g. invalid status transition) to the user.
+            ErrorMessage = result.ErrorMessage;
         }
 
-        // Use slot-aware cancellation method if available
-        await _bookingService.CancelBookingAsync(id);
-
-        StatusMessage = $"Booking {Booking.BookingReference} has been cancelled successfully.";
-        return RedirectToPage();
+        return RedirectToPage(new { id });
     }
 }
+
+

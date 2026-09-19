@@ -15,7 +15,7 @@
     <a asp-page="Create" class="btn btn-primary">Add Pricing</a>
 </p>
 
-<table class="table">
+<table class="pb-table">
     <thead>
         <tr>
             <th>Day Type</th>
@@ -23,18 +23,18 @@
             <th>End Time</th>
             <th>Price</th>
             <th>Status</th>
-            <th></th>
+            <th><span class="pb-visually-hidden">Actions</span></th>
         </tr>
     </thead>
     <tbody>
         @foreach (var pricing in Model.Pricings)
         {
             <tr>
-                <td>@pricing.DayType</td>
-                                <td>@PickleBallBooking.Services.AppClock.To12Hour(pricing.StartTime)</td>
-                <td>@PickleBallBooking.Services.AppClock.To12Hour(pricing.EndTime)</td>
-                <td>@pricing.Price.ToString("C2")</td>
-                <td>
+                <td data-label="Day Type">@pricing.DayType</td>
+                <td data-label="Start Time">@PickleBallBooking.Services.AppClock.To12Hour(pricing.StartTime)</td>
+                <td data-label="End Time">@PickleBallBooking.Services.AppClock.To12Hour(pricing.EndTime)</td>
+                <td data-label="Price">@pricing.Price.ToString("C2")</td>
+                <td data-label="Status">
                     @if (pricing.Status == PickleBallBooking.Models.PricingStatus.Active)
                     {
                         <span class="badge bg-success">Active</span>
@@ -44,22 +44,26 @@
                         <span class="badge bg-secondary">Inactive</span>
                     }
                 </td>
-                <td>
-                    <a asp-page="Edit" asp-route-id="@pricing.Id" class="btn btn-sm btn-outline-primary">Edit</a>
-                                        <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@pricing.Id" class="d-inline">
-                        @if (pricing.Status == PickleBallBooking.Models.PricingStatus.Active)
-                        {
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
-                        }
-                        else
-                        {
-                            <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
-                        }
-                    </form>
-                    <form method="post" asp-page-handler="Delete" asp-route-id="@pricing.Id" class="d-inline"
-                          onsubmit="return confirm('Delete this pricing rule (@pricing.DayType @PickleBallBooking.Services.AppClock.To12HourRange(pricing.StartTime, pricing.EndTime))? This cannot be undone.');">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                    </form>
+                <td class="pb-actions-cell">
+                    <div class="pb-actions">
+                        <a asp-page="Edit" asp-route-id="@pricing.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@pricing.Id">
+                            @if (pricing.Status == PickleBallBooking.Models.PricingStatus.Active)
+                            {
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                            }
+                            else
+                            {
+                                <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                            }
+                        </form>
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@pricing.Id"
+                              data-pb-confirm="Delete this pricing rule (@pricing.DayType @PickleBallBooking.Services.AppClock.To12HourRange(pricing.StartTime, pricing.EndTime))? This cannot be undone."
+                              data-pb-confirm-title="Delete pricing rule"
+                              data-pb-confirm-ok="Delete">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
         }

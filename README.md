@@ -10,7 +10,7 @@ Built with:
 - **Bootstrap 5** for responsive design
 - **ASP.NET Core Identity** for authentication
 
-**Status:** Phases 1–17 Complete | Phase 18 (UI/UX Refinement) In Progress
+**Status:** Phases 1–18 Complete
 
 ---
 
@@ -56,6 +56,7 @@ Built with:
 - **Court-Specific Maintenance** — Mark courts/hours as unavailable
 - **Server-Side Authority** — All pricing and availability validated server-side
 - **Database-Level Protection** — Unique constraints prevent duplicate bookings
+- **Past-Slot Protection** — Slots that have already started today are disabled and cannot be booked
 - **Automated Tests** — Comprehensive test coverage
 
 ---
@@ -227,22 +228,12 @@ Tests cover:
 - [x] Update README.md
 - [x] Document Phase 18 completed vs pending items
 
-### Completed (Phases 16–17)
+### Completed (Phases 16–18)
 - [x] **Phase 16:** Booking Model Redesign to fixed hourly TimeSlots
 - [x] **Phase 17:** Fixed-TimeSlot Availability UI
-
-### In Progress (Phase 18 — UI/UX Refinement)
-- [x] Improve Homepage (hero, dynamic court cards, how-it-works, benefits, location, FAQ, CTA)
-- [x] Enhance Navigation (branded navbar, footer, active links, admin dropdown)
-- [x] Bootstrap Icons integration
-- [x] Brand design system (CSS variables, buttons, cards, forms, badges)
-- [ ] Refine Booking Experience (further polish pending)
-- [ ] Improve Schedule/Calendar View (redesign pending)
-- [ ] Accessibility improvements (partial)
-- [ ] Error message refinement (partial)
-- [ ] Loading state indicators (not started)
-
-> Phase 18 work is currently uncommitted working-tree changes; commit once reviewed.
+- [x] **Phase 18:** UI/UX Refinement — homepage, navigation, Bootstrap Icons, brand
+  design system, booking experience, schedule/calendar view, error states, and
+  loading indicators
 
 ---
 
@@ -278,4 +269,4 @@ MIT License
 ---
 
 **Last Updated:** 2026-09-18  
-**Documentation Version:** Phases 16–17 complete, Phase 18 in progress
+**Documentation Version:** Phases 16–18 complete

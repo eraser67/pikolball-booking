@@ -15,22 +15,22 @@
     <a asp-page="Create" class="btn btn-primary">Add Court</a>
 </p>
 
-<table class="table">
+<table class="pb-table">
     <thead>
         <tr>
             <th>Name</th>
             <th>Description</th>
             <th>Status</th>
-            <th></th>
+            <th><span class="pb-visually-hidden">Actions</span></th>
         </tr>
     </thead>
     <tbody>
         @foreach (var court in Model.Courts)
         {
             <tr>
-                <td>@court.Name</td>
-                <td>@court.Description</td>
-                <td>
+                <td data-label="Name">@court.Name</td>
+                <td data-label="Description">@court.Description</td>
+                <td data-label="Status">
                     @if (court.Status == PickleBallBooking.Models.CourtStatus.Active)
                     {
                         <span class="badge bg-success">Active</span>
@@ -40,22 +40,26 @@
                         <span class="badge bg-secondary">Inactive</span>
                     }
                 </td>
-                <td>
-                    <a asp-page="Edit" asp-route-id="@court.Id" class="btn btn-sm btn-outline-primary">Edit</a>
-                                        <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@court.Id" class="d-inline">
-                        @if (court.Status == PickleBallBooking.Models.CourtStatus.Active)
-                        {
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
-                        }
-                        else
-                        {
-                            <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
-                        }
-                    </form>
-                    <form method="post" asp-page-handler="Delete" asp-route-id="@court.Id" class="d-inline"
-                          onsubmit="return confirm('Delete court &quot;@court.Name&quot;? This cannot be undone.');">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                    </form>
+                <td class="pb-actions-cell">
+                    <div class="pb-actions">
+                        <a asp-page="Edit" asp-route-id="@court.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@court.Id">
+                            @if (court.Status == PickleBallBooking.Models.CourtStatus.Active)
+                            {
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
+                            }
+                            else
+                            {
+                                <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                            }
+                        </form>
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@court.Id"
+                              data-pb-confirm="Delete court &quot;@court.Name&quot;? This cannot be undone."
+                              data-pb-confirm-title="Delete court"
+                              data-pb-confirm-ok="Delete">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
         }

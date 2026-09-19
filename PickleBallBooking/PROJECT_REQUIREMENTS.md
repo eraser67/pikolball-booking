@@ -1046,13 +1046,21 @@ These are development defaults only.
 - Responsive design (desktop and mobile)
 - Updated tests
 
-**Phase 18** — UI/UX Refinement (In Progress)
+**Phase 18** — UI/UX Refinement (Complete)
 - ✅ Bootstrap 5 improvements (design system: tokens, buttons, cards, forms, badges)
 - ✅ Modern responsive layout (hero homepage, branded navbar, footer)
 - ✅ Bootstrap Icons integration
-- [ ] Accessibility enhancements (partial)
-- [ ] Error message refinement (partial)
-- [ ] Loading state indicators
+- ✅ Booking experience polish (step indicator, legend, past-slot disabling, sticky summary)
+- ✅ Schedule/calendar view redesign
+- ✅ Error state refinement
+- ✅ Loading state indicators
+
+**Phase 19** — UI Polish (In Progress)
+- ✅ Toast notifications (inline alerts enhanced into floating toasts)
+- ✅ Confirmation dialogs (reusable modal for destructive actions)
+- [ ] Empty state refinement
+- [ ] Better validation feedback
+- [ ] Remaining component consistency pass
 
 ---
 
@@ -1094,16 +1102,18 @@ These are development defaults only.
 
 ---
 
-# 24. DOCUMENTATION-ONLY STATUS
+# 24. IMPLEMENTATION STATUS
 
-This document represents the **approved new design**.
+This document represents the **approved design**, and the application now
+implements it.
 
-**No application code has been modified.**
-
-**No database migrations have been applied.**
-
-**No existing functionality has been broken.**
-
-Code and migrations will align to these requirements in future phases (subject to approval).
+- **Application code** — implemented for Phases 1–18 (booking model redesign,
+  fixed hourly TimeSlots, availability, pricing, admin, schedule, UI/UX).
+- **Database migrations** — applied to the PostgreSQL/Supabase database
+  (booking range foundation, period exclusion constraint, TimeSlot seed data,
+  legacy booking-time-slot column drop).
+- **Existing functionality** — preserved; no existing workflows were broken.
+- **Phase 19 (UI Polish)** — in progress; current work is presentation-only
+  (toast notifications and confirmation dialogs).
 
 ---
