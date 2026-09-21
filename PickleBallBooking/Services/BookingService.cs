@@ -194,13 +194,27 @@ public class BookingService : IBookingService
 
         try
         {
-            const int maxAttempts = 5;
+            const int maxAttempts = 10;
+            var prefix = $"PB-{bookingDate:yyyyMMdd}-";
+            var existingRefs = await _context.Bookings.IgnoreQueryFilters()
+                .Where(b => b.BookingDate == bookingDate && b.BookingReference.StartsWith(prefix))
+                .Select(b => b.BookingReference)
+                .ToListAsync();
+
+            var maxSeq = 0;
+            foreach (var r in existingRefs)
+            {
+                if (r.Length > prefix.Length && int.TryParse(r.Substring(prefix.Length), out var seq))
+                {
+                    if (seq > maxSeq) maxSeq = seq;
+                }
+            }
+
             for (var attempt = 0; attempt < maxAttempts; attempt++)
             {
-                                // Generate booking reference
-                var countForDate = await _context.Bookings.CountAsync(b => b.BookingDate == bookingDate);
-                var sequence = countForDate + 1 + attempt;
-                var reference = $"PB-{bookingDate:yyyyMMdd}-{sequence:D4}";
+                // Generate booking reference across all tenants to avoid unique constraint collision
+                var sequence = Math.Max(maxSeq, existingRefs.Count) + 1 + attempt;
+                var reference = $"{prefix}{sequence:D4}";
 
                 // Phase 20.5: attach the booking to the court's organization so the
                 // NOT NULL tenant foreign keys are satisfied. This uses the court's own

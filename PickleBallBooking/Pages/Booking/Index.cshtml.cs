@@ -103,6 +103,7 @@ public class IndexModel : PageModel
 
         if (!ModelState.IsValid)
         {
+            await TryCalculatePriceAsync();
             return Page();
         }
 
@@ -132,6 +133,7 @@ public class IndexModel : PageModel
         if (!result.Success)
         {
             ErrorMessage = result.ErrorMessage;
+            await TryCalculatePriceAsync();
             return Page();
         }
 
