@@ -1,11 +1,26 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using PickleBallBooking.Data;
 using PickleBallBooking.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Standardize application culture to Philippine Peso (₱)
+var defaultCulture = new CultureInfo("en-PH");
+defaultCulture.NumberFormat.CurrencySymbol = "₱";
+CultureInfo.DefaultThreadCurrentCulture = defaultCulture;
+CultureInfo.DefaultThreadCurrentUICulture = defaultCulture;
+
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.DefaultRequestCulture = new RequestCulture(defaultCulture);
+    options.SupportedCultures = new List<CultureInfo> { defaultCulture };
+    options.SupportedUICultures = new List<CultureInfo> { defaultCulture };
+});
 
 // Add services to the container.
 builder.Services.AddRazorPages(options =>
@@ -117,6 +132,14 @@ builder.Services.AddScoped<ApplicationDbContext>(sp =>
 });
 
 var app = builder.Build();
+
+var localizationOptions = new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(defaultCulture),
+    SupportedCultures = new List<CultureInfo> { defaultCulture },
+    SupportedUICultures = new List<CultureInfo> { defaultCulture }
+};
+app.UseRequestLocalization(localizationOptions);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -1,6 +1,6 @@
 // =========================================================
 // PHASE 18/19 - Booking page client behaviour
-// - Selection & continuity validation
+// - Court & Date selection updates slots dynamically via AJAX (NO PAGE REFRESH)
 // - In-place gap error message ("Cannot select time slot with gap.")
 // - Shake animation for rejected slots
 // - Step 4 ("Your Information") only shown after Calculate Price
@@ -10,11 +10,14 @@ document.addEventListener('DOMContentLoaded', function () {
     'use strict';
 
     const form = document.getElementById('bookingForm');
-    const checkboxes = Array.from(document.querySelectorAll('.timeslot-checkbox'));
     const validationSummary = document.getElementById('validationSummary');
     const courtSelect = document.getElementById('courtSelect');
     const bookingDateInput = document.getElementById('bookingDate');
     const bookingSummaryContainer = document.getElementById('bookingSummaryContainer');
+
+    const timeslotEmptyState = document.getElementById('timeslotEmptyState');
+    const timeslotContent = document.getElementById('timeslotContent');
+    const timeslotGrid = document.getElementById('timeslotGrid');
 
     const timeslotGapAlert = document.getElementById('timeslotGapAlert');
     const timeslotGapAlertClose = document.getElementById('timeslotGapAlertClose');
@@ -22,18 +25,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const step4Card = document.getElementById('step4Card');
 
-    const slotDisplayTimes = {};
-    checkboxes.forEach(function (checkbox) {
-        const card = checkbox.closest('.timeslot-btn');
-        if (!card) { return; }
-        const timeElement = card.querySelector('.timeslot-time');
-        if (timeElement) {
-            slotDisplayTimes[checkbox.value] = timeElement.textContent.trim();
-        }
-    });
+    let slotDisplayTimes = {};
+
+    function cacheDisplayTimes() {
+        const checkboxes = Array.from(document.querySelectorAll('.timeslot-checkbox'));
+        checkboxes.forEach(function (checkbox) {
+            const card = checkbox.closest('.timeslot-btn');
+            if (!card) { return; }
+            const timeElement = card.querySelector('.timeslot-time');
+            if (timeElement) {
+                slotDisplayTimes[checkbox.value] = timeElement.textContent.trim();
+            }
+        });
+    }
+    cacheDisplayTimes();
+
+    function getAllCheckboxes() {
+        return Array.from(document.querySelectorAll('.timeslot-checkbox'));
+    }
 
     function getSelectedCheckboxes() {
-        return checkboxes.filter(function (checkbox) { return checkbox.checked; });
+        return getAllCheckboxes().filter(function (checkbox) { return checkbox.checked; });
     }
 
     function getSelectedSlotIds() {
@@ -43,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateCardAppearance() {
-        checkboxes.forEach(function (checkbox) {
+        getAllCheckboxes().forEach(function (checkbox) {
             const card = checkbox.closest('.timeslot-btn');
             if (!card) { return; }
             if (checkbox.checked) { card.classList.add('selected'); }
@@ -159,8 +171,12 @@ document.addEventListener('DOMContentLoaded', function () {
         validationSummary.innerHTML = `<strong>Error:</strong> ${message}`;
     }
 
-    checkboxes.forEach(function (checkbox) {
-        checkbox.addEventListener('change', function () {
+    // Event delegation on timeslot grid for all checkbox changes
+    if (timeslotGrid) {
+        timeslotGrid.addEventListener('change', function (event) {
+            const checkbox = event.target;
+            if (!checkbox || !checkbox.classList.contains('timeslot-checkbox')) { return; }
+
             clearValidationError();
             hideGapAlert();
 
@@ -169,7 +185,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!checkbox.checked) {
                 updateCardAppearance();
                 updateSummary();
-                // If user alters selection after calculating price, hide step 4 until recalculated
                 if (step4Card) {
                     step4Card.style.display = 'none';
                     const confirmActions = document.getElementById('confirmActionsContainer');
@@ -204,27 +219,136 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (confirmActions) { confirmActions.style.display = 'none'; }
             }
         });
-    });
+    }
 
-    if (courtSelect) {
-        courtSelect.addEventListener('change', function () {
-            const selectedCourt = this.value;
-            if (!selectedCourt) { return; }
-            const selectedDate = bookingDateInput ? bookingDateInput.value : '';
-            if (selectedDate) {
-                window.location.href = `/Booking?courtId=${selectedCourt}&date=${selectedDate}`;
-            } else {
-                window.location.href = `/Booking?courtId=${selectedCourt}`;
+    // Fetch slots dynamically via AJAX without refreshing the link
+    function loadSlotsAjax(courtId, dateVal) {
+        if (!courtId) {
+            if (timeslotEmptyState) { timeslotEmptyState.style.display = 'block'; }
+            if (timeslotContent) { timeslotContent.style.display = 'none'; }
+            if (bookingSummaryContainer) { bookingSummaryContainer.style.display = 'none'; }
+            if (step4Card) { step4Card.style.display = 'none'; }
+            return;
+        }
+
+        if (timeslotEmptyState) { timeslotEmptyState.style.display = 'none'; }
+        if (timeslotContent) { timeslotContent.style.display = 'block'; }
+        if (timeslotGrid) {
+            timeslotGrid.style.opacity = '0.5';
+            timeslotGrid.style.pointerEvents = 'none';
+        }
+
+        // Hide old gap alert and previous step 4 calculation
+        hideGapAlert();
+        if (step4Card) {
+            step4Card.style.display = 'none';
+            const confirmActions = document.getElementById('confirmActionsContainer');
+            if (confirmActions) { confirmActions.style.display = 'none'; }
+        }
+
+        fetch(`/Booking?handler=Slots&courtId=${encodeURIComponent(courtId)}&date=${encodeURIComponent(dateVal)}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            if (timeslotGrid) {
+                timeslotGrid.style.opacity = '1';
+                timeslotGrid.style.pointerEvents = 'auto';
+            }
+
+            if (!data || !data.success || !Array.isArray(data.slots)) {
+                if (timeslotEmptyState) { timeslotEmptyState.style.display = 'block'; }
+                if (timeslotContent) { timeslotContent.style.display = 'none'; }
+                return;
+            }
+
+            slotDisplayTimes = {};
+            let html = '';
+
+            data.slots.forEach(function (slot) {
+                slotDisplayTimes[slot.timeSlotId] = slot.displayTime;
+
+                const slotStatusClass = slot.status || 'unavailable';
+                const isDisabled = !slot.isAvailable;
+                const displayStatus = slot.isPast ? 'passed' : slot.status;
+                const ariaLabel = `${slot.displayTime} - ${displayStatus}`;
+
+                html += `
+                    <label class="timeslot-btn ${slotStatusClass}"
+                           title="${ariaLabel}"
+                           data-slot-id="${slot.timeSlotId}"
+                           data-start-minutes="${slot.startMinutes}"
+                           data-end-minutes="${slot.endMinutes}">
+
+                        <input type="checkbox"
+                               name="SelectedSlotIds"
+                               value="${slot.timeSlotId}"
+                               class="timeslot-checkbox"
+                               aria-label="${ariaLabel}"
+                               data-slot-id="${slot.timeSlotId}"
+                               data-start-minutes="${slot.startMinutes}"
+                               data-end-minutes="${slot.endMinutes}"
+                               ${isDisabled ? 'disabled' : ''} />
+
+                        <span class="timeslot-time">
+                            ${slot.displayTime}
+                        </span>
+
+                        <span class="timeslot-status">
+                            ${displayStatus}
+                        </span>
+
+                    </label>
+                `;
+            });
+
+            if (timeslotGrid) {
+                timeslotGrid.innerHTML = html;
+            }
+
+            updateCardAppearance();
+            updateSummary();
+        })
+        .catch(function (err) {
+            console.error('Failed to load slots', err);
+            if (timeslotGrid) {
+                timeslotGrid.style.opacity = '1';
+                timeslotGrid.style.pointerEvents = 'auto';
             }
         });
     }
 
+    // Court select: dynamic update WITHOUT refreshing the page link
+    if (courtSelect) {
+        courtSelect.addEventListener('change', function () {
+            const selectedCourt = this.value;
+            const selectedDate = bookingDateInput ? bookingDateInput.value : '';
+
+            const summaryCourt = document.getElementById('summaryCourtName');
+            if (summaryCourt) {
+                summaryCourt.textContent = this.options[this.selectedIndex]?.text || '-';
+            }
+
+            loadSlotsAjax(selectedCourt, selectedDate);
+        });
+    }
+
+    // Booking date input: dynamic update WITHOUT refreshing the page link
     if (bookingDateInput) {
         bookingDateInput.addEventListener('change', function () {
             const selectedDate = this.value;
-            if (!selectedDate) { return; }
-            if (courtSelect && courtSelect.value) {
-                window.location.href = `/Booking?courtId=${courtSelect.value}&date=${selectedDate}`;
+            const selectedCourt = courtSelect ? courtSelect.value : '';
+
+            const summaryDate = document.getElementById('summaryDate');
+            if (selectedDate && summaryDate) {
+                const date = new Date(selectedDate + 'T00:00:00');
+                summaryDate.textContent = date.toLocaleDateString('en-US', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+            }
+
+            if (selectedCourt) {
+                loadSlotsAjax(selectedCourt, selectedDate);
             }
         });
     }

@@ -58,6 +58,31 @@ public class IndexModel : PageModel
         await LoadTimeSlotAvailabilityAsync();
     }
 
+    public async Task<IActionResult> OnGetSlotsAsync(int courtId, DateOnly date)
+    {
+        if (courtId <= 0)
+        {
+            return new JsonResult(new { success = false, message = "Invalid court." });
+        }
+
+        Input.CourtId = courtId;
+        Input.BookingDate = date;
+        await LoadTimeSlotAvailabilityAsync();
+
+        var slots = TimeSlotAvailabilities.Select(s => new
+        {
+            timeSlotId = s.TimeSlotId,
+            displayTime = s.DisplayTime,
+            status = s.Status,
+            isAvailable = s.IsAvailable,
+            isPast = s.IsPast,
+            startMinutes = (int)s.StartTime.TotalMinutes,
+            endMinutes = (int)(s.EndTime == TimeSpan.Zero ? 1440 : s.EndTime.TotalMinutes)
+        }).ToList();
+
+        return new JsonResult(new { success = true, slots });
+    }
+
     public async Task<IActionResult> OnGetPriceAsync(int courtId, DateOnly date, [FromQuery] int[] slotIds)
     {
         if (slotIds == null || slotIds.Length == 0)
@@ -97,7 +122,7 @@ public class IndexModel : PageModel
         {
             success = true,
             price = result.Price,
-            formattedPrice = result.Price.ToString("C")
+            formattedPrice = $"₱{result.Price:N2}"
         });
     }
 

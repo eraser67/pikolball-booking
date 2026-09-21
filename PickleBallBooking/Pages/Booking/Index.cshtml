@@ -126,19 +126,16 @@
                             Select Time Slots
                         </h2>
 
-                        @if (!hasSlots)
-                        {
-                            <div class="calendar-empty-state">
-                                <div class="calendar-empty-state-icon">
-                                    <i class="bi bi-calendar2-x" aria-hidden="true"></i>
-                                </div>
-                                <p class="mb-0">
-                                    Please select a court and date to view available time slots.
-                                </p>
+                        <div class="calendar-empty-state" id="timeslotEmptyState" style="@(!hasSlots ? "" : "display: none;")">
+                            <div class="calendar-empty-state-icon">
+                                <i class="bi bi-calendar2-x" aria-hidden="true"></i>
                             </div>
-                        }
-                        else
-                        {
+                            <p class="mb-0">
+                                Please select a court and date to view available time slots.
+                            </p>
+                        </div>
+
+                        <div id="timeslotContent" style="@(hasSlots ? "" : "display: none;")">
                             <p class="text-muted small mb-2">
                                 Tap the available (green) slots to select them.
                                 Multiple slots must be continuous with no gaps.
@@ -147,7 +144,7 @@
                             <div class="pb-legend" aria-hidden="true">
                                 <span class="pb-legend-item"><span class="pb-legend-swatch is-available"></span>Available</span>
                                 <span class="pb-legend-item"><span class="pb-legend-swatch is-selected"></span>Selected</span>
-                                                                <span class="pb-legend-item"><span class="pb-legend-swatch is-booked"></span>Booked</span>
+                                <span class="pb-legend-item"><span class="pb-legend-swatch is-booked"></span>Booked</span>
                                 <span class="pb-legend-item"><span class="pb-legend-swatch is-maintenance"></span>Maintenance</span>
                                 <span class="pb-legend-item"><span class="pb-legend-swatch is-past"></span>Passed</span>
                             </div>
@@ -220,7 +217,7 @@
                                 }
 
                             </div>
-                        }
+                        </div>
 
                     </div>
                 </section>
@@ -231,7 +228,7 @@
             <div class="col-lg-5">
                 <div class="pb-sticky-summary">
 
-                    <div id="bookingSummaryContainer" style="display: none;">
+                    <div id="bookingSummaryContainer" style="@(Model.CalculatedPrice.HasValue || (Model.SelectedSlotIds != null && Model.SelectedSlotIds.Length > 0) ? "" : "display: none;")">
                         <div class="booking-form-section card mb-4 bg-light" aria-live="polite">
                             <div class="card-body">
                                 <h2 class="h5 card-title">Booking Summary</h2>
@@ -253,9 +250,9 @@
                                     <span class="booking-summary-value" id="summaryDuration">-</span>
                                 </div>
 
-                                <div id="priceContainer" style="display: none;" class="booking-summary-item">
+                                <div id="priceContainer" style="@(Model.CalculatedPrice.HasValue ? "" : "display: none;")" class="booking-summary-item">
                                     <span class="booking-summary-label">Price</span>
-                                    <span class="booking-summary-value text-success" id="summaryPrice">-</span>
+                                    <span class="booking-summary-value text-success" id="summaryPrice">@(Model.CalculatedPrice.HasValue ? $"₱{Model.CalculatedPrice.Value:N2}" : "-")</span>
                                 </div>
 
                                 <div id="calculateButtonContainer" class="mt-3 d-grid">
@@ -286,7 +283,7 @@
                                 <div class="price-alert mb-3" id="step4PriceAlert">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="fw-semibold">Estimated total</span>
-                                        <span class="price-alert-value" id="step4PriceValue">@Model.CalculatedPrice.Value.ToString("C")</span>
+                                        <span class="price-alert-value" id="step4PriceValue">₱@Model.CalculatedPrice.Value.ToString("N2")</span>
                                     </div>
                                 </div>
 
