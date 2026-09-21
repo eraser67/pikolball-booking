@@ -129,12 +129,12 @@ builder.Services.Configure<PaymentProofOptions>(builder.Configuration.GetSection
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddHttpClient<IPaymentProofStorage, SupabasePaymentProofStorage>();
 
-// Phase 26 (Email / Gmail Notifications):
-// IEmailService → SmtpEmailService (singleton: MailKit client has no request-scoped state).
+// Resend transactional email:
+// IEmailService → ResendEmailService (typed HttpClient; IHttpClientFactory manages socket lifetime).
 // BookingEmailService is scoped: it composes and fires emails for each request.
-// Set Email:Enabled = true and fill SMTP credentials in User Secrets to activate.
+// Set Email:Enabled = true and set Email:ApiKey (via User Secrets or env var) to activate.
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
-builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
+builder.Services.AddHttpClient<IEmailService, ResendEmailService>();
 builder.Services.AddScoped<BookingEmailService>();
 
 // Phase 23: organization/tenant administration.
