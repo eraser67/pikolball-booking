@@ -1,0 +1,29 @@
+[Unit]
+Description=Pikolball Booking System (.NET 10)
+After=network.target
+
+[Service]
+WorkingDirectory=/var/www/pikolball
+ExecStart=/usr/bin/dotnet /var/www/pikolball/PickleBallBooking.dll
+Restart=always
+RestartSec=10
+KillSignal=SIGINT
+SyslogIdentifier=pikolball
+User=pikolball
+Group=pikolball
+
+# Environment
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+Environment=ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+Environment=Tenant__BaseDomain=punitbola.tech
+EnvironmentFile=/etc/pikolball/production.env
+
+# Hardening
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
