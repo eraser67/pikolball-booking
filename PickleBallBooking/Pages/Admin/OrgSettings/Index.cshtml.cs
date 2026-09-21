@@ -14,17 +14,20 @@ public class IndexModel : PageModel
     private readonly IOrganizationService _organizationService;
     private readonly IPaymentService _paymentService;
     private readonly IPaymentProofStorage _proofStorage;
+    private readonly ICourtImageStorage _imageStorage;
     private readonly ISubscriptionService _subscriptionService;
 
     public IndexModel(
         IOrganizationService organizationService,
         IPaymentService paymentService,
         IPaymentProofStorage proofStorage,
+        ICourtImageStorage imageStorage,
         ISubscriptionService subscriptionService)
     {
         _organizationService = organizationService;
         _paymentService      = paymentService;
         _proofStorage        = proofStorage;
+        _imageStorage        = imageStorage;
         _subscriptionService = subscriptionService;
     }
 
@@ -37,6 +40,9 @@ public class IndexModel : PageModel
 
     /// <summary>Current QR code public URL (for display).</summary>
     public string? CurrentQRCodeUrl { get; set; }
+
+    /// <summary>Current custom brand logo public URL (for display).</summary>
+    public string? CurrentLogoUrl { get; set; }
 
     [BindProperty]
     public SettingsInput Input { get; set; } = new();
@@ -58,6 +64,8 @@ public class IndexModel : PageModel
         Input.Latitude  = organization.Latitude;
         Input.Longitude = organization.Longitude;
         Input.NotificationEmail = organization.NotificationEmail;
+
+        CurrentLogoUrl = _imageStorage.GetPublicUrl(organization.LogoPath);
 
         // Load current payment settings.
         var paySettings = await _paymentService.GetPaymentSettingsAsync();
@@ -98,6 +106,36 @@ public class IndexModel : PageModel
 
         // Save notification email.
         await _organizationService.UpdateNotificationEmailAsync(Input.NotificationEmail);
+
+        // Handle Brand Logo upload or removal.
+        if (Input.RemoveLogo)
+        {
+            await _organizationService.UpdateCurrentLogoAsync(null);
+        }
+        else if (Input.LogoImage is not null && Input.LogoImage.Length > 0)
+        {
+            var org = await _organizationService.GetCurrentAsync();
+            if (org is not null)
+            {
+                try
+                {
+                    var logoPath = await _imageStorage.UploadLogoAsync(org.Id, Input.LogoImage);
+                    await _organizationService.UpdateCurrentLogoAsync(logoPath);
+                }
+                catch (CourtImageValidationException ex)
+                {
+                    ModelState.AddModelError("Input.LogoImage", ex.Message);
+                    await ReloadReadOnlyAsync();
+                    return Page();
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError("Input.LogoImage", $"Logo upload failed: {ex.Message}");
+                    await ReloadReadOnlyAsync();
+                    return Page();
+                }
+            }
+        }
 
         // Save payment settings.
         string? qrPath = null;
@@ -163,9 +201,10 @@ public class IndexModel : PageModel
         var organization = await _organizationService.GetCurrentAsync();
         if (organization is not null)
         {
-            Slug      = organization.Slug;
-            Status    = organization.Status;
-            CreatedAt = organization.CreatedAt;
+            Slug           = organization.Slug;
+            Status         = organization.Status;
+            CreatedAt      = organization.CreatedAt;
+            CurrentLogoUrl = _imageStorage.GetPublicUrl(organization.LogoPath);
         }
 
         var paySettings = await _paymentService.GetPaymentSettingsAsync();
@@ -219,5 +258,12 @@ public class IndexModel : PageModel
         [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
         [Display(Name = "Notification Email")]
         public string? NotificationEmail { get; set; }
+
+        // Branding
+        [Display(Name = "Brand Logo")]
+        public IFormFile? LogoImage { get; set; }
+
+        [Display(Name = "Remove custom logo (revert to default)")]
+        public bool RemoveLogo { get; set; }
     }
 }

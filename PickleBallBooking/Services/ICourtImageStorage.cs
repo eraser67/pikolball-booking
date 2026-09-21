@@ -25,6 +25,12 @@ public interface ICourtImageStorage
     Task<string> UploadAsync(int organizationId, int courtId, IFormFile file, CancellationToken ct = default);
 
     /// <summary>
+    /// Validates and uploads an organization's custom brand logo to Supabase Storage (court-images public bucket).
+    /// The storage path is built server-side: organizations/{orgId}/logo/logo{ext}
+    /// </summary>
+    Task<string> UploadLogoAsync(int organizationId, IFormFile file, CancellationToken ct = default);
+
+    /// <summary>
     /// Deletes a stored court image using the server-side stored path.
     /// The caller must load the path from the database; the client cannot supply an arbitrary path.
     /// </summary>

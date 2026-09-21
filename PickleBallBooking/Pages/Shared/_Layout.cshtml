@@ -1,6 +1,7 @@
 @using PickleBallBooking.Services
 @inject ITenantContext TenantCtx
 @inject IOrganizationService OrgSvc
+@inject ICourtImageStorage ImageStorage
 @{
     var currentPath = (Context.Request.Path.Value ?? "/").ToLowerInvariant();
     string NavActive(params string[] prefixes)
@@ -14,10 +15,11 @@
     }
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
 
-    // Org-aware display name: on tenant subdomains show the org's name; elsewhere show platform brand.
+    // Org-aware display name & custom logo: on tenant subdomains show the org's name & logo; elsewhere show platform brand.
     Models.Organization? tenantOrg = TenantCtx.IsResolved ? await OrgSvc.GetCurrentAsync() : null;
     var displayName = tenantOrg?.Name ?? "Punit Bola Booking";
     var platformBrand = "Punit Bola Booking";
+    var tenantLogoUrl = !string.IsNullOrEmpty(tenantOrg?.LogoPath) ? ImageStorage.GetPublicUrl(tenantOrg.LogoPath) : null;
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -38,7 +40,14 @@
         <nav class="navbar navbar-expand-lg pb-navbar sticky-top" aria-label="Main navigation">
             <div class="container">
                 <a class="navbar-brand pb-brand" asp-area="" asp-page="/Index">
-                    <img src="~/images/pickleball.png" alt="" class="pb-brand-logo" />
+                    @if (!string.IsNullOrEmpty(tenantLogoUrl))
+                    {
+                        <img src="@tenantLogoUrl" alt="@displayName" class="pb-brand-logo" />
+                    }
+                    else
+                    {
+                        <img src="~/images/pickleball.png" alt="Pikolball" class="pb-brand-logo" />
+                    }
                     <span class="pb-brand-text">
                         @displayName
                         @if (tenantOrg is not null)
@@ -141,7 +150,14 @@
             <div class="row gy-4">
                 <div class="col-lg-5">
                     <div class="d-flex align-items-center gap-2 mb-2">
-                        <img src="~/images/pickleball.png" alt="" height="30" width="30" />
+                        @if (!string.IsNullOrEmpty(tenantLogoUrl))
+                        {
+                            <img src="@tenantLogoUrl" alt="@displayName" height="30" width="30" class="rounded object-fit-contain" />
+                        }
+                        else
+                        {
+                            <img src="~/images/pickleball.png" alt="Pikolball" height="30" width="30" />
+                        }
                         <span class="pb-footer-brand">@displayName</span>
                     </div>
                     @if (tenantOrg is not null)

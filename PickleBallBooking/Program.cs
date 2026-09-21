@@ -66,6 +66,12 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
+
+    var baseDomain = builder.Configuration["Tenant:BaseDomain"];
+    if (!builder.Environment.IsDevelopment() && !string.IsNullOrWhiteSpace(baseDomain) && !baseDomain.Contains("localhost"))
+    {
+        options.Cookie.Domain = $".{baseDomain.TrimStart('.')}";
+    }
 });
 
 builder.Services.AddScoped<ICourtService, CourtService>();

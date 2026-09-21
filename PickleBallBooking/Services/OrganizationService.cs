@@ -100,6 +100,12 @@ public interface IOrganizationService
     /// </summary>
     Task<bool> UpdateNotificationEmailAsync(string? email, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Updates the custom brand logo storage path for the CURRENT tenant organization.
+    /// Null or empty clears the field (reverting to default logo).
+    /// </summary>
+    Task<bool> UpdateCurrentLogoAsync(string? logoPath, CancellationToken cancellationToken = default);
+
     /// <summary>Members of the CURRENT tenant organization (with their Identity info).</summary>
     Task<List<OrganizationMemberView>> GetCurrentMembersAsync(CancellationToken cancellationToken = default);
 
@@ -247,6 +253,25 @@ public sealed class OrganizationService : IOrganizationService
                     Role = OrganizationRole.OrganizationOwner,
                     CreatedAt = now
                 });
+
+                // Auto-assign default Free / Trial subscription plan so new org has immediate access
+                var defaultPlan = await _context.SubscriptionPlans
+                    .FirstOrDefaultAsync(p => p.IsFree && p.IsActive, cancellationToken)
+                    ?? await _context.SubscriptionPlans.FirstOrDefaultAsync(p => p.IsActive, cancellationToken);
+
+                if (defaultPlan is not null)
+                {
+                    _context.Subscriptions.Add(new Subscription
+                    {
+                        OrganizationId = organization.Id,
+                        PlanId         = defaultPlan.Id,
+                        Status         = SubscriptionStatus.Trial,
+                        TrialEndDate   = DateOnly.FromDateTime(now.AddDays(30)),
+                        Notes          = "Auto-assigned trial on organization creation.",
+                        CreatedAt      = now,
+                        UpdatedAt      = now
+                    });
+                }
 
                 await _context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
@@ -517,6 +542,22 @@ public sealed class OrganizationService : IOrganizationService
 
         var trimmed = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
         organization.NotificationEmail = trimmed;
+        organization.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> UpdateCurrentLogoAsync(string? logoPath, CancellationToken cancellationToken = default)
+    {
+        var id = _tenantContext.OrganizationId;
+        if (id is null) return false;
+
+        var organization = await _context.Organizations
+            .FirstOrDefaultAsync(o => o.Id == id.Value, cancellationToken);
+
+        if (organization is null) return false;
+
+        organization.LogoPath = string.IsNullOrWhiteSpace(logoPath) ? null : logoPath.Trim();
         organization.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);
         return true;

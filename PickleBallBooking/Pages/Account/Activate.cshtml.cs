@@ -156,7 +156,14 @@ public class ActivateModel : PageModel
 
         if (!string.IsNullOrEmpty(membership))
         {
-            LoginUrl = $"{Request.Scheme}://{membership}.{_tenantOptions.BaseDomain}:{Request.Host.Port}/Account/Login";
+            var portPart = Request.Host.Port.HasValue && Request.Host.Port.Value != 80 && Request.Host.Port.Value != 443
+                ? $":{Request.Host.Port.Value}"
+                : string.Empty;
+            LoginUrl = $"{Request.Scheme}://{membership}.{_tenantOptions.BaseDomain}{portPart}/Account/Login";
+        }
+        else
+        {
+            LoginUrl = "/Account/Login";
         }
 
         return Page();

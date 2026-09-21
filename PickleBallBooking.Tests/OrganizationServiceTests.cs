@@ -481,6 +481,69 @@ public class OrganizationServiceTests
     }
 
     // -------------------------------------------------------------------------
+    // Logo & Subscription Provisioning
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task UpdateCurrentLogoAsync_UpdatesAndClearsLogo()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        var (_, adminSvc) = CreateService(dbName);
+        var created = await adminSvc.CreateAsync("Logo Org", "logoorg", "Owner", "logo@example.com");
+        Assert.True(created.Success);
+
+        var (tenantCtx, tenantSvc) = CreateService(dbName, created.Organization!.Id);
+
+        // 1. Update logo
+        var updated = await tenantSvc.UpdateCurrentLogoAsync("organizations/1/logo/logo.png");
+        Assert.True(updated);
+
+        var org = await tenantSvc.GetCurrentAsync();
+        Assert.NotNull(org);
+        Assert.Equal("organizations/1/logo/logo.png", org.LogoPath);
+
+        // 2. Clear logo
+        var cleared = await tenantSvc.UpdateCurrentLogoAsync(null);
+        Assert.True(cleared);
+
+        org = await tenantSvc.GetCurrentAsync();
+        Assert.NotNull(org);
+        Assert.Null(org.LogoPath);
+    }
+
+    [Fact]
+    public async Task CreateAsync_AutomaticallyProvisionsActiveTrialSubscription()
+    {
+        var (context, svc) = CreateService();
+
+        context.SubscriptionPlans.Add(new SubscriptionPlan
+        {
+            Name = "Free Trial",
+            Price = 0m,
+            IsFree = true,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        var result = await svc.CreateAsync(
+            "Trial Sub Org",
+            "trialsuborg",
+            "Owner User",
+            "trial@example.com");
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.Organization);
+
+        var sub = await context.Subscriptions
+            .FirstOrDefaultAsync(s => s.OrganizationId == result.Organization.Id);
+
+        Assert.NotNull(sub);
+        Assert.Equal(SubscriptionStatus.Trial, sub.Status);
+        Assert.NotNull(sub.TrialEndDate);
+        Assert.True(sub.TrialEndDate > DateOnly.FromDateTime(DateTime.UtcNow.AddDays(25)));
+    }
+
+    // -------------------------------------------------------------------------
     // Minimal Identity UserStore backed by EF InMemory
     // -------------------------------------------------------------------------
 

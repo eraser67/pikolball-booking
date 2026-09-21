@@ -103,6 +103,44 @@ public class SupabaseCourtImageStorage : ICourtImageStorage
         return storagePath;
     }
 
+    public async Task<string> UploadLogoAsync(int organizationId, IFormFile file, CancellationToken ct = default)
+    {
+        const long maxLogoSizeBytes = 2 * 1024 * 1024;
+        if (file.Length > maxLogoSizeBytes)
+        {
+            throw new CourtImageValidationException(
+                $"Logo image must be 2 MB or smaller (max {maxLogoSizeBytes:N0} bytes). " +
+                $"The uploaded file is {file.Length:N0} bytes.");
+        }
+
+        if (file.Length == 0)
+        {
+            throw new CourtImageValidationException("Logo image file is empty.");
+        }
+
+        using var ms = new MemoryStream((int)file.Length);
+        await file.CopyToAsync(ms, ct);
+        var bytes = ms.ToArray();
+
+        var detectedMime = DetectMimeFromBytes(bytes)
+            ?? throw new CourtImageValidationException(
+                "Logo image must be a valid JPEG, PNG, or WEBP file. " +
+                "The uploaded file does not match a supported image format.");
+
+        var contentType = file.ContentType?.ToLowerInvariant() ?? string.Empty;
+        if (!AllowedMimeExtensions.ContainsKey(contentType))
+        {
+            contentType = detectedMime;
+        }
+
+        var extension = AllowedMimeExtensions[detectedMime][0];
+        var storagePath = $"organizations/{organizationId}/logo/logo{extension}";
+
+        await UploadToSupabaseAsync(storagePath, bytes, detectedMime, ct);
+
+        return storagePath;
+    }
+
     public async Task DeleteAsync(string storagePath, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(storagePath)) return;

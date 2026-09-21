@@ -2,7 +2,10 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using PickleBallBooking.Data;
+using PickleBallBooking.Models;
 using PickleBallBooking.Services;
 
 namespace PickleBallBooking.Pages.Account;
@@ -10,19 +13,25 @@ namespace PickleBallBooking.Pages.Account;
 public class LoginModel : PageModel
 {
     private readonly SignInManager<IdentityUser> _signInManager;
+    private readonly UserManager<IdentityUser> _userManager;
+    private readonly ApplicationDbContext _context;
     private readonly ITenantContext _tenantContext;
     private readonly ITenantHostParser _hostParser;
     private readonly TenantOptions _tenantOptions;
 
     public LoginModel(
         SignInManager<IdentityUser> signInManager,
+        UserManager<IdentityUser> userManager,
+        ApplicationDbContext context,
         ITenantContext tenantContext,
         ITenantHostParser hostParser,
         IOptions<TenantOptions> tenantOptions)
     {
         _signInManager = signInManager;
+        _userManager   = userManager;
+        _context       = context;
         _tenantContext = tenantContext;
-        _hostParser = hostParser;
+        _hostParser    = hostParser;
         _tenantOptions = tenantOptions.Value;
     }
 
@@ -68,11 +77,51 @@ public class LoginModel : PageModel
                 return LocalRedirect(returnUrl);
             }
 
-            // If no tenant is resolved (root/platform domain), go to the platform admin
-            // org list. If a tenant IS resolved (subdomain), go to the tenant dashboard.
-            return _tenantContext.IsResolved
-                ? RedirectToPage("/Admin/Index")
-                : RedirectToPage("/Admin/Organizations/Index");
+            // Check if the authenticated user is a PlatformAdmin
+            var user = await _userManager.FindByEmailAsync(Input.Email);
+            var isPlatformAdmin = user is not null && await _userManager.IsInRoleAsync(user, PlatformRoles.PlatformAdmin);
+
+            // 1. If tenant is resolved on this request (user is on their subdomain):
+            if (_tenantContext.IsResolved)
+            {
+                return RedirectToPage("/Admin/Index");
+            }
+
+            // 2. If user is a PlatformAdmin on the root/apex domain:
+            if (isPlatformAdmin)
+            {
+                return RedirectToPage("/Admin/Organizations/Index");
+            }
+
+            // 3. User is an organization owner/admin/staff logging in from the apex/root domain:
+            // Locate their primary active organization and redirect them to their subdomain dashboard.
+            if (user is not null)
+            {
+                var tenantSlug = await _context.OrganizationMembers
+                    .Where(m => m.UserId == user.Id)
+                    .Join(_context.Organizations,
+                        m => m.OrganizationId,
+                        o => o.Id,
+                        (m, o) => new { o.Slug, o.Status })
+                    .Where(x => x.Status == OrganizationStatus.Active)
+                    .Select(x => x.Slug)
+                    .FirstOrDefaultAsync();
+
+                if (!string.IsNullOrEmpty(tenantSlug))
+                {
+                    var portPart = Request.Host.Port.HasValue && Request.Host.Port.Value != 80 && Request.Host.Port.Value != 443
+                        ? $":{Request.Host.Port.Value}"
+                        : string.Empty;
+
+                    var tenantAdminUrl = $"{Request.Scheme}://{tenantSlug}.{_tenantOptions.BaseDomain}{portPart}/Admin/Index";
+                    return Redirect(tenantAdminUrl);
+                }
+            }
+
+            // 4. User is neither a PlatformAdmin nor a member of an active organization:
+            await _signInManager.SignOutAsync();
+            ErrorMessage = "You do not have administrative access to an active organization. Please contact your administrator.";
+            return Page();
         }
 
         ErrorMessage = "Invalid login attempt.";

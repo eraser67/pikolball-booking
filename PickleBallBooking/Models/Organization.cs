@@ -34,6 +34,10 @@ public class Organization
     [MaxLength(256)]
     public string? NotificationEmail { get; set; }
 
+    /// <summary>Relative storage path to the organization's custom brand logo in Supabase public storage.</summary>
+    [MaxLength(500)]
+    public string? LogoPath { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
