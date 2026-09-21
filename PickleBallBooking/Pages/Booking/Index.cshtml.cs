@@ -43,6 +43,8 @@ public class IndexModel : PageModel
     [BindProperty]
     public int[] SelectedSlotIds { get; set; } = Array.Empty<int>();
 
+    public List<SelectedOvernightSlotView> SelectedDay2Slots { get; set; } = new();
+
     public decimal? CalculatedPrice { get; set; }
 
     public string? ErrorMessage { get; set; }
@@ -99,16 +101,16 @@ public class IndexModel : PageModel
             return new JsonResult(new { success = false, message = errorMsg });
         }
 
-        var selectedSlots = _context.TimeSlots
+        var rawSlots = _context.TimeSlots
             .Where(ts => slotIds.Contains(ts.Id))
-            .OrderBy(ts => ts.StartTime)
             .ToList();
 
-        if (selectedSlots.Count == 0)
+        if (rawSlots.Count == 0)
         {
             return new JsonResult(new { success = false, message = "Selected time slots not found." });
         }
 
+        var selectedSlots = BookingService.OrderSlotsChronologically(rawSlots);
         var startTime = selectedSlots.First().StartTime;
         var endTime = selectedSlots.Last().EndTime;
 
@@ -176,24 +178,23 @@ public class IndexModel : PageModel
         }
 
         // Get the slots to determine StartTime and EndTime
-        var selectedSlots = _context.TimeSlots
+        var rawSlots = _context.TimeSlots
             .Where(ts => SelectedSlotIds.Contains(ts.Id))
-            .OrderBy(ts => ts.StartTime)
             .ToList();
 
-        if (selectedSlots.Count == 0)
+        if (rawSlots.Count == 0)
         {
             return Page();
         }
 
-        var startTime = selectedSlots.First().StartTime;
-        var endTime = selectedSlots.Last().EndTime;
+        var selectedSlots = BookingService.OrderSlotsChronologically(rawSlots);
+        var orderedSlotIds = selectedSlots.Select(s => s.Id).ToList();
 
         // Create booking using the slot-aware method
         var result = await _bookingService.CreateBookingWithSlotsAsync(
             Input.CourtId,
             Input.BookingDate,
-            SelectedSlotIds.ToList(),
+            orderedSlotIds,
             Input.CustomerName,
             Input.CustomerPhone,
             Input.CustomerEmail);
@@ -236,21 +237,21 @@ public class IndexModel : PageModel
             return;
         }
 
-        var selectedSlots = _context.TimeSlots
+        var rawSlots = _context.TimeSlots
             .Where(ts => SelectedSlotIds.Contains(ts.Id))
-            .OrderBy(ts => ts.StartTime)
             .ToList();
 
-        if (selectedSlots.Count == 0)
+        if (rawSlots.Count == 0)
         {
             ErrorMessage = "Selected time slots not found.";
             return;
         }
 
+        var selectedSlots = BookingService.OrderSlotsChronologically(rawSlots);
         var startTime = selectedSlots.First().StartTime;
         var endTime = selectedSlots.Last().EndTime;
 
-                var result = await _bookingService.CalculatePriceAsync(Input.BookingDate, startTime, endTime, Input.CourtId);
+        var result = await _bookingService.CalculatePriceAsync(Input.BookingDate, startTime, endTime, Input.CourtId);
         if (!result.Success)
         {
             ErrorMessage = result.ErrorMessage;
@@ -262,7 +263,7 @@ public class IndexModel : PageModel
 
     /// <summary>
     /// Validates that selected slot IDs are:
-    /// 1. Continuous (no gaps)
+    /// 1. Continuous (no gaps, including across midnight)
     /// 2. Available (not booked or maintenance)
     /// </summary>
     private async Task<(bool IsValid, string ErrorMessage)> ValidateSlotSelectionAsync(int[] slotIds)
@@ -272,40 +273,32 @@ public class IndexModel : PageModel
             return (false, "Please select at least one time slot.");
         }
 
-        var selectedSlots = _context.TimeSlots
+        var (isContinuous, contError) = await _bookingService.ValidateContinuousSlotsAsync(slotIds.ToList());
+        if (!isContinuous)
+        {
+            return (false, contError ?? "Selected time slots must be continuous (no gaps allowed).");
+        }
+
+        var rawSlots = _context.TimeSlots
             .Where(ts => slotIds.Contains(ts.Id))
-            .OrderBy(ts => ts.StartTime)
             .ToList();
 
-                if (selectedSlots.Count != slotIds.Length)
+        if (rawSlots.Count != slotIds.Length)
         {
             return (false, "One or more selected time slots not found.");
         }
 
+        var selectedSlots = BookingService.OrderSlotsChronologically(rawSlots);
+
         // Reject any slot that has already started today (server-side enforcement;
-        // the UI disables these, but a crafted request must not bypass it).
+        // for overnight bookings, slots after midnight are on tomorrow so they have not passed).
         if (Input.BookingDate == AppClock.TodayLocal)
         {
             var nowHours = AppClock.NowLocal.TimeOfDay.TotalHours;
-            if (selectedSlots.Any(s => s.StartTime.TotalHours <= nowHours))
+            var day1Slots = selectedSlots.TakeWhile(s => s.StartTime >= selectedSlots.First().StartTime);
+            if (day1Slots.Any(s => s.StartTime.TotalHours <= nowHours))
             {
                 return (false, "One or more selected time slots have already passed.");
-            }
-        }
-
-                // Check continuity. The final slot (23:00-00:00) ends at TimeSpan.Zero,
-        // so treat a zero end time as the 24:00 boundary.
-        for (int i = 0; i < selectedSlots.Count - 1; i++)
-        {
-            var previousEnd = selectedSlots[i].EndTime;
-            if (previousEnd == TimeSpan.Zero)
-            {
-                previousEnd = TimeSpan.FromHours(24);
-            }
-
-            if (previousEnd != selectedSlots[i + 1].StartTime)
-            {
-                return (false, "Selected time slots must be continuous (no gaps allowed).");
             }
         }
 
@@ -335,7 +328,7 @@ public class IndexModel : PageModel
         }
     }
 
-        private async Task LoadCalendarAsync()
+    private async Task LoadCalendarAsync()
     {
         var today = AppClock.TodayLocal;
         DateOptions = Enumerable.Range(0, CalendarWindowDays)
@@ -366,20 +359,61 @@ public class IndexModel : PageModel
         var timeSlots = await _timeSlotService.GetActiveAsync();
         var availableSlots = await _bookingService.GetAvailableSlotsAsync(Input.CourtId, Input.BookingDate);
 
-                var isToday = Input.BookingDate == AppClock.TodayLocal;
+        var isPastDate = Input.BookingDate < AppClock.TodayLocal;
+        var isToday = Input.BookingDate == AppClock.TodayLocal;
         var nowHours = AppClock.NowLocal.TimeOfDay.TotalHours;
+
+        // Partition SelectedSlotIds into Day 1 slots and Day 2 slots for overnight bookings
+        var selectedDay1Ids = new HashSet<int>();
+        SelectedDay2Slots = new List<SelectedOvernightSlotView>();
+
+        if (SelectedSlotIds != null && SelectedSlotIds.Length > 0)
+        {
+            var rawSelected = timeSlots.Where(ts => SelectedSlotIds.Contains(ts.Id)).ToList();
+            var chronological = BookingService.OrderSlotsChronologically(rawSelected);
+
+            bool crossedMidnight = false;
+            int order = 0;
+            var day2DateStr = Input.BookingDate.AddDays(1).ToString("yyyy-MM-dd");
+
+            foreach (var s in chronological)
+            {
+                if (order > 0 && s.StartTime == TimeSpan.Zero)
+                {
+                    crossedMidnight = true;
+                }
+                order++;
+
+                if (crossedMidnight)
+                {
+                    var startMin = (int)s.StartTime.TotalMinutes;
+                    var endMin = (int)(s.EndTime == TimeSpan.Zero ? 1440 : s.EndTime.TotalMinutes);
+                    SelectedDay2Slots.Add(new SelectedOvernightSlotView
+                    {
+                        SlotId = s.Id,
+                        Date = day2DateStr,
+                        StartMinutes = startMin,
+                        EndMinutes = endMin,
+                        DisplayTime = AppClock.To12HourRange(s.StartTime, s.EndTime)
+                    });
+                }
+                else
+                {
+                    selectedDay1Ids.Add(s.Id);
+                }
+            }
+        }
 
         foreach (var slot in timeSlots.OrderBy(ts => ts.StartTime))
         {
             var availability = availableSlots.FirstOrDefault(a => a.TimeSlotId == slot.Id);
-            var isSelected = SelectedSlotIds.Contains(slot.Id);
+            var isSelected = selectedDay1Ids.Contains(slot.Id);
             var isAvailable = availability?.IsAvailable ?? false;
             var isMaintenance = availability?.IsMaintenance ?? false;
 
-            // A slot is "past" when the booking is for today and the slot has already
-            // started (its start time is at or before the current local time). Past
-            // slots can never be selected or booked. Future-dated bookings are exempt.
-            var isPast = isToday && slot.StartTime.TotalHours <= nowHours;
+            // A slot is "past" when the date is before today, or when the booking is for today and the slot
+            // has already started. Past slots can never be selected or booked.
+            var isPast = isPastDate || (isToday && slot.StartTime.TotalHours <= nowHours);
 
             // Past takes precedence over every other status so the UI cannot offer a
             // slot that the server would reject.
@@ -444,6 +478,15 @@ public class IndexModel : PageModel
         public bool IsPast { get; set; }
         public bool IsSelected { get; set; }
         public string Status { get; set; } = ""; // "available", "booked", "maintenance", "past"
+    }
+
+    public class SelectedOvernightSlotView
+    {
+        public int SlotId { get; set; }
+        public string Date { get; set; } = "";
+        public int StartMinutes { get; set; }
+        public int EndMinutes { get; set; }
+        public string DisplayTime { get; set; } = "";
     }
 }
 

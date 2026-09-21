@@ -17,16 +17,16 @@
     <!-- Progress indicator (decorative guidance) -->
     <nav aria-label="Booking progress">
         <ol class="pb-steps">
-            <li class="pb-step is-active">
+            <li class="pb-step is-active" id="stepIndicator1">
                 <span class="pb-step-index">1</span> Court &amp; Date
             </li>
-            <li class="pb-step">
+            <li class="pb-step" id="stepIndicator2">
                 <span class="pb-step-index">2</span> Time Slots
             </li>
-            <li class="pb-step">
+            <li class="pb-step" id="stepIndicator3">
                 <span class="pb-step-index">3</span> Details
             </li>
-            <li class="pb-step">
+            <li class="pb-step" id="stepIndicator4">
                 <span class="pb-step-index">4</span> Confirm
             </li>
         </ol>
@@ -70,6 +70,23 @@
 
             <strong>Please correct the following errors:</strong>
 
+        </div>
+
+        <!-- Hidden container to hold selected slot IDs from other dates across midnight -->
+        <div id="hiddenSelectedSlotsContainer">
+            @if (Model.SelectedDay2Slots != null && Model.SelectedDay2Slots.Count > 0)
+            {
+                foreach (var s in Model.SelectedDay2Slots)
+                {
+                    <input type="hidden"
+                           name="SelectedSlotIds"
+                           value="@s.SlotId"
+                           data-date="@s.Date"
+                           data-start-minutes="@s.StartMinutes"
+                           data-end-minutes="@s.EndMinutes"
+                           data-display-time="@s.DisplayTime" />
+                }
+            }
         </div>
 
         <div class="row g-4">
@@ -141,7 +158,7 @@
                                 Multiple slots must be continuous with no gaps.
                             </p>
 
-                            <div class="pb-legend" aria-hidden="true">
+                            <div class="pb-legend mb-3" aria-hidden="true">
                                 <span class="pb-legend-item"><span class="pb-legend-swatch is-available"></span>Available</span>
                                 <span class="pb-legend-item"><span class="pb-legend-swatch is-selected"></span>Selected</span>
                                 <span class="pb-legend-item"><span class="pb-legend-swatch is-booked"></span>Booked</span>
@@ -149,15 +166,29 @@
                                 <span class="pb-legend-item"><span class="pb-legend-swatch is-past"></span>Passed</span>
                             </div>
 
+                            <!-- Overnight Continuation alert -->
+                            <div id="overnightContinueAlert"
+                                 class="alert alert-info alert-dismissible fade show d-none align-items-center mb-3"
+                                 role="alert">
+                                <div class="d-flex align-items-start">
+                                    <i class="bi bi-moon-stars-fill fs-5 text-primary me-2 mt-1" aria-hidden="true"></i>
+                                    <div>
+                                        <strong id="overnightContinueTitle">Continuing booking from previous day</strong>
+                                        <div class="small mt-1" id="overnightContinueDetail"></div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn-close" id="overnightContinueAlertClose" aria-label="Close"></button>
+                            </div>
+
                             <!-- Dedicated Gap Alert directly above timeslot grid -->
                             <div id="timeslotGapAlert"
                                  class="alert alert-danger alert-dismissible fade show d-none align-items-center mb-3"
                                  role="alert">
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-exclamation-octagon-fill fs-5 text-danger me-2" aria-hidden="true"></i>
+                                <div class="d-flex align-items-start">
+                                    <i class="bi bi-exclamation-octagon-fill fs-5 text-danger me-2 mt-1" aria-hidden="true"></i>
                                     <div>
-                                        <strong id="timeslotGapAlertTitle">Cannot select time slot with gap.</strong>
-                                        <div class="small text-muted" id="timeslotGapAlertDetail">Please select continuous time slots.</div>
+                                        <strong id="timeslotGapAlertTitle">Please select continuous time slots.</strong>
+                                        <div class="small mt-1" id="timeslotGapAlertDetail"></div>
                                     </div>
                                 </div>
                                 <button type="button" class="btn-close" id="timeslotGapAlertClose" aria-label="Close"></button>
@@ -188,7 +219,17 @@
                                     var startMinutes = (int)slot.StartTime.TotalMinutes;
                                     var endMinutes = (int)(slot.EndTime == TimeSpan.Zero ? 1440 : slot.EndTime.TotalMinutes);
 
-                                    <label class="timeslot-btn @slotStatusClass"
+                                    var statusIcon = slot.IsSelected ? "bi-check-circle-fill"
+                                        : slot.IsPast ? "bi-clock-history"
+                                        : slot.Status switch
+                                        {
+                                            "available" => "bi-circle",
+                                            "booked" => "bi-lock-fill",
+                                            "maintenance" => "bi-tools",
+                                            _ => "bi-slash-circle"
+                                        };
+
+                                    <label class="timeslot-btn @slotStatusClass @(slot.IsSelected ? "selected" : "")"
                                            title="@ariaLabel"
                                            data-slot-id="@slot.TimeSlotId"
                                            data-start-minutes="@startMinutes"
@@ -210,7 +251,8 @@
                                         </span>
 
                                         <span class="timeslot-status">
-                                            @(slot.IsPast ? "passed" : slot.Status)
+                                            <i class="bi @statusIcon" aria-hidden="true"></i>
+                                            <span class="status-text">@(slot.IsSelected ? "selected" : displayStatus)</span>
                                         </span>
 
                                     </label>
@@ -244,6 +286,10 @@
                                 <div class="booking-summary-item">
                                     <span class="booking-summary-label">Time</span>
                                     <span class="booking-summary-value" id="summaryTime">-</span>
+                                </div>
+                                <div class="booking-summary-item" id="summaryOvernightTransitionItem" style="display: none;">
+                                    <span class="booking-summary-label">Schedule</span>
+                                    <div class="booking-summary-value overnight-date-block w-100 mt-1" id="summaryOvernightDetails"></div>
                                 </div>
                                 <div class="booking-summary-item">
                                     <span class="booking-summary-label">Duration</span>
@@ -343,6 +389,24 @@
         </div>
 
     </form>
+
+    <!-- Mobile Responsive Sticky Summary Bar -->
+    <div class="mobile-sticky-summary d-lg-none" id="mobileStickySummary" style="display: none;">
+        <div class="container-fluid px-3 py-1">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="mobile-summary-info">
+                    <div class="fw-bold small text-truncate" id="mobileSummaryCourtDate">-</div>
+                    <div class="text-primary fw-bold small" id="mobileSummaryTimeDuration">-</div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold text-success fs-6" id="mobileSummaryPrice" style="display: none;"></span>
+                    <button type="button" class="btn btn-primary btn-sm px-3 fw-semibold" id="btnMobileProceed">
+                        Next <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </div>
 

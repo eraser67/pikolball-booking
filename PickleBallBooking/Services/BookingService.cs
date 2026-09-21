@@ -32,30 +32,75 @@ public class BookingService : IBookingService
         _telegramService     = telegramService;
     }
 
-        public async Task<bool> IsAvailableAsync(int courtId, DateOnly bookingDate, TimeSpan startTime, TimeSpan endTime)
+    public async Task<bool> IsAvailableAsync(int courtId, DateOnly bookingDate, TimeSpan startTime, TimeSpan endTime)
     {
-        // Overlapping active booking?
-        var alreadyBooked = await _context.Bookings.AnyAsync(b =>
-            b.CourtId == courtId
-            && b.BookingDate == bookingDate
-            && b.BookingStatus != BookingStatus.Cancelled
-            && b.StartTime < endTime
-            && b.EndTime > startTime);
+        var (startHours, endHours) = AppClock.ToAbsoluteRangeNormalized(startTime, endTime);
+        if (endHours > 24)
+        {
+            // Overnight booking crossing midnight:
+            // Day 1: from startTime to midnight on bookingDate
+            var day1Available = await IsAvailableAsync(courtId, bookingDate, startTime, TimeSpan.Zero);
+            if (!day1Available) return false;
 
-        if (alreadyBooked)
+            // Day 2: from midnight to endTime on bookingDate.AddDays(1)
+            var day2Available = await IsAvailableAsync(courtId, bookingDate.AddDays(1), TimeSpan.Zero, endTime);
+            return day2Available;
+        }
+
+        // Same-day range
+        var effectiveEnd = endTime == TimeSpan.Zero ? TimeSpan.FromHours(24) : endTime;
+
+        // 1. Check BookingTimeSlots (authoritative slot records storing true calendar date per slot)
+        var bookedViaTimeSlots = await _context.BookingTimeSlots
+            .AnyAsync(bts =>
+                bts.CourtId == courtId
+                && bts.BookingDate == bookingDate
+                && bts.IsActive
+                && bts.TimeSlot.StartTime < effectiveEnd
+                && (bts.TimeSlot.EndTime == TimeSpan.Zero ? TimeSpan.FromHours(24) : bts.TimeSlot.EndTime) > startTime);
+
+        if (bookedViaTimeSlots)
         {
             return false;
         }
 
-        // Court-level maintenance for any hour covered by the requested range?
-        var maintenanceConflict = await _context.CourtTimeSlots
+        // 2. Check Bookings table on bookingDate for any overlapping active bookings
+        var bookedOnDate = await _context.Bookings.AnyAsync(b =>
+            b.CourtId == courtId
+            && b.BookingDate == bookingDate
+            && b.BookingStatus != BookingStatus.Cancelled
+            && b.StartTime < effectiveEnd
+            && ((b.EndTime == TimeSpan.Zero || b.EndTime <= b.StartTime) ? TimeSpan.FromHours(24) : b.EndTime) > startTime);
+
+        if (bookedOnDate)
+        {
+            return false;
+        }
+
+        // 3. Check Bookings table on previous day for any active overnight bookings extending past midnight into today
+        var prevDate = bookingDate.AddDays(-1);
+        var bookedFromPrevDay = await _context.Bookings.AnyAsync(b =>
+            b.CourtId == courtId
+            && b.BookingDate == prevDate
+            && b.BookingStatus != BookingStatus.Cancelled
+            && b.EndTime > TimeSpan.Zero
+            && b.EndTime <= b.StartTime // Overnight booking crossing midnight into bookingDate
+            && b.EndTime > startTime);
+
+        if (bookedFromPrevDay)
+        {
+            return false;
+        }
+
+        // 4. Court-level maintenance for any hour covered by the requested range
+        var sameDayMaintenance = await _context.CourtTimeSlots
             .AnyAsync(cts =>
                 cts.CourtId == courtId
                 && cts.AvailabilityStatus == CourtTimeSlotStatus.Maintenance
-                && cts.TimeSlot.StartTime < endTime
-                && cts.TimeSlot.EndTime > startTime);
+                && cts.TimeSlot.StartTime < effectiveEnd
+                && (cts.TimeSlot.EndTime == TimeSpan.Zero ? TimeSpan.FromHours(24) : cts.TimeSlot.EndTime) > startTime);
 
-        return !maintenanceConflict;
+        return !sameDayMaintenance;
     }
 
     public async Task<Booking?> LookupBookingAsync(string bookingReference, string contactInfo)
@@ -135,22 +180,25 @@ public class BookingService : IBookingService
             return BookingResult.Fail("One or more selected TimeSlots do not exist.");
         }
 
-        // Authoritative "no past slots" rule: for a same-day booking, no selected slot
-        // may have already started. This is enforced here (not only in the UI) so a
-        // crafted request, or a slot that elapses while the user is on the page, can
-        // never be booked.
+        // Order slots chronologically across midnight
+        var chronologicalSlots = OrderSlotsChronologically(slots);
+
+        // Authoritative "no past slots" rule: for a booking starting today,
+        // no slot on today (before midnight) may have already started.
+        // Slots after midnight occur on tomorrow (Today + 1 day), which has not started yet.
         if (bookingDate == AppClock.TodayLocal)
         {
             var nowHours = AppClock.NowLocal.TimeOfDay.TotalHours;
-            if (slots.Any(s => s.StartTime.TotalHours <= nowHours))
+            var day1Slots = chronologicalSlots.TakeWhile(s => s.StartTime >= chronologicalSlots.First().StartTime);
+            if (day1Slots.Any(s => s.StartTime.TotalHours <= nowHours))
             {
                 return BookingResult.Fail("One or more selected time slots have already passed. Please choose a later time.");
             }
         }
 
-        var startTime = slots.First().StartTime;
-        var endTime = slots.Last().EndTime;
-        var durationHours = slots.Count; // Each slot is 1 hour
+        var startTime = chronologicalSlots.First().StartTime;
+        var endTime = chronologicalSlots.Last().EndTime;
+        var durationHours = chronologicalSlots.Count; // Each slot is 1 hour
 
         // Validate pricing and availability for the time range
         var priceResult = await ValidateAndGetPriceAsync(courtId, bookingDate, startTime, endTime);
@@ -159,33 +207,33 @@ public class BookingService : IBookingService
             return BookingResult.Fail(priceResult.ErrorMessage!);
         }
 
-                        // If the caller already owns a transaction (e.g. a test harness or an outer
+        // If the caller already owns a transaction (e.g. a test harness or an outer
         // unit of work), participate in it and let the caller decide commit/rollback.
         // A retrying execution strategy (EnableRetryOnFailure) forbids opening a
         // second, user-initiated transaction on the same connection, and would also
         // conflict with the ambient one, so we only manage our own when there is none.
-                if (_context.Database.CurrentTransaction is null)
+        if (_context.Database.CurrentTransaction is null)
         {
             var strategy = _context.Database.CreateExecutionStrategy();
             return await strategy.ExecuteAsync(() => CreateBookingCoreAsync(
-                courtId, court.OrganizationId, bookingDate, timeSlotIds,
+                courtId, court.OrganizationId, bookingDate, chronologicalSlots,
                 customerName, customerPhone, customerEmail,
                 startTime, endTime, durationHours, priceResult.Price,
                 manageTransaction: true));
         }
 
         return await CreateBookingCoreAsync(
-            courtId, court.OrganizationId, bookingDate, timeSlotIds,
+            courtId, court.OrganizationId, bookingDate, chronologicalSlots,
             customerName, customerPhone, customerEmail,
             startTime, endTime, durationHours, priceResult.Price,
             manageTransaction: false);
     }
 
-        private async Task<BookingResult> CreateBookingCoreAsync(
+    private async Task<BookingResult> CreateBookingCoreAsync(
         int courtId,
         int courtOrganizationId,
         DateOnly bookingDate,
-        List<int> timeSlotIds,
+        List<TimeSlot> slots,
         string customerName,
         string customerPhone,
         string customerEmail,
@@ -260,15 +308,23 @@ public class BookingService : IBookingService
 
                     // Now create BookingTimeSlot records for each selected slot
                     var slotOrder = 0;
-                    foreach (var slotId in timeSlotIds)
+                    bool crossedMidnight = false;
+                    foreach (var slot in slots)
                     {
-                                                var bookingTimeSlot = new BookingTimeSlot
+                        if (slotOrder > 0 && slot.StartTime == TimeSpan.Zero)
+                        {
+                            crossedMidnight = true;
+                        }
+
+                        var slotBookingDate = crossedMidnight ? bookingDate.AddDays(1) : bookingDate;
+
+                        var bookingTimeSlot = new BookingTimeSlot
                         {
                             OrganizationId = bookingOrganizationId,
                             BookingId = booking.Id,
                             CourtId = courtId,
-                            BookingDate = bookingDate,
-                            TimeSlotId = slotId,
+                            BookingDate = slotBookingDate,
+                            TimeSlotId = slot.Id,
                             SlotOrder = slotOrder++,
                             IsActive = true,
                             CreatedAt = DateTime.UtcNow,
@@ -653,9 +709,51 @@ public class BookingService : IBookingService
             && postgresException.ConstraintName == constraintName;
     }
 
+    public static List<TimeSlot> OrderSlotsChronologically(IEnumerable<TimeSlot> slots)
+    {
+        var list = slots.ToList();
+        if (list.Count <= 1)
+        {
+            return list;
+        }
+
+        var sortedByStart = list.OrderBy(s => s.StartTime).ToList();
+
+        // Check if selection crosses midnight:
+        // Has a slot ending at midnight (TimeSpan.Zero or 24h) AND a slot starting at midnight (00:00)
+        bool hasSlotEndingAtMidnight = sortedByStart.Any(s => s.EndTime == TimeSpan.Zero || s.EndTime == TimeSpan.FromHours(24));
+        bool hasSlotStartingAtMidnight = sortedByStart.Any(s => s.StartTime == TimeSpan.Zero);
+
+        if (hasSlotEndingAtMidnight && hasSlotStartingAtMidnight)
+        {
+            // Find the split point where the jump occurs between morning slots and evening slots
+            int splitIndex = -1;
+            for (int i = 0; i < sortedByStart.Count - 1; i++)
+            {
+                var prevEnd = sortedByStart[i].EndTime == TimeSpan.Zero ? TimeSpan.FromHours(24) : sortedByStart[i].EndTime;
+                if (sortedByStart[i + 1].StartTime > prevEnd)
+                {
+                    splitIndex = i + 1;
+                    break;
+                }
+            }
+
+            if (splitIndex > 0)
+            {
+                var day2 = sortedByStart.Take(splitIndex).ToList();
+                var day1 = sortedByStart.Skip(splitIndex).ToList();
+                var chronological = new List<TimeSlot>(day1);
+                chronological.AddRange(day2);
+                return chronological;
+            }
+        }
+
+        return sortedByStart;
+    }
+
     public async Task<(bool IsValid, string? ErrorMessage)> ValidateContinuousSlotsAsync(List<int> timeSlotIds)
     {
-                        if (timeSlotIds == null || timeSlotIds.Count == 0)
+        if (timeSlotIds == null || timeSlotIds.Count == 0)
         {
             return (false, "At least one TimeSlot must be selected.");
         }
@@ -666,30 +764,31 @@ public class BookingService : IBookingService
             return (false, "Duplicate TimeSlots were selected.");
         }
 
-        // Get all selected TimeSlots ordered by StartTime
-        var slots = await _context.TimeSlots
-                        .Where(ts => timeSlotIds.Contains(ts.Id))
-            .OrderBy(ts => ts.StartTime)
+        // Get all selected TimeSlots
+        var rawSlots = await _context.TimeSlots
+            .Where(ts => timeSlotIds.Contains(ts.Id))
             .ToListAsync();
 
-        if (slots.Count != timeSlotIds.Count)
+        if (rawSlots.Count != timeSlotIds.Count)
         {
             return (false, "One or more selected TimeSlots do not exist.");
         }
 
         // Only active slots are bookable.
-        if (slots.Any(s => s.Status != TimeSlotStatus.Active))
+        if (rawSlots.Any(s => s.Status != TimeSlotStatus.Active))
         {
             return (false, "One or more selected TimeSlots are inactive.");
         }
 
-        if (slots.Count == 1)
+        if (rawSlots.Count == 1)
         {
             return (true, null);
         }
 
-        // Verify slots are continuous (no gaps). Because the day ends at 00:00,
-        // the final slot (23:00-00:00) has an EndTime of TimeSpan.Zero.
+        // Order slots chronologically (respecting overnight wrap across midnight)
+        var slots = OrderSlotsChronologically(rawSlots);
+
+        // Verify slots are continuous (no gaps).
         for (int i = 1; i < slots.Count; i++)
         {
             var previousEnd = slots[i - 1].EndTime;
@@ -698,10 +797,19 @@ public class BookingService : IBookingService
                 previousEnd = TimeSpan.FromHours(24);
             }
 
-            if (slots[i].StartTime != previousEnd)
+            // Normal consecutive slot
+            if (slots[i].StartTime == previousEnd)
             {
-                return (false, "Selected TimeSlots must be continuous with no gaps.");
+                continue;
             }
+
+            // Cross-midnight boundary transition: previous slot ended at midnight (24:00) and current slot starts at midnight (00:00)
+            if (previousEnd == TimeSpan.FromHours(24) && slots[i].StartTime == TimeSpan.Zero)
+            {
+                continue;
+            }
+
+            return (false, "Selected TimeSlots must be continuous with no gaps.");
         }
 
         return (true, null);
@@ -723,6 +831,26 @@ public class BookingService : IBookingService
         if (endHours <= startHours)
         {
             return PriceCalculationResult.Fail("End time must be after start time.");
+        }
+
+        if (endHours > 24)
+        {
+            // Overnight range crossing midnight:
+            // Day 1 portion (startTime to midnight on bookingDate)
+            var day1Result = await CalculatePriceAsync(bookingDate, startTime, TimeSpan.Zero, courtId);
+            if (!day1Result.Success)
+            {
+                return day1Result;
+            }
+
+            // Day 2 portion (midnight to endTime on next calendar day)
+            var day2Result = await CalculatePriceAsync(bookingDate.AddDays(1), TimeSpan.Zero, endTime, courtId);
+            if (!day2Result.Success)
+            {
+                return day2Result;
+            }
+
+            return PriceCalculationResult.Ok(decimal.Round(day1Result.Price + day2Result.Price, 2));
         }
 
                 if (courtId.HasValue)
