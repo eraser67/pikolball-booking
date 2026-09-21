@@ -72,8 +72,8 @@ Pikolball is a full-featured multi-tenant SaaS application designed for sports v
 ### Tenant Admin Experience
 
 - **Dedicated Venue Admin Portal:** Scoped to the authenticated organization admin.
-- **Interactive Dashboard:** Summary cards for daily bookings, pending verifications, monthly revenue, and active courts.
-- **Court Management:** Add, edit, upload court images (via Supabase Storage), activate, and deactivate courts.
+- **Interactive Dashboard:** Summary cards for daily bookings, pending verifications, monthly revenue in ₱, and active courts.
+- **Court Management:** Add, edit, upload court images (via Supabase Storage), activate, and deactivate courts. Auto-initializes 24 hourly `CourtTimeSlot` records for immediate availability.
 - **TimeSlot & Maintenance Management:** Configure bookable operating hours and flag individual courts/hours for maintenance.
 - **Flexible Pricing Engine:**
   - Different rates for weekdays vs. weekends.
@@ -84,15 +84,24 @@ Pikolball is a full-featured multi-tenant SaaS application designed for sports v
 - **Manual Payment Verification:**
   - View submitted customer GCash reference numbers and inspect uploaded payment proof screenshots using secure short-lived signed URLs.
   - Verify payments (automatically confirms the booking and emails the customer) or reject with explanatory notes.
+- **Staff & User Role Directory:** View organization members and roles (`OrganizationOwner`, `OrganizationAdmin`, `OrganizationStaff`) under `/Admin/Users`.
 - **Organization Settings & Custom Branding:** Update venue name, description, contact details, address, map coordinates, and upload custom venue logo.
 
 ### Platform Administration (SaaS Owner)
 
 - **Platform Admin Role:** Manage the entire multi-tenant ecosystem.
 - **Organization Management:** Provision new tenant clubs, assign custom subdomains/slugs, activate/deactivate organizations, and assign owners.
+- **Owner Account Activation Flow:** Secure single-use Identity activation links (`/Account/Activate`) allowing new venue owners to set their passwords directly without plaintext credentials.
 - **Subscription Plans & Limits:** Define subscription tiers (Trial, Basic, Pro, Enterprise) with max court limits, max staff limits, and billing periods.
 - **Subscription Assignment:** Manually assign, activate, suspend, or renew tenant subscriptions.
 - **Subscription Wall:** Automated enforcement preventing expired venues from accepting customer bookings while providing clear renewal banners.
+
+### UI & Interaction Design Polish
+
+- **Floating Toast Notifications:** Instant user feedback for actions (e.g., booking confirmed, settings saved, payment verified).
+- **Accessible Modal Confirmations:** Modern Bootstrap modal replacing standard native browser dialogs for destructive actions (e.g., cancel booking, deactivate court).
+- **Interactive Loading States:** Per-button loading spinners and page loading overlays prevent accidental double-submits.
+- **Responsive Mobile Layouts:** Fluid design optimized for smartphones, tablets, and desktops with sticky summary sidebar and mobile-friendly slot pickers.
 
 ---
 
