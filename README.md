@@ -1,16 +1,48 @@
-# Pickleball Booking System
+# Pickleball Booking System (Pikolball SaaS)
 
-A simple, maintainable, responsive web-based Pickleball Court Booking System.
+A simple, maintainable, responsive multi-tenant web-based Pickleball Court Booking and Venue Management System.
 
 Built with:
 - **C#** and **ASP.NET Core** (.NET 10)
 - **Razor Pages** for UI
-- **Entity Framework Core** for data
-- **PostgreSQL** / **Supabase** for database
-- **Bootstrap 5** for responsive design
-- **ASP.NET Core Identity** for authentication
+- **Entity Framework Core** with PostgreSQL / Supabase
+- **Bootstrap 5** & **Bootstrap Icons** with custom brand design system
+- **ASP.NET Core Identity** for authentication and role management
+- **Supabase Storage** for court images and private payment proof uploads
+- **MailKit / MimeKit** for SMTP transactional emails
+- **Nginx** & **systemd** for production deployment on Linux VPS (Ubuntu)
 
-**Status:** Phases 1–18 Complete
+**Status:** Phases 1–30 Complete + Production Deployed (`punitbola.tech` / `demo.punitbola.tech`)
+
+---
+
+## Overview & Architecture
+
+Pikolball is a full-featured multi-tenant SaaS application designed for sports venue operators and pickleball clubs. Each organization operates on its own dedicated subdomain (e.g., `demo.punitbola.tech`) with isolated data, custom branding, personalized payment instructions, and role-based management.
+
+```
+                    Internet / Customer / Admin
+                                ↓
+                 Nginx Reverse Proxy + Let's Encrypt SSL
+                                ↓
+                     ASP.NET Core (.NET 10)
+                                ↓
+┌───────────────────────────────┴───────────────────────────────┐
+│ Middleware & Services:                                        │
+│  - TenantResolutionMiddleware (Subdomain → Organization)      │
+│  - SubscriptionWallMiddleware (Active / Expired Enforcement)  │
+│  - ITenantContext / Scoped Service Layer                      │
+│  - BookingService, CourtService, PricingService               │
+│  - PaymentService (GCash Manual + Proof Upload)               │
+│  - BookingEmailService (SMTP / Gmail Notifications)           │
+│  - SupabaseStorage (Public QR/Courts & Private Proofs)        │
+└───────────────────────────────┬───────────────────────────────┘
+                                ↓
+                      Entity Framework Core
+             (Global Query Filters by OrganizationId)
+                                ↓
+                 PostgreSQL (Supabase / Self-Hosted)
+```
 
 ---
 
@@ -18,255 +50,208 @@ Built with:
 
 ### Customer Experience
 
-- Modern branded homepage (hero, dynamic court cards, FAQ, CTA)
-- Modern calendar-style booking interface
-- Browse available courts
-- Select booking date
-- View fixed hourly TimeSlots (24 slots per day: 12 AM–11 PM)
-- See TimeSlot availability (Available, Booked, Maintenance/Unavailable)
-- Select continuous range of hourly TimeSlots for one reservation
-- View calculated duration and price
-- Book without creating an account
-- Enter name, phone, and email at booking
-- Receive unique booking reference
-- Look up booking status using reference + phone/email
+- **Branded Homepage:** Dynamic hero, court showcase with availability preview, how it works, FAQ accordion, and venue details.
+- **Dynamic Calendar-Style Booking:**
+  - Fast court & date switching via **AJAX** without page refresh or URL disruption (`OnGetSlotsAsync`).
+  - View all 24 fixed hourly TimeSlots (12:00 AM – 11:00 PM) with real-time status badges (*Available*, *Booked*, *Maintenance*).
+  - Past slots disabled automatically for current date.
+- **Continuous Multi-TimeSlot Selection:** Select consecutive hours for a single reservation.
+- **Interactive Timeslot Gap Error Alert:** Real-time error warning (`"Cannot select time slot with gap."` with shake animation) when non-consecutive slots are clicked.
+- **Two-Phase Booking UX:**
+  - Review court, duration, and server-calculated price in Philippine Peso (`₱`).
+  - Step 4 ("Your Information") is strictly revealed after clicking **Calculate Price**.
+  - On mobile devices, clicking Calculate Price triggers a smooth auto-scroll to Step 4 and focuses the Full Name input.
+- **Anonymous Booking:** No customer login required; enter Name, Phone, and Email at reservation time.
+- **Unique Booking Reference:** Formatted per organization date (e.g., `PB-20260921-0001`) with multi-tenant collision-proof sequence generation.
+- **Self-Service Booking Lookup:** Customers can search reservations using their booking reference and email/phone without logging in.
+- **Manual GCash Payment Workflow:**
+  - View organization-specific GCash account name, number, QR code, and payment instructions.
+  - Submit GCash transaction reference number and optionally upload payment screenshot proof.
+  - Automatic status updates on payment verification.
 
-### Admin Experience
+### Tenant Admin Experience
 
-- Secure login via ASP.NET Core Identity
-- Dashboard with booking summary
-- Manage courts (add, edit, activate, deactivate)
-- Manage TimeSlots (activate/deactivate)
-- Configure pricing (weekday/weekend, by time period, overnight ranges)
-- View all bookings
-- Search and filter bookings (by date, court, status, customer)
-- Confirm, cancel, and complete bookings
-- View schedule/calendar
+- **Dedicated Venue Admin Portal:** Scoped to the authenticated organization admin.
+- **Interactive Dashboard:** Summary cards for daily bookings, pending verifications, monthly revenue, and active courts.
+- **Court Management:** Add, edit, upload court images (via Supabase Storage), activate, and deactivate courts.
+- **TimeSlot & Maintenance Management:** Configure bookable operating hours and flag individual courts/hours for maintenance.
+- **Flexible Pricing Engine:**
+  - Different rates for weekdays vs. weekends.
+  - Multiple time period tiers (e.g., peak evening vs. off-peak morning).
+  - Overnight pricing support crossing midnight (e.g., 6:00 PM – 2:00 AM).
+- **Booking Management:** Search, filter by date/court/status, confirm pending reservations, cancel bookings, and view complete history.
+- **Schedule Grid View:** Visual 24-hour court schedule matrix for quick status verification.
+- **Manual Payment Verification:**
+  - View submitted customer GCash reference numbers and inspect uploaded payment proof screenshots using secure short-lived signed URLs.
+  - Verify payments (automatically confirms the booking and emails the customer) or reject with explanatory notes.
+- **Organization Settings & Custom Branding:** Update venue name, description, contact details, address, map coordinates, and upload custom venue logo.
 
-### System Features
+### Platform Administration (SaaS Owner)
 
-- **Fixed Hourly TimeSlots** — 24 standard 1-hour bookable units per day
-- **Continuous Multi-TimeSlot Bookings** — One reservation for multiple consecutive hours
-- **Per-TimeSlot Availability** — Clear booking status for each hour
-- **Configurable Pricing** — Different rates by weekday/weekend and time period
-- **Overnight Pricing** — Support for ranges crossing midnight (e.g., 6 PM–2 AM)
-- **Double Booking Protection** — Prevents concurrent overlapping reservations
-- **Back-to-Back Bookings** — Allowed (one booking ends where another starts)
-- **Cancellation Support** — Cancelled bookings immediately release TimeSlots
-- **Court-Specific Maintenance** — Mark courts/hours as unavailable
-- **Server-Side Authority** — All pricing and availability validated server-side
-- **Database-Level Protection** — Unique constraints prevent duplicate bookings
-- **Past-Slot Protection** — Slots that have already started today are disabled and cannot be booked
-- **Automated Tests** — Comprehensive test coverage
+- **Platform Admin Role:** Manage the entire multi-tenant ecosystem.
+- **Organization Management:** Provision new tenant clubs, assign custom subdomains/slugs, activate/deactivate organizations, and assign owners.
+- **Subscription Plans & Limits:** Define subscription tiers (Trial, Basic, Pro, Enterprise) with max court limits, max staff limits, and billing periods.
+- **Subscription Assignment:** Manually assign, activate, suspend, or renew tenant subscriptions.
+- **Subscription Wall:** Automated enforcement preventing expired venues from accepting customer bookings while providing clear renewal banners.
 
 ---
 
-## Fixed Hourly TimeSlots
+## Core Technical Highlights
 
-The system uses **24 standard fixed hourly TimeSlots** as the atomic unit of booking:
+### 1. Multi-Tenant Architecture & Subdomain Resolution
+- Request hostnames are parsed by `TenantHostParser` to resolve tenant subdomains (e.g. `demo.punitbola.tech` maps to organization `demo`).
+- Platform subdomains (`www`, `app`, `admin`, `api`, `mail`, `support`) are reserved and protected.
+- Data isolation is enforced at the database level via EF Core Global Query Filters (`b => b.OrganizationId == currentTenantId`).
+- `IgnoreQueryFilters()` is utilized strictly in server-authorized cross-tenant administrative tasks and unique reference sequence generation.
+
+### 2. Fixed Hourly TimeSlots & Server-Side Authority
+- 24 standardized 1-hour bookable units per day (00:00–01:00 through 23:00–00:00).
+- One reservation = One continuous booking record with `StartTime` and `EndTime` (not separate records per hour).
+- Strict server-side validation: client prices and availability states are never trusted; prices are recalculated and overlapping slots checked inside database transactions.
+- Zero "dead time": back-to-back bookings are fully supported (e.g. 18:00–19:00 and 19:00–20:00).
+- Immediate slot release upon booking cancellation.
+
+### 3. Philippine Peso (`₱`) Currency Standardization
+- Currency formatting is standardized across the entire application using the `en-PH` culture and explicit `₱` symbols.
+- Clean formatting for whole and fractional amounts (`₱500` or `₱500.50`).
+
+### 4. Storage & Media Management
+- Dual-mode storage via Supabase S3-compatible object storage:
+  - **Public Bucket (`court-images`):** Venue logos, court photos, and GCash QR codes.
+  - **Private Bucket (`payment-proofs`):** Customer payment receipt screenshots, accessible only to tenant admins via short-lived signed URLs (5-minute expiry).
+
+### 5. Email Notification System
+- Powered by `MailKit` and `MimeKit` using SMTP (supports Gmail App Passwords and standard transactional SMTP relays).
+- HTML & plain-text responsive email notifications:
+  - Customer Booking Received & Payment Instructions
+  - Venue Owner New Booking Notification
+  - Payment Proof Submitted Alert
+  - Payment Verified & Booking Confirmation Receipt
+  - Payment Rejection Notice with Admin Feedback
+  - Booking Cancellation Notices
+
+---
+
+## Project Structure
 
 ```
-12:00 AM – 1:00 AM through 11:00 PM – 12:00 AM
+PickleBallBooking/
+├── deploy/                        # VPS Deployment scripts and Nginx configs
+│   ├── Deploy-ToVPS.ps1           # Windows PowerShell automated publish & deploy
+│   ├── setup-vps.sh               # Initial VPS server provisioning (Ubuntu/.NET/Nginx)
+│   ├── deploy-app.sh              # Remote VPS app extraction and restart script
+│   ├── nginx-punitbola.conf       # Multi-tenant Nginx wildcard reverse proxy
+│   ├── nginx-ssl.conf             # Production SSL configuration
+│   └── pikolball.service          # Systemd service unit definition
+├── PickleBallBooking/             # Main ASP.NET Core Razor Pages application
+│   ├── Data/                      # DbContext, migrations, and seeders
+│   ├── Models/                    # Entity models (Organization, Booking, Court, Payment, etc.)
+│   ├── Pages/                     # Razor Pages UI
+│   │   ├── Account/               # Authentication & account activation
+│   │   ├── Admin/                 # Admin management & platform administration
+│   │   │   ├── Courts/            # Court management & court image upload
+│   │   │   ├── Organizations/     # Platform Admin: organization creation & oversight
+│   │   │   ├── Payments/          # GCash verification & proof review
+│   │   │   ├── Subscriptions/     # Subscription tier management & assignment
+│   │   │   └── OrgSettings/       # Tenant branding & venue settings
+│   │   └── Booking/               # Customer booking flow, AJAX slots, payment & lookup
+│   ├── Services/                  # Business logic services & tenant context
+│   │   ├── BookingService.cs      # Core booking, validation, and collision-proof sequence
+│   │   ├── PaymentService.cs      # GCash workflow & proof coordination
+│   │   ├── SubscriptionService.cs # Tenant subscription gating
+│   │   ├── TenantHostParser.cs    # Subdomain resolution logic
+│   │   └── BookingEmailService.cs # Transactional email templates & dispatch
+│   └── wwwroot/                   # CSS (brand design system), JavaScript, and assets
+└── PickleBallBooking.Tests/       # xUnit automated test suite (228+ unit tests)
 ```
 
-### Continuous Bookings
-
-Customers select **multiple consecutive hourly TimeSlots** to create one reservation.
-
-Example:
-- Select TimeSlots: 6:00 PM, 7:00 PM, 8:00 PM, 9:00 PM (4 consecutive hours)
-- Creates ONE Booking record with StartTime: 6:00 PM, EndTime: 10:00 PM, Duration: 4 hours
-- **NOT** four separate one-hour bookings
-
 ---
 
-## Key Design Features
-
-### Fixed Hourly TimeSlots (vs. Arbitrary Time Ranges)
-- 24 predefined bookable hours per day
-- Clear per-TimeSlot availability status
-- Simpler pricing: ₱X per hour × selected hours
-- Easier conflict detection
-
-### One Booking Per Reservation
-- One database record = one customer reservation
-- Multi-hour booking created in one interaction
-- Simpler to manage and report
-
-### Server-Side Authority
-- All pricing calculated server-side
-- All availability validated server-side
-- Customer cannot manipulate price or booking status
-- Atomic database transactions prevent race conditions
-
-### Back-to-Back Bookings Allowed
-- One booking can end where another starts
-- No "dead time" between bookings
-- Example: 18:00–20:00 and 20:00–22:00 are both allowed
-
-### Cancellation Support
-- Cancelled bookings immediately release TimeSlots
-- Released TimeSlots become available for future bookings
-- Bookings are deactivated, not deleted (preserves history)
-
----
-
-## Quick Start
+## Local Development Quick Start
 
 ### Prerequisites
-- Visual Studio Community 2026
-- .NET 10 SDK
-- PostgreSQL or Supabase (free tier)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- Visual Studio 2026, VS Code, or JetBrains Rider
+- PostgreSQL database (local or Supabase free tier)
 - Git
 
-### Setup
+### Setup Instructions
 
-1. Clone repository
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/eraser67/pikolball-booking.git
    cd pikolball-booking
    ```
 
-2. Configure Supabase connection string via User Secrets
+2. **Configure User Secrets:**
    ```bash
-   dotnet user-secrets set "ConnectionStrings:DefaultConnection" "your_connection_string"
+   cd PickleBallBooking
+   dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=your-postgres-host;Port=5432;Database=postgres;Username=postgres;Password=your-password;"
+   dotnet user-secrets set "Supabase:Url" "https://your-project.supabase.co"
+   dotnet user-secrets set "Supabase:ServiceRoleKey" "your-service-role-key"
+   dotnet user-secrets set "Email:SmtpHost" "smtp.gmail.com"
+   dotnet user-secrets set "Email:SmtpPort" "587"
+   dotnet user-secrets set "Email:SmtpUser" "your-email@gmail.com"
+   dotnet user-secrets set "Email:SmtpPass" "your-app-password"
+   dotnet user-secrets set "Email:SenderEmail" "your-email@gmail.com"
+   dotnet user-secrets set "Email:SenderName" "Pikolball"
    ```
 
-3. Run migrations
+3. **Apply Migrations & Seed Default Data:**
    ```bash
    dotnet ef database update
    ```
 
-4. Run application
+4. **Run the Application:**
    ```bash
    dotnet run
    ```
-
-5. Access
-   - Home: http://localhost:5000
-   - Admin: http://localhost:5000/Admin
-
----
-
-## Architecture
-
-Simple monolithic Razor Pages application:
-
-```
-Customer/Admin
-    ↓
-ASP.NET Core Razor Pages
-    ↓
-Services (Booking, Court, TimeSlot, Pricing, Availability)
-    ↓
-Entity Framework Core
-    ↓
-PostgreSQL / Supabase
-```
-
----
-
-## Fixed Hourly TimeSlots Architecture
-
-The system uses **24 standard fixed hourly TimeSlots** as the atomic unit:
-
-```
-00:00–01:00 (12:00 AM–1:00 AM)
-01:00–02:00 (1:00 AM–2:00 AM)
-...
-22:00–23:00 (10:00 PM–11:00 PM)
-23:00–00:00 (11:00 PM–12:00 AM)
-```
-
-Each TimeSlot is **individually** Active or Inactive.
-
-Customers select **consecutive TimeSlots** to create a single booking.
+   - Homepage: `http://localhost:5000`
+   - Admin Login: `http://localhost:5000/Account/Login`
 
 ---
 
 ## Testing
 
-Run automated tests:
+Run the automated test suite:
 ```bash
-dotnet test
+dotnet test --filter "FullyQualifiedName!~Postgres"
 ```
 
-Tests cover:
-- Multi-hour continuous booking logic
-- TimeSlot availability determination
-- Overlap detection and prevention
-- Pricing calculations (per-TimeSlot, weekday/weekend, overnight ranges)
-- Server-side price authority
-- Concurrent booking protection
-- Cancellation and TimeSlot release
-- Existing functionality preservation
+The test suite covers:
+- Continuous multi-hour booking validation and gap prevention
+- Server-side pricing calculations (weekday, weekend, overnight crossing midnight)
+- Overlap detection and concurrent booking protection
+- Subdomain parsing and reserved slug routing
+- Cross-tenant data isolation (database query filter verification)
+- GCash payment state transitions and self-verification prevention
+- Payment proof file upload and private bucket access validation
+- Subscription wall enforcement and plan limit checks
 
 ---
 
-## Development Status
+## Production Deployment (Hostinger VPS)
 
-### Completed (Phases 1–15)
-- [x] Environment setup
-- [x] Database models and migrations
-- [x] Court management
-- [x] TimeSlot management
-- [x] Pricing management
-- [x] Booking pages
-- [x] Availability display
-- [x] Double booking protection
-- [x] Booking lookup
-- [x] Admin authentication
-- [x] Admin dashboard
-- [x] Booking management
-- [x] Schedule view
-- [x] Security and error handling
+The system is deployed in production on a Hostinger Ubuntu Linux VPS with Nginx and Let's Encrypt SSL.
 
-### Completed (Documentation)
-- [x] Update PROJECT_REQUIREMENTS.md for fixed hourly TimeSlot design
-- [x] Update DEVELOPMENT_PLAN.md with new phases
-- [x] Update TODO.md
-- [x] Update README.md
-- [x] Document Phase 18 completed vs pending items
+- **Primary Domain:** `https://punitbola.tech`
+- **Tenant Subdomains:** `https://*.punitbola.tech` (e.g., `https://demo.punitbola.tech`)
+- **Server Architecture:** Nginx reverse proxy forwards traffic to Kestrel running locally on port 5000 managed by `systemd` (`pikolball.service`).
 
-### Completed (Phases 16–18)
-- [x] **Phase 16:** Booking Model Redesign to fixed hourly TimeSlots
-- [x] **Phase 17:** Fixed-TimeSlot Availability UI
-- [x] **Phase 18:** UI/UX Refinement — homepage, navigation, Bootstrap Icons, brand
-  design system, booking experience, schedule/calendar view, error states, and
-  loading indicators
+### Automated Deployment from Development Machine:
+Run the deployment script from PowerShell:
+```powershell
+.\deploy\Deploy-ToVPS.ps1 -VpsIp "187.127.223.93" -VpsUser "root" -Domain "punitbola.tech"
+```
 
----
-
-## Important Notes
-
-- **No Payment System** — Version 1 has no online payment functionality
-- **No Customer Registration** — Customers book anonymously
-- **Fixed 1-Hour TimeSlots** — Not arbitrary time ranges
-- **One Booking Per Reservation** — Not per-hour records
-- **Server-Side Authority** — Frontend is informational only
-
----
-
-## Cost
-
-**Target:** ₱0 (free/open-source only)
-
-Uses:
-- Free Visual Studio Community
-- Free GitHub
-- Free .NET
-- Free Bootstrap
-- Free Supabase (PostgreSQL free tier)
-
-No paid services required.
+This script automatically:
+1. Builds and publishes a self-contained release bundle (`Release - net10.0`).
+2. Packages the bundle into a compressed deployment archive.
+3. Securely uploads the bundle to the VPS via SCP.
+4. Executes `deploy-app.sh` on the VPS to update binaries, preserve environment files, run database migrations, and restart the `pikolball` service.
 
 ---
 
 ## License
 
 MIT License
-
----
-
-**Last Updated:** 2026-09-18  
-**Documentation Version:** Phases 16–18 complete

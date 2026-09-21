@@ -9,13 +9,13 @@ namespace PickleBallBooking.Services;
 public class BookingService : IBookingService
 {
     private readonly ApplicationDbContext _context;
-    private readonly BookingEmailService _emailService;
-    private readonly ISubscriptionService _subscriptionService;
+    private readonly BookingEmailService? _emailService;
+    private readonly ISubscriptionService? _subscriptionService;
 
     public BookingService(
         ApplicationDbContext context,
-        BookingEmailService emailService,
-        ISubscriptionService subscriptionService)
+        BookingEmailService? emailService = null,
+        ISubscriptionService? subscriptionService = null)
     {
         _context             = context;
         _emailService        = emailService;
@@ -94,7 +94,7 @@ public class BookingService : IBookingService
         }
 
         // Phase 26: subscription gate — block new bookings for expired/suspended orgs.
-        if (!await _subscriptionService.CanAcceptBookingsAsync())
+        if (_subscriptionService != null && !await _subscriptionService.CanAcceptBookingsAsync())
         {
             return BookingResult.Fail(
                 "Bookings are currently unavailable. Please contact the venue to renew their subscription.");
@@ -283,7 +283,7 @@ public class BookingService : IBookingService
                     {
                         var orgForEmail = await _context.Organizations
                             .FirstOrDefaultAsync(o => o.Id == bookingOrganizationId);
-                        if (orgForEmail is not null)
+                        if (orgForEmail is not null && _emailService is not null)
                         {
                             booking.Court = await _context.Courts.FindAsync(courtId);
                             _emailService.SendBookingReceivedAsync(booking, orgForEmail);
@@ -594,7 +594,7 @@ public class BookingService : IBookingService
             {
                 var orgForEmail = await _context.Organizations
                     .FirstOrDefaultAsync(o => o.Id == booking.OrganizationId);
-                if (orgForEmail is not null)
+                if (orgForEmail is not null && _emailService is not null)
                 {
                     booking.Court ??= await _context.Courts.FindAsync(booking.CourtId);
                     _emailService.SendBookingCancelledToCustomerAsync(booking, orgForEmail);

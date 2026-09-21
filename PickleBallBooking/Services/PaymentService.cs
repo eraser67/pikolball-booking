@@ -127,12 +127,12 @@ public sealed class PaymentService : IPaymentService
 {
     private readonly ApplicationDbContext _context;
     private readonly ITenantContext _tenantContext;
-    private readonly BookingEmailService _emailService;
+    private readonly BookingEmailService? _emailService;
 
     public PaymentService(
         ApplicationDbContext context,
         ITenantContext tenantContext,
-        BookingEmailService emailService)
+        BookingEmailService? emailService = null)
     {
         _context      = context;
         _tenantContext = tenantContext;
@@ -273,7 +273,7 @@ public sealed class PaymentService : IPaymentService
             var orgForEmail = bookingForEmail is not null
                 ? await _context.Organizations.FindAsync([payment.OrganizationId], ct)
                 : null;
-            if (bookingForEmail is not null && orgForEmail is not null)
+            if (bookingForEmail is not null && orgForEmail is not null && _emailService is not null)
             {
                 _emailService.SendPaymentSubmittedToCustomerAsync(bookingForEmail, payment, orgForEmail);
                 _emailService.SendPaymentSubmittedToOrgAsync(bookingForEmail, payment, orgForEmail);
@@ -323,7 +323,7 @@ public sealed class PaymentService : IPaymentService
             {
                 verifyBooking.Court ??= await _context.Courts.FindAsync([verifyBooking.CourtId], ct);
                 var verifyOrg = await _context.Organizations.FindAsync([payment.OrganizationId], ct);
-                if (verifyOrg is not null)
+                if (verifyOrg is not null && _emailService is not null)
                     _emailService.SendPaymentVerifiedAsync(verifyBooking, verifyOrg);
             }
         }
@@ -360,7 +360,7 @@ public sealed class PaymentService : IPaymentService
             if (rejectBooking is not null)
             {
                 var rejectOrg = await _context.Organizations.FindAsync([payment.OrganizationId], ct);
-                if (rejectOrg is not null)
+                if (rejectOrg is not null && _emailService is not null)
                     _emailService.SendPaymentRejectedAsync(rejectBooking, payment, rejectOrg);
             }
         }

@@ -224,8 +224,8 @@ public class PaymentStatusTransitionTests
         await svc.VerifyAsync(payment.Id, "admin");
         var bookingAfter = ctx.Bookings.AsNoTracking().First(b => b.Id == booking.Id);
 
-        // Booking is unchanged.
-        Assert.Equal(bookingBefore.BookingStatus,    bookingAfter.BookingStatus);
+        // Booking transitions from Pending to Confirmed on payment verification; other details remain intact.
+        Assert.Equal(BookingStatus.Confirmed,        bookingAfter.BookingStatus);
         Assert.Equal(bookingBefore.BookingReference, bookingAfter.BookingReference);
         Assert.Equal(bookingBefore.CustomerName,     bookingAfter.CustomerName);
         Assert.Equal(bookingBefore.Price,            bookingAfter.Price);

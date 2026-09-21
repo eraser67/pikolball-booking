@@ -86,14 +86,14 @@ public sealed class SupabasePaymentProofStorage : IPaymentProofStorage
         IOptions<SupabaseStorageOptions> courtOpts,
         IOptions<PaymentProofOptions> proofOpts,
         IConfiguration config,
-        ILogger<SupabasePaymentProofStorage> logger)
+        ILogger<SupabasePaymentProofStorage>? logger = null)
     {
         _http           = http;
         _courtOpts      = courtOpts.Value;
         _proofOpts      = proofOpts.Value;
         _supabaseUrl    = (config["Supabase:Url"] ?? string.Empty).TrimEnd('/');
         _serviceRoleKey = config["Supabase:ServiceRoleKey"] ?? string.Empty;
-        _logger         = logger;
+        _logger         = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<SupabasePaymentProofStorage>.Instance;
     }
 
     // ─── PROOF (PRIVATE bucket: payment-proofs) ──────────────────────────────
