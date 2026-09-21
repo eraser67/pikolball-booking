@@ -134,7 +134,7 @@ builder.Services.AddHttpClient<IPaymentProofStorage, SupabasePaymentProofStorage
 // BookingEmailService is scoped: it composes and fires emails for each request.
 // Set Email:Enabled = true and set Email:ApiKey (via User Secrets or env var) to activate.
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
-builder.Services.AddHttpClient<IEmailService, ResendEmailService>();
+builder.Services.AddHttpClient<IEmailService, ResendEmailService>(client => client.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddScoped<BookingEmailService>();
 
 // Semaphore SMS notifications:
@@ -142,7 +142,7 @@ builder.Services.AddScoped<BookingEmailService>();
 // BookingSmsService is scoped: it composes and fires SMS for each request.
 // Set Sms:Enabled = true and set Sms:ApiKey (via User Secrets or env var) to activate.
 builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection(SmsOptions.SectionName));
-builder.Services.AddHttpClient<ISmsService, SemaphoreSmsService>();
+builder.Services.AddHttpClient<ISmsService, SemaphoreSmsService>(client => client.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddScoped<BookingSmsService>();
 
 // Telegram Bot notifications (staff alerts):
@@ -150,7 +150,7 @@ builder.Services.AddScoped<BookingSmsService>();
 // BookingTelegramService is scoped: it composes and fires Telegram alerts for each request.
 // Set Telegram:Enabled = true and set Telegram:BotToken (via User Secrets or env var) to activate.
 builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection(TelegramOptions.SectionName));
-builder.Services.AddHttpClient<ITelegramService, TelegramService>();
+builder.Services.AddHttpClient<ITelegramService, TelegramService>(client => client.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddScoped<BookingTelegramService>();
 
 // Phase 23: organization/tenant administration.
