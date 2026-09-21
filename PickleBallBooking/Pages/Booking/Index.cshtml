@@ -152,6 +152,20 @@
                                 <span class="pb-legend-item"><span class="pb-legend-swatch is-past"></span>Passed</span>
                             </div>
 
+                            <!-- Dedicated Gap Alert directly above timeslot grid -->
+                            <div id="timeslotGapAlert"
+                                 class="alert alert-danger alert-dismissible fade show d-none align-items-center mb-3"
+                                 role="alert">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-exclamation-octagon-fill fs-5 text-danger me-2" aria-hidden="true"></i>
+                                    <div>
+                                        <strong id="timeslotGapAlertTitle">Cannot select time slot with gap.</strong>
+                                        <div class="small text-muted" id="timeslotGapAlertDetail">Please select continuous time slots.</div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn-close" id="timeslotGapAlertClose" aria-label="Close"></button>
+                            </div>
+
                             <div class="timeslot-grid"
                                  id="timeslotGrid"
                                  role="group"
@@ -159,7 +173,7 @@
 
                                 @foreach (var slot in Model.TimeSlotAvailabilities)
                                 {
-                                                                        var slotStatusClass = slot.Status switch
+                                    var slotStatusClass = slot.Status switch
                                     {
                                         "available" => "available",
                                         "booked" => "booked",
@@ -174,15 +188,23 @@
 
                                     var ariaLabel = $"{slot.DisplayTime} - {displayStatus}";
 
+                                    var startMinutes = (int)slot.StartTime.TotalMinutes;
+                                    var endMinutes = (int)(slot.EndTime == TimeSpan.Zero ? 1440 : slot.EndTime.TotalMinutes);
+
                                     <label class="timeslot-btn @slotStatusClass"
                                            title="@ariaLabel"
-                                           data-slot-id="@slot.TimeSlotId">
+                                           data-slot-id="@slot.TimeSlotId"
+                                           data-start-minutes="@startMinutes"
+                                           data-end-minutes="@endMinutes">
 
                                         <input type="checkbox"
                                                name="SelectedSlotIds"
                                                value="@slot.TimeSlotId"
                                                class="timeslot-checkbox"
                                                aria-label="@ariaLabel"
+                                               data-slot-id="@slot.TimeSlotId"
+                                               data-start-minutes="@startMinutes"
+                                               data-end-minutes="@endMinutes"
                                                @(isDisabled ? "disabled" : "")
                                                @(slot.IsSelected ? "checked" : "") />
 
@@ -190,13 +212,21 @@
                                             @slot.DisplayTime
                                         </span>
 
-                                                                                <span class="timeslot-status">
+                                        <span class="timeslot-status">
                                             @(slot.IsPast ? "passed" : slot.Status)
                                         </span>
 
                                     </label>
                                 }
 
+                            </div>
+
+                            <!-- Mobile Quick Proceed Button -->
+                            <div id="mobileProceedToStep4Container" class="d-lg-none mt-3" style="display: none;">
+                                <button type="button" id="btnMobileProceedToStep4" class="btn btn-primary w-100 py-2 fw-semibold">
+                                    <i class="bi bi-arrow-down-circle me-1" aria-hidden="true"></i>
+                                    Proceed to 4. Your Information
+                                </button>
                             </div>
                         }
 
@@ -231,7 +261,7 @@
                                     <span class="booking-summary-value" id="summaryDuration">-</span>
                                 </div>
 
-                                                                                                <div id="priceContainer" style="display: none;" class="booking-summary-item">
+                                <div id="priceContainer" style="display: none;" class="booking-summary-item">
                                     <span class="booking-summary-label">Price</span>
                                     <span class="booking-summary-value text-success" id="summaryPrice">-</span>
                                 </div>
@@ -249,67 +279,78 @@
                         </div>
                     </div>
 
-                    @if (Model.CalculatedPrice.HasValue)
-                    {
-                        <div class="booking-form-section card mb-4" aria-labelledby="step4Heading">
-                            <div class="card-body">
-                                <h2 class="h5 card-title" id="step4Heading">
-                                    <span class="pb-step-index me-1" aria-hidden="true">4</span>
-                                    Your Information
-                                </h2>
+                    @{
+                        var showStep4 = Model.CalculatedPrice.HasValue || (Model.SelectedSlotIds != null && Model.SelectedSlotIds.Length > 0);
+                    }
 
-                                <div class="price-alert mb-3">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fw-semibold">Estimated total</span>
-                                        <span class="price-alert-value">@Model.CalculatedPrice.Value.ToString("C")</span>
-                                    </div>
-                                </div>
+                    <div class="booking-form-section card mb-4"
+                         aria-labelledby="step4Heading"
+                         id="step4Card"
+                         data-has-calculated-price="@(Model.CalculatedPrice.HasValue ? "true" : "false")"
+                         style="@(showStep4 ? "" : "display: none;")">
+                        <div class="card-body">
+                            <h2 class="h5 card-title" id="step4Heading">
+                                <span class="pb-step-index me-1" aria-hidden="true">4</span>
+                                Your Information
+                            </h2>
 
-                                <div class="mb-3">
-                                    <label asp-for="Input.CustomerName" class="form-label">Full Name</label>
-                                    <input asp-for="Input.CustomerName"
-                                           class="form-control"
-                                           placeholder="Enter your full name"
-                                           autocomplete="name" />
-                                    <span asp-validation-for="Input.CustomerName" class="text-danger"></span>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label asp-for="Input.CustomerPhone" class="form-label">Mobile Number</label>
-                                    <input asp-for="Input.CustomerPhone"
-                                           class="form-control"
-                                           inputmode="tel"
-                                           placeholder="e.g., +63 9XX XXXX XXX"
-                                           autocomplete="tel" />
-                                    <span asp-validation-for="Input.CustomerPhone" class="text-danger"></span>
-                                </div>
-
-                                <div class="mb-1">
-                                    <label asp-for="Input.CustomerEmail" class="form-label">Email Address</label>
-                                    <input asp-for="Input.CustomerEmail"
-                                           class="form-control"
-                                           inputmode="email"
-                                           placeholder="email@example.com"
-                                           autocomplete="email" />
-                                    <span asp-validation-for="Input.CustomerEmail" class="text-danger"></span>
+                            <div class="price-alert mb-3" id="step4PriceAlert" style="@(Model.CalculatedPrice.HasValue ? "" : "display: none;")">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-semibold">Estimated total</span>
+                                    <span class="price-alert-value" id="step4PriceValue">@(Model.CalculatedPrice.HasValue ? Model.CalculatedPrice.Value.ToString("C") : "")</span>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="booking-actions d-grid gap-2 mb-4">
-                            <button type="submit"
-                                    asp-page-handler="Confirm"
-                                    class="btn btn-success btn-lg">
-                                <span class="pb-btn-spinner spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                                <i class="bi bi-check-circle pb-btn-label"></i>
-                                <span class="pb-btn-label">Confirm Booking</span>
-                            </button>
+                            <div class="mb-3">
+                                <label asp-for="Input.CustomerName" class="form-label">Full Name</label>
+                                <input asp-for="Input.CustomerName"
+                                       class="form-control"
+                                       id="Input_CustomerName"
+                                       placeholder="Enter your full name"
+                                       autocomplete="name" />
+                                <span asp-validation-for="Input.CustomerName" class="text-danger"></span>
+                            </div>
 
-                            <a href="@Url.Page("/Index")" class="btn btn-outline-secondary btn-lg">
-                                Cancel
-                            </a>
+                            <div class="mb-3">
+                                <label asp-for="Input.CustomerPhone" class="form-label">Mobile Number</label>
+                                <input asp-for="Input.CustomerPhone"
+                                       class="form-control"
+                                       id="Input_CustomerPhone"
+                                       inputmode="tel"
+                                       placeholder="e.g., +63 9XX XXXX XXX"
+                                       autocomplete="tel" />
+                                <span asp-validation-for="Input.CustomerPhone" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-1">
+                                <label asp-for="Input.CustomerEmail" class="form-label">Email Address</label>
+                                <input asp-for="Input.CustomerEmail"
+                                       class="form-control"
+                                       id="Input_CustomerEmail"
+                                       inputmode="email"
+                                       placeholder="email@example.com"
+                                       autocomplete="email" />
+                                <span asp-validation-for="Input.CustomerEmail" class="text-danger"></span>
+                            </div>
                         </div>
-                    }
+                    </div>
+
+                    <div class="booking-actions d-grid gap-2 mb-4"
+                         id="confirmActionsContainer"
+                         style="@(showStep4 ? "" : "display: none;")">
+                        <button type="submit"
+                                asp-page-handler="Confirm"
+                                class="btn btn-success btn-lg"
+                                id="btnConfirmBooking">
+                            <span class="pb-btn-spinner spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+                            <i class="bi bi-check-circle pb-btn-label"></i>
+                            <span class="pb-btn-label">Confirm Booking</span>
+                        </button>
+
+                        <a href="@Url.Page("/Index")" class="btn btn-outline-secondary btn-lg">
+                            Cancel
+                        </a>
+                    </div>
 
                 </div>
             </div>

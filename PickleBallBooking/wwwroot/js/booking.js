@@ -1,9 +1,10 @@
 // =========================================================
-// PHASE 18 - Booking page client behaviour (moved from the
-// Razor view for caching/consistency). Logic is UNCHANGED:
-// selection, continuity checking, summary and redirects behave
-// exactly as before. All authoritative validation stays on the
-// server.
+// PHASE 18/19 - Booking page client behaviour
+// - Selection & continuity validation
+// - In-place gap error message ("Cannot select time slot with gap.")
+// - Shake animation for rejected slots
+// - Live AJAX price calculation
+// - Responsive auto-scroll directly to Step 4 (Your information) on mobile
 // =========================================================
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
@@ -14,6 +15,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const courtSelect = document.getElementById('courtSelect');
     const bookingDateInput = document.getElementById('bookingDate');
     const bookingSummaryContainer = document.getElementById('bookingSummaryContainer');
+
+    const timeslotGapAlert = document.getElementById('timeslotGapAlert');
+    const timeslotGapAlertClose = document.getElementById('timeslotGapAlertClose');
+    const timeslotGapAlertTitle = document.getElementById('timeslotGapAlertTitle');
+
+    const step4Card = document.getElementById('step4Card');
+    const confirmActionsContainer = document.getElementById('confirmActionsContainer');
+    const mobileProceedToStep4Container = document.getElementById('mobileProceedToStep4Container');
+    const btnMobileProceedToStep4 = document.getElementById('btnMobileProceedToStep4');
+
+    let autoScrollTimer = null;
+    let priceFetchController = null;
 
     const slotDisplayTimes = {};
     checkboxes.forEach(function (checkbox) {
@@ -44,20 +57,113 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function hideGapAlert() {
+        if (timeslotGapAlert) {
+            timeslotGapAlert.classList.add('d-none');
+        }
+    }
+
+    function showGapAlert(message) {
+        if (!timeslotGapAlert) { return; }
+        if (timeslotGapAlertTitle) {
+            timeslotGapAlertTitle.textContent = message || 'Cannot select time slot with gap.';
+        }
+        timeslotGapAlert.classList.remove('d-none');
+        timeslotGapAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    if (timeslotGapAlertClose) {
+        timeslotGapAlertClose.addEventListener('click', hideGapAlert);
+    }
+
     function areSlotsContiguous() {
-        const selected = getSelectedCheckboxes().sort(function (a, b) {
-            return parseInt(a.value, 10) - parseInt(b.value, 10);
+        const selected = getSelectedCheckboxes().map(function (cb) {
+            const start = parseInt(cb.dataset.startMinutes || '0', 10);
+            const end = parseInt(cb.dataset.endMinutes || '0', 10);
+            return { cb: cb, id: parseInt(cb.value, 10), start: start, end: end };
+        }).sort(function (a, b) {
+            return a.start - b.start;
         });
 
         if (selected.length <= 1) { return true; }
 
         for (let i = 1; i < selected.length; i++) {
-            const previousId = parseInt(selected[i - 1].value, 10);
-            const currentId = parseInt(selected[i].value, 10);
-            if (currentId !== previousId + 1) { return false; }
+            if (selected[i].start !== selected[i - 1].end) {
+                return false;
+            }
         }
 
         return true;
+    }
+
+    function fetchLivePrice() {
+        const selectedIds = getSelectedSlotIds();
+        if (selectedIds.length === 0 || !courtSelect || !bookingDateInput) { return; }
+        const courtId = courtSelect.value;
+        const dateVal = bookingDateInput.value;
+        if (!courtId || !dateVal) { return; }
+
+        if (priceFetchController) {
+            priceFetchController.abort();
+        }
+        priceFetchController = new AbortController();
+
+        const params = new URLSearchParams();
+        params.append('courtId', courtId);
+        params.append('date', dateVal);
+        selectedIds.forEach(function (id) { params.append('slotIds', id); });
+
+        fetch(`/Booking?handler=Price&${params.toString()}`, {
+            signal: priceFetchController.signal,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            if (data && data.success) {
+                const priceContainer = document.getElementById('priceContainer');
+                const summaryPrice = document.getElementById('summaryPrice');
+                const step4PriceAlert = document.getElementById('step4PriceAlert');
+                const step4PriceValue = document.getElementById('step4PriceValue');
+
+                if (priceContainer && summaryPrice) {
+                    summaryPrice.textContent = data.formattedPrice;
+                    priceContainer.style.display = 'flex';
+                }
+                if (step4PriceAlert && step4PriceValue) {
+                    step4PriceValue.textContent = data.formattedPrice;
+                    step4PriceAlert.style.display = 'block';
+                }
+            }
+        })
+        .catch(function (err) {
+            if (err.name !== 'AbortError') {
+                console.warn('Could not fetch price', err);
+            }
+        });
+    }
+
+    function scrollToStep4() {
+        const target = document.getElementById('step4Card') || document.getElementById('step4Heading');
+        if (!target) { return; }
+
+        target.style.display = 'block';
+        if (confirmActionsContainer) {
+            confirmActionsContainer.style.display = 'grid';
+        }
+
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const nameInput = document.getElementById('Input_CustomerName');
+        if (nameInput) {
+            setTimeout(function () {
+                nameInput.focus({ preventScroll: true });
+            }, 600);
+        }
+    }
+
+    if (btnMobileProceedToStep4) {
+        btnMobileProceedToStep4.addEventListener('click', function () {
+            scrollToStep4();
+        });
     }
 
     function updateSummary() {
@@ -65,6 +171,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (selected.length === 0) {
             bookingSummaryContainer.style.display = 'none';
+            if (step4Card && step4Card.dataset.hasCalculatedPrice !== 'true') {
+                step4Card.style.display = 'none';
+            }
+            if (confirmActionsContainer && (!step4Card || step4Card.dataset.hasCalculatedPrice !== 'true')) {
+                confirmActionsContainer.style.display = 'none';
+            }
+            if (mobileProceedToStep4Container) {
+                mobileProceedToStep4Container.style.display = 'none';
+            }
             return;
         }
 
@@ -86,8 +201,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const selectedIds = getSelectedSlotIds();
-        const firstId = selectedIds[0];
-        const lastId = selectedIds[selectedIds.length - 1];
+        const sortedSelected = selected.slice().sort(function (a, b) {
+            return parseInt(a.dataset.startMinutes || '0', 10) - parseInt(b.dataset.startMinutes || '0', 10);
+        });
+        const firstId = sortedSelected[0].value;
+        const lastId = sortedSelected[sortedSelected.length - 1].value;
         const firstTime = slotDisplayTimes[firstId] || '';
         const lastTime = slotDisplayTimes[lastId] || '';
         const lastEndTime = lastTime.split('-')[1]?.trim() || '';
@@ -99,6 +217,18 @@ document.addEventListener('DOMContentLoaded', function () {
         if (summaryDuration) { summaryDuration.textContent = `${selectedIds.length} hour(s)`; }
 
         bookingSummaryContainer.style.display = 'block';
+
+        if (step4Card) {
+            step4Card.style.display = 'block';
+        }
+        if (confirmActionsContainer) {
+            confirmActionsContainer.style.display = 'grid';
+        }
+        if (mobileProceedToStep4Container) {
+            mobileProceedToStep4Container.style.display = 'block';
+        }
+
+        fetchLivePrice();
     }
 
     function clearValidationError() {
@@ -116,6 +246,14 @@ document.addEventListener('DOMContentLoaded', function () {
     checkboxes.forEach(function (checkbox) {
         checkbox.addEventListener('change', function () {
             clearValidationError();
+            hideGapAlert();
+
+            if (autoScrollTimer) {
+                clearTimeout(autoScrollTimer);
+                autoScrollTimer = null;
+            }
+
+            const card = checkbox.closest('.timeslot-btn');
 
             if (!checkbox.checked) {
                 updateCardAppearance();
@@ -125,7 +263,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!areSlotsContiguous()) {
                 checkbox.checked = false;
-                showValidationError('Time slots must be continuous (no gaps allowed).');
+                if (card) {
+                    card.classList.add('shake-error');
+                    setTimeout(function () {
+                        card.classList.remove('shake-error');
+                    }, 500);
+                }
+                showGapAlert('Cannot select time slot with gap.');
+                showValidationError('Cannot select time slot with gap.');
                 updateCardAppearance();
                 updateSummary();
                 return;
@@ -133,6 +278,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             updateCardAppearance();
             updateSummary();
+
+            // Mobile view: automatically smooth-scroll down directly to Step 4 after selection
+            if (window.innerWidth < 992) {
+                autoScrollTimer = setTimeout(function () {
+                    scrollToStep4();
+                }, 800);
+            }
         });
     });
 
@@ -164,6 +316,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const selectedCount = getSelectedSlotIds().length;
             if (selectedCount === 0) {
                 event.preventDefault();
+                showGapAlert('Please select at least one time slot.');
                 showValidationError('Please select at least one time slot.');
                 return false;
             }
@@ -171,6 +324,16 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Initial page state
     updateCardAppearance();
     updateSummary();
+
+    // If loaded on mobile with Step 4 already active (e.g. calculated price or validation errors)
+    const hasCalculatedPrice = step4Card && step4Card.dataset.hasCalculatedPrice === 'true';
+    const hasValidationErrors = document.querySelector('.field-validation-error, .validation-summary-errors');
+    if ((hasCalculatedPrice || hasValidationErrors) && window.innerWidth < 992) {
+        setTimeout(function () {
+            scrollToStep4();
+        }, 300);
+    }
 });

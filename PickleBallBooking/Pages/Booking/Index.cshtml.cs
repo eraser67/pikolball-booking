@@ -58,6 +58,49 @@ public class IndexModel : PageModel
         await LoadTimeSlotAvailabilityAsync();
     }
 
+    public async Task<IActionResult> OnGetPriceAsync(int courtId, DateOnly date, [FromQuery] int[] slotIds)
+    {
+        if (slotIds == null || slotIds.Length == 0)
+        {
+            return new JsonResult(new { success = false, message = "No slots selected." });
+        }
+
+        Input.BookingDate = date;
+        Input.CourtId = courtId;
+
+        var (isValid, errorMsg) = await ValidateSlotSelectionAsync(slotIds);
+        if (!isValid)
+        {
+            return new JsonResult(new { success = false, message = errorMsg });
+        }
+
+        var selectedSlots = _context.TimeSlots
+            .Where(ts => slotIds.Contains(ts.Id))
+            .OrderBy(ts => ts.StartTime)
+            .ToList();
+
+        if (selectedSlots.Count == 0)
+        {
+            return new JsonResult(new { success = false, message = "Selected time slots not found." });
+        }
+
+        var startTime = selectedSlots.First().StartTime;
+        var endTime = selectedSlots.Last().EndTime;
+
+        var result = await _bookingService.CalculatePriceAsync(date, startTime, endTime, courtId);
+        if (!result.Success)
+        {
+            return new JsonResult(new { success = false, message = result.ErrorMessage });
+        }
+
+        return new JsonResult(new
+        {
+            success = true,
+            price = result.Price,
+            formattedPrice = result.Price.ToString("C")
+        });
+    }
+
     public async Task<IActionResult> OnPostCalculateAsync()
     {
         await LoadOptionsAsync();
