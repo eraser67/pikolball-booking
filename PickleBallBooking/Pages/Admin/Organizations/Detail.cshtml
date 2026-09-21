@@ -85,7 +85,7 @@
                                             </select>
                                         </form>
                                     </td>
-                                    <td class="text-muted small">@member.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                                    <td class="text-muted small">@PickleBallBooking.Services.AppClock.ToPhilippineTime(member.CreatedAt).ToString("yyyy-MM-dd")</td>
                                     <td class="text-end">
                                         <form method="post" asp-page-handler="RemoveMember"
                                               asp-route-userId="@member.UserId"
@@ -151,7 +151,7 @@
             <div class="card-body">
                 <dl class="row small mb-0">
                     <dt class="col-5 text-muted">Created</dt>
-                    <dd class="col-7">@org.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")</dd>
+                    <dd class="col-7">@PickleBallBooking.Services.AppClock.ToPhilippineTime(org.CreatedAt).ToString("yyyy-MM-dd")</dd>
                     <dt class="col-5 text-muted">Owners</dt>
                     <dd class="col-7">
                         @if (org.Owners.Any())
@@ -210,6 +210,54 @@
                 else
                 {
                     <p class="text-muted small mb-0">No subscription assigned.</p>
+                }
+            </div>
+        </div>
+
+        <!-- Hero Image (Landing Page) -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-image me-2"></i>Landing Page Hero Image
+            </div>
+            <div class="card-body">
+                <div class="mb-3 text-center">
+                    @if (!string.IsNullOrEmpty(Model.CurrentHeroImageUrl))
+                    {
+                        <img src="@Model.CurrentHeroImageUrl" alt="Custom Hero Image"
+                             class="img-fluid rounded border shadow-sm" style="max-height: 140px; width: 100%; object-fit: cover;" />
+                        <div class="badge bg-success-subtle text-success border border-success-subtle mt-2">Custom Hero Image Active</div>
+                    }
+                    else
+                    {
+                        <img src="~/images/hero-player.png" alt="Default Hero Image"
+                             class="img-fluid rounded border shadow-sm p-2 bg-light" style="max-height: 140px; object-fit: contain;" />
+                        <div class="badge bg-secondary-subtle text-secondary border border-secondary-subtle mt-2">Default Hero Image Active</div>
+                    }
+                </div>
+
+                <form method="post" asp-page-handler="UploadHeroImage" enctype="multipart/form-data" class="mb-2">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-2">
+                        <label asp-for="HeroInput.HeroImage" class="form-label small fw-semibold">Upload New Hero Image</label>
+                        <input asp-for="HeroInput.HeroImage" class="form-control form-control-sm" type="file"
+                               accept="image/png,image/jpeg,image/webp" />
+                        <span asp-validation-for="HeroInput.HeroImage" class="text-danger small"></span>
+                        <div class="form-text small">JPEG, PNG, WebP (max 3 MB).</div>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="bi bi-upload me-1"></i>Upload Hero Image
+                    </button>
+                </form>
+
+                @if (!string.IsNullOrEmpty(Model.CurrentHeroImageUrl))
+                {
+                    <form method="post" asp-page-handler="RemoveHeroImage"
+                          onsubmit="return confirm('Revert to default hero image for this organization?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Revert to Default
+                        </button>
+                    </form>
                 }
             </div>
         </div>

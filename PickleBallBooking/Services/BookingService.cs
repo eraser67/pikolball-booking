@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
+using Microsoft.Extensions.Logging;
 using PickleBallBooking.Data;
 using PickleBallBooking.Models;
 
@@ -11,15 +12,18 @@ public class BookingService : IBookingService
     private readonly ApplicationDbContext _context;
     private readonly BookingEmailService? _emailService;
     private readonly ISubscriptionService? _subscriptionService;
+    private readonly ILogger<BookingService>? _logger;
 
     public BookingService(
         ApplicationDbContext context,
         BookingEmailService? emailService = null,
-        ISubscriptionService? subscriptionService = null)
+        ISubscriptionService? subscriptionService = null,
+        ILogger<BookingService>? logger = null)
     {
         _context             = context;
         _emailService        = emailService;
         _subscriptionService = subscriptionService;
+        _logger              = logger;
     }
 
         public async Task<bool> IsAvailableAsync(int courtId, DateOnly bookingDate, TimeSpan startTime, TimeSpan endTime)
@@ -290,7 +294,10 @@ public class BookingService : IBookingService
                             _emailService.SendNewBookingToOrgAsync(booking, orgForEmail);
                         }
                     }
-                    catch (Exception ex) { _ = ex; }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogWarning(ex, "Failed to send booking notification email for booking {BookingReference}", booking.BookingReference);
+                    }
 
                     return BookingResult.Ok(booking);
                 }

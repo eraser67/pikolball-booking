@@ -45,6 +45,12 @@ namespace PickleBallBooking.Pages
         public double OrgLongitude { get; set; } = 124.020279;
         public bool HasMapCoordinates => OrgAddress is not null || (OrgLatitude != 0 && OrgLongitude != 0);
 
+        /// <summary>
+        /// Public URL of the tenant's custom hero image, or null to use the default static image.
+        /// Rendered in the hero section of the landing page.
+        /// </summary>
+        public string? HeroImageUrl { get; set; }
+
         public async Task OnGetAsync()
         {
             PreviewDate = AppClock.TodayLocal;
@@ -57,6 +63,9 @@ namespace PickleBallBooking.Pages
                 OrgAddress   = org.Address;
                 OrgLatitude  = org.Latitude  ?? 10.671029;
                 OrgLongitude = org.Longitude ?? 124.020279;
+
+                // Use custom hero image if the org has uploaded one.
+                HeroImageUrl = _imageStorage.GetPublicUrl(org.HeroImagePath);
             }
 
             var courts = await _courtService.GetActiveAsync();

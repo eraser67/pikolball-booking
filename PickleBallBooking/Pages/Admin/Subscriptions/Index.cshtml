@@ -64,7 +64,7 @@
                             <td class="text-muted small">@(sub.StartDate?.ToString("yyyy-MM-dd") ?? "—")</td>
                             <td class="text-muted small">@(sub.EndDate?.ToString("yyyy-MM-dd") ?? "—")</td>
                             <td class="text-muted small">@(sub.TrialEndDate?.ToString("yyyy-MM-dd") ?? "—")</td>
-                            <td class="text-muted small">@sub.UpdatedAt.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                            <td class="text-muted small">@PickleBallBooking.Services.AppClock.ToPhilippineTime(sub.UpdatedAt).ToString("yyyy-MM-dd")</td>
                             <td class="text-end">
                                 <a asp-page="Assign" asp-route-organizationId="@sub.OrganizationId"
                                    class="btn btn-sm btn-outline-primary">

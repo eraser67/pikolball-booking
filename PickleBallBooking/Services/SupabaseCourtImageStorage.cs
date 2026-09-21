@@ -59,11 +59,12 @@ public class SupabaseCourtImageStorage : ICourtImageStorage
     public async Task<string> UploadAsync(
         int organizationId, int courtId, IFormFile file, CancellationToken ct = default)
     {
-        // 1. Server-side size validation (exact 1 MB boundary check).
+        // 1. Server-side size validation.
         if (file.Length > _options.MaxCourtImageSizeBytes)
         {
+            var limitMb = _options.MaxCourtImageSizeBytes / (1024.0 * 1024.0);
             throw new CourtImageValidationException(
-                $"Court image must be 1 MB or smaller (max {_options.MaxCourtImageSizeBytes:N0} bytes). " +
+                $"Court image must be {limitMb:0.#} MB or smaller (max {_options.MaxCourtImageSizeBytes:N0} bytes). " +
                 $"The uploaded file is {file.Length:N0} bytes.");
         }
 
@@ -105,11 +106,11 @@ public class SupabaseCourtImageStorage : ICourtImageStorage
 
     public async Task<string> UploadLogoAsync(int organizationId, IFormFile file, CancellationToken ct = default)
     {
-        const long maxLogoSizeBytes = 2 * 1024 * 1024;
+        const long maxLogoSizeBytes = 3 * 1024 * 1024; // 3 MB
         if (file.Length > maxLogoSizeBytes)
         {
             throw new CourtImageValidationException(
-                $"Logo image must be 2 MB or smaller (max {maxLogoSizeBytes:N0} bytes). " +
+                $"Logo image must be 3 MB or smaller (max {maxLogoSizeBytes:N0} bytes). " +
                 $"The uploaded file is {file.Length:N0} bytes.");
         }
 
@@ -135,6 +136,38 @@ public class SupabaseCourtImageStorage : ICourtImageStorage
 
         var extension = AllowedMimeExtensions[detectedMime][0];
         var storagePath = $"organizations/{organizationId}/logo/logo{extension}";
+
+        await UploadToSupabaseAsync(storagePath, bytes, detectedMime, ct);
+
+        return storagePath;
+    }
+
+    public async Task<string> UploadHeroImageAsync(int organizationId, IFormFile file, CancellationToken ct = default)
+    {
+        const long maxHeroSizeBytes = 3 * 1024 * 1024; // 3 MB
+        if (file.Length > maxHeroSizeBytes)
+        {
+            throw new CourtImageValidationException(
+                $"Hero image must be 3 MB or smaller (max {maxHeroSizeBytes:N0} bytes). " +
+                $"The uploaded file is {file.Length:N0} bytes.");
+        }
+
+        if (file.Length == 0)
+        {
+            throw new CourtImageValidationException("Hero image file is empty.");
+        }
+
+        using var ms = new MemoryStream((int)file.Length);
+        await file.CopyToAsync(ms, ct);
+        var bytes = ms.ToArray();
+
+        var detectedMime = DetectMimeFromBytes(bytes)
+            ?? throw new CourtImageValidationException(
+                "Hero image must be a valid JPEG, PNG, or WEBP file. " +
+                "The uploaded file does not match a supported image format.");
+
+        var extension = AllowedMimeExtensions[detectedMime][0];
+        var storagePath = $"organizations/{organizationId}/hero/hero{extension}";
 
         await UploadToSupabaseAsync(storagePath, bytes, detectedMime, ct);
 

@@ -38,6 +38,14 @@ public class Organization
     [MaxLength(500)]
     public string? LogoPath { get; set; }
 
+    /// <summary>
+    /// Relative storage path to the organization's custom hero image in Supabase public storage.
+    /// Displayed on the public landing page instead of the default hero artwork when set.
+    /// Configurable by the org admin and platform admin.
+    /// </summary>
+    [MaxLength(500)]
+    public string? HeroImagePath { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

@@ -4,12 +4,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.RateLimiting;
 using PickleBallBooking.Data;
 using PickleBallBooking.Models;
 using PickleBallBooking.Services;
 
 namespace PickleBallBooking.Pages.Account;
 
+[EnableRateLimiting("auth-limit")]
 public class LoginModel : PageModel
 {
     private readonly SignInManager<IdentityUser> _signInManager;

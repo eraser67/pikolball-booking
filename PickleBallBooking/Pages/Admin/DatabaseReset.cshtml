@@ -1,5 +1,16 @@
 @page "/Admin/DatabaseReset"
+@using Microsoft.AspNetCore.Authorization
+@using PickleBallBooking.Services
+@using Microsoft.AspNetCore.Hosting
+@using Microsoft.Extensions.Hosting
+@attribute [Authorize(Policy = PlatformRoles.PlatformAdminPolicy)]
+@inject IWebHostEnvironment Env
 @{
+    if (!Env.IsDevelopment())
+    {
+        Response.StatusCode = 404;
+        return;
+    }
     ViewData["Title"] = "Database Reset (Development Only)";
 }
 

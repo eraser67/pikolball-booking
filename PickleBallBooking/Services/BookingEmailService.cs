@@ -136,6 +136,10 @@ public sealed class BookingEmailService
 
     private static string BuildPaymentSubmittedCustomerHtml(Booking booking, Payment payment, Organization org)
     {
+        var submittedTime = payment.SubmittedAt.HasValue
+            ? $"{AppClock.ToPhilippineTime(payment.SubmittedAt.Value):MMMM d, yyyy h:mm tt} (PST)"
+            : $"{AppClock.NowLocal:MMMM d, yyyy h:mm tt} (PST)";
+
         return Wrap(org.Name, $"""
             <h2 style="color:{Green};margin-bottom:8px;">Payment Received!</h2>
             <p>Hi {booking.CustomerName},</p>
@@ -144,6 +148,7 @@ public sealed class BookingEmailService
             {DetailBox(new[] {
                 ("Reference Number", payment.ReferenceNumber ?? "—"),
                 ("Amount",           payment.Amount.ToString("C2")),
+                ("Submitted At",     submittedTime),
                 ("Status",           "Under review"),
             })}
 
@@ -245,6 +250,10 @@ public sealed class BookingEmailService
 
     private static string BuildPaymentSubmittedOrgHtml(Booking booking, Payment payment, Organization org)
     {
+        var submittedTime = payment.SubmittedAt.HasValue
+            ? $"{AppClock.ToPhilippineTime(payment.SubmittedAt.Value):MMMM d, yyyy h:mm tt} (PST)"
+            : $"{AppClock.NowLocal:MMMM d, yyyy h:mm tt} (PST)";
+
         return Wrap(org.Name, $"""
             <h2 style="color:{Green};margin-bottom:8px;">Payment Needs Verification</h2>
             <p>A customer has submitted a GCash payment for <strong>{org.Name}</strong>.</p>
@@ -254,6 +263,7 @@ public sealed class BookingEmailService
                 ("Customer",          booking.CustomerName),
                 ("GCash Reference",   payment.ReferenceNumber ?? "—"),
                 ("Amount",            payment.Amount.ToString("C2")),
+                ("Submitted At",      submittedTime),
             })}
 
             <p>Please log in to the admin panel to <strong>verify or reject</strong> this payment.</p>

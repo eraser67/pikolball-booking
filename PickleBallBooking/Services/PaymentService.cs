@@ -116,7 +116,8 @@ public sealed record PaymentLookup(
     TimeSpan EndTime,
     decimal Amount,
     PaymentStatus Status,
-    string? ReferenceNumber);
+    string? ReferenceNumber,
+    DateTime? SubmittedAt = null);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Implementation
@@ -192,7 +193,33 @@ public sealed class PaymentService : IPaymentService
                 .ThenInclude(b => b!.Court)
             .FirstOrDefaultAsync(p => p.Booking!.BookingReference == bookingReference, ct);
 
-        if (result?.Booking is null) return null;
+        if (result?.Booking is null)
+        {
+            // If the payment record doesn't exist yet, check if the booking exists.
+            var booking = await _context.Bookings
+                .IgnoreQueryFilters()
+                .Include(b => b.Court)
+                .FirstOrDefaultAsync(b => b.BookingReference == bookingReference, ct);
+
+            if (booking is null) return null;
+
+            var createdPayment = await CreateForBookingAsync(booking.Id, ct);
+            if (createdPayment is null) return null;
+
+            return new PaymentLookup(
+                createdPayment.Id,
+                createdPayment.OrganizationId,
+                booking.BookingReference,
+                booking.CustomerName,
+                booking.Court?.Name ?? "Court",
+                booking.BookingDate,
+                booking.StartTime,
+                booking.EndTime,
+                createdPayment.Amount,
+                createdPayment.PaymentStatus,
+                createdPayment.ReferenceNumber,
+                createdPayment.SubmittedAt);
+        }
 
         return new PaymentLookup(
             result.Id,
@@ -205,7 +232,8 @@ public sealed class PaymentService : IPaymentService
             result.Booking.EndTime,
             result.Amount,
             result.PaymentStatus,
-            result.ReferenceNumber);
+            result.ReferenceNumber,
+            result.SubmittedAt);
     }
 
     public async Task<Payment?> GetByIdAsync(int paymentId, CancellationToken ct = default)

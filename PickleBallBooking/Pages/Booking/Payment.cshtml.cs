@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
 using PickleBallBooking.Services;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace PickleBallBooking.Pages.Booking;
 
@@ -10,6 +11,7 @@ namespace PickleBallBooking.Pages.Booking;
 /// No authentication required — the customer arrives via the booking reference link.
 /// The customer can ONLY submit a reference number; they cannot set their own status to Verified.
 /// </summary>
+[EnableRateLimiting("payment-limit")]
 public class PaymentModel : PageModel
 {
     private readonly IPaymentService _paymentService;

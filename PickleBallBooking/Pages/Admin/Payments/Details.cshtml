@@ -1,6 +1,7 @@
 @page "/Admin/Payments/Details/{id:int}"
 @model PickleBallBooking.Pages.Admin.Payments.DetailsModel
 @using PickleBallBooking.Models
+@using PickleBallBooking.Services
 @{
     ViewData["Title"] = "Payment Details";
     var p = Model.Payment;
@@ -68,12 +69,12 @@
                     <dd class="col-sm-7 font-monospace">@(p.ReferenceNumber ?? "—")</dd>
 
                     <dt class="col-sm-5">Submitted At</dt>
-                    <dd class="col-sm-7">@(p.SubmittedAt.HasValue ? p.SubmittedAt.Value.ToLocalTime().ToString("f") : "—")</dd>
+                    <dd class="col-sm-7">@(p.SubmittedAt.HasValue ? $"{AppClock.ToPhilippineTime(p.SubmittedAt.Value):f} (PST)" : "—")</dd>
 
                     @if (p.PaymentStatus is PaymentStatus.Verified or PaymentStatus.Rejected)
                     {
                         <dt class="col-sm-5">Acted At</dt>
-                        <dd class="col-sm-7">@(p.VerifiedAt.HasValue ? p.VerifiedAt.Value.ToLocalTime().ToString("f") : "—")</dd>
+                        <dd class="col-sm-7">@(p.VerifiedAt.HasValue ? $"{AppClock.ToPhilippineTime(p.VerifiedAt.Value):f} (PST)" : "—")</dd>
                     }
 
                     @if (!string.IsNullOrWhiteSpace(p.Notes))

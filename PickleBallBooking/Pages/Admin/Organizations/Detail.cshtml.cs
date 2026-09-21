@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PickleBallBooking.Models;
@@ -12,11 +13,16 @@ public class DetailModel : PageModel
 {
     private readonly IOrganizationService _organizationService;
     private readonly ISubscriptionService _subscriptionService;
+    private readonly ICourtImageStorage _imageStorage;
 
-    public DetailModel(IOrganizationService organizationService, ISubscriptionService subscriptionService)
+    public DetailModel(
+        IOrganizationService organizationService,
+        ISubscriptionService subscriptionService,
+        ICourtImageStorage imageStorage)
     {
         _organizationService = organizationService;
         _subscriptionService = subscriptionService;
+        _imageStorage        = imageStorage;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -25,6 +31,9 @@ public class DetailModel : PageModel
     public OrganizationSummary? Org { get; set; }
     public List<OrganizationMemberView> Members { get; set; } = [];
     public Subscription? CurrentSubscription { get; set; }
+
+    /// <summary>Current hero image public URL for this organization (for display in platform admin view).</summary>
+    public string? CurrentHeroImageUrl { get; set; }
 
     [TempData]
     public string? StatusMessage { get; set; }
@@ -35,6 +44,9 @@ public class DetailModel : PageModel
     [BindProperty]
     public AddMemberInput AddInput { get; set; } = new();
 
+    [BindProperty]
+    public HeroImageInput HeroInput { get; set; } = new();
+
     public async Task<IActionResult> OnGetAsync()
     {
         Org = await _organizationService.GetByIdAsync(Id);
@@ -42,6 +54,10 @@ public class DetailModel : PageModel
 
         Members             = await _organizationService.GetMembersOfOrgAsync(Id);
         CurrentSubscription = await _subscriptionService.GetForOrganizationAsync(Id);
+
+        // Load the current hero image for platform admin preview.
+        CurrentHeroImageUrl = _imageStorage.GetPublicUrl(Org.HeroImagePath);
+
         return Page();
     }
 
@@ -58,6 +74,41 @@ public class DetailModel : PageModel
     {
         await _organizationService.SetStatusAsync(Id, OrganizationStatus.Inactive);
         StatusMessage = "Organization deactivated.";
+        return RedirectToPage();
+    }
+
+    // ── Hero Image management (platform admin) ───────────────────────────────
+
+    public async Task<IActionResult> OnPostUploadHeroImageAsync()
+    {
+        if (HeroInput.HeroImage is null || HeroInput.HeroImage.Length == 0)
+        {
+            ErrorMessage = "Please select an image file to upload.";
+            return RedirectToPage();
+        }
+
+        try
+        {
+            var heroPath = await _imageStorage.UploadHeroImageAsync(Id, HeroInput.HeroImage);
+            await _organizationService.UpdateHeroImageForOrgAsync(Id, heroPath);
+            StatusMessage = "Hero image updated successfully.";
+        }
+        catch (CourtImageValidationException ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Hero image upload failed: {ex.Message}";
+        }
+
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostRemoveHeroImageAsync()
+    {
+        await _organizationService.UpdateHeroImageForOrgAsync(Id, null);
+        StatusMessage = "Hero image removed. Default hero image will be shown.";
         return RedirectToPage();
     }
 
@@ -101,6 +152,12 @@ public class DetailModel : PageModel
     }
 
     // ── Input models ──────────────────────────────────────────────────────────
+
+    public class HeroImageInput
+    {
+        [Display(Name = "Hero Image (JPEG/PNG/WEBP, max 3 MB)")]
+        public IFormFile? HeroImage { get; set; }
+    }
 
     public class AddMemberInput
     {

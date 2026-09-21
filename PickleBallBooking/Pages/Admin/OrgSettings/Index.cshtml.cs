@@ -44,6 +44,9 @@ public class IndexModel : PageModel
     /// <summary>Current custom brand logo public URL (for display).</summary>
     public string? CurrentLogoUrl { get; set; }
 
+    /// <summary>Current custom hero image public URL (for display).</summary>
+    public string? CurrentHeroImageUrl { get; set; }
+
     [BindProperty]
     public SettingsInput Input { get; set; } = new();
 
@@ -65,7 +68,8 @@ public class IndexModel : PageModel
         Input.Longitude = organization.Longitude;
         Input.NotificationEmail = organization.NotificationEmail;
 
-        CurrentLogoUrl = _imageStorage.GetPublicUrl(organization.LogoPath);
+        CurrentLogoUrl      = _imageStorage.GetPublicUrl(organization.LogoPath);
+        CurrentHeroImageUrl = _imageStorage.GetPublicUrl(organization.HeroImagePath);
 
         // Load current payment settings.
         var paySettings = await _paymentService.GetPaymentSettingsAsync();
@@ -137,6 +141,36 @@ public class IndexModel : PageModel
             }
         }
 
+        // Handle Hero Image upload or removal.
+        if (Input.RemoveHeroImage)
+        {
+            await _organizationService.UpdateCurrentHeroImageAsync(null);
+        }
+        else if (Input.HeroImage is not null && Input.HeroImage.Length > 0)
+        {
+            var org = await _organizationService.GetCurrentAsync();
+            if (org is not null)
+            {
+                try
+                {
+                    var heroPath = await _imageStorage.UploadHeroImageAsync(org.Id, Input.HeroImage);
+                    await _organizationService.UpdateCurrentHeroImageAsync(heroPath);
+                }
+                catch (CourtImageValidationException ex)
+                {
+                    ModelState.AddModelError("Input.HeroImage", ex.Message);
+                    await ReloadReadOnlyAsync();
+                    return Page();
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError("Input.HeroImage", $"Hero image upload failed: {ex.Message}");
+                    await ReloadReadOnlyAsync();
+                    return Page();
+                }
+            }
+        }
+
         // Save payment settings.
         string? qrPath = null;
         if (Input.QRCodeImage is not null && Input.QRCodeImage.Length > 0)
@@ -201,10 +235,11 @@ public class IndexModel : PageModel
         var organization = await _organizationService.GetCurrentAsync();
         if (organization is not null)
         {
-            Slug           = organization.Slug;
-            Status         = organization.Status;
-            CreatedAt      = organization.CreatedAt;
-            CurrentLogoUrl = _imageStorage.GetPublicUrl(organization.LogoPath);
+            Slug             = organization.Slug;
+            Status           = organization.Status;
+            CreatedAt        = organization.CreatedAt;
+            CurrentLogoUrl   = _imageStorage.GetPublicUrl(organization.LogoPath);
+            CurrentHeroImageUrl = _imageStorage.GetPublicUrl(organization.HeroImagePath);
         }
 
         var paySettings = await _paymentService.GetPaymentSettingsAsync();
@@ -265,5 +300,11 @@ public class IndexModel : PageModel
 
         [Display(Name = "Remove custom logo (revert to default)")]
         public bool RemoveLogo { get; set; }
+
+        [Display(Name = "Hero Image")]
+        public IFormFile? HeroImage { get; set; }
+
+        [Display(Name = "Remove custom hero image (revert to default)")]
+        public bool RemoveHeroImage { get; set; }
     }
 }

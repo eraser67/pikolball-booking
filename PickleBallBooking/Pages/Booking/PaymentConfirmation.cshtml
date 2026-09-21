@@ -1,5 +1,6 @@
 @page "/Booking/PaymentConfirmation"
 @model PickleBallBooking.Pages.Booking.PaymentConfirmationModel
+@using PickleBallBooking.Services
 @{
     ViewData["Title"] = "Payment Submitted";
 }
@@ -49,6 +50,12 @@
 
                         <dt class="col-sm-5">GCash Reference</dt>
                         <dd class="col-sm-7 font-monospace">@(Model.PaymentInfo.ReferenceNumber ?? "—")</dd>
+
+                        @if (Model.PaymentInfo.SubmittedAt.HasValue)
+                        {
+                            <dt class="col-sm-5">Submitted At</dt>
+                            <dd class="col-sm-7">@($"{AppClock.ToPhilippineTime(Model.PaymentInfo.SubmittedAt.Value):MMM d, yyyy h:mm tt} (PST)")</dd>
+                        }
 
                         <dt class="col-sm-5">Payment Status</dt>
                         <dd class="col-sm-7">

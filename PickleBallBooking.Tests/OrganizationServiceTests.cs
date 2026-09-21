@@ -512,6 +512,60 @@ public class OrganizationServiceTests
     }
 
     [Fact]
+    public async Task UpdateCurrentHeroImageAsync_UpdatesAndClearsHeroImagePath()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        var (_, platformSvc) = CreateService(dbName);
+        var created = await platformSvc.CreateAsync("Hero Tenant", "herotenant", "Owner", "hero@test.com");
+        Assert.True(created.Success);
+
+        var (_, tenantSvc) = CreateService(dbName, created.Organization!.Id);
+
+        // 1. Update hero image as tenant
+        var updated = await tenantSvc.UpdateCurrentHeroImageAsync("organizations/1/hero/hero.png");
+        Assert.True(updated);
+
+        var org = await tenantSvc.GetCurrentAsync();
+        Assert.NotNull(org);
+        Assert.Equal("organizations/1/hero/hero.png", org.HeroImagePath);
+
+        // 2. Clear hero image as tenant
+        var cleared = await tenantSvc.UpdateCurrentHeroImageAsync(null);
+        Assert.True(cleared);
+
+        org = await tenantSvc.GetCurrentAsync();
+        Assert.NotNull(org);
+        Assert.Null(org.HeroImagePath);
+    }
+
+    [Fact]
+    public async Task UpdateHeroImageForOrgAsync_PlatformAdminUpdatesAnyOrg()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        var (_, platformSvc) = CreateService(dbName);
+        var created = await platformSvc.CreateAsync("Platform Hero Org", "platformhero", "Owner", "platformhero@test.com");
+        Assert.True(created.Success);
+
+        var orgId = created.Organization!.Id;
+
+        // Platform admin updates hero image by organization ID directly
+        var updated = await platformSvc.UpdateHeroImageForOrgAsync(orgId, "organizations/2/hero/hero.jpg");
+        Assert.True(updated);
+
+        var summary = await platformSvc.GetByIdAsync(orgId);
+        Assert.NotNull(summary);
+        Assert.Equal("organizations/2/hero/hero.jpg", summary.HeroImagePath);
+
+        // Platform admin clears hero image
+        var cleared = await platformSvc.UpdateHeroImageForOrgAsync(orgId, null);
+        Assert.True(cleared);
+
+        summary = await platformSvc.GetByIdAsync(orgId);
+        Assert.NotNull(summary);
+        Assert.Null(summary.HeroImagePath);
+    }
+
+    [Fact]
     public async Task CreateAsync_AutomaticallyProvisionsActiveTrialSubscription()
     {
         var (context, svc) = CreateService();

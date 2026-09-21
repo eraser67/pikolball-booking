@@ -49,7 +49,7 @@
 
     <div class="mb-4">
         <label class="form-label fw-semibold">Created</label>
-        <div>@Model.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")</div>
+        <div>@PickleBallBooking.Services.AppClock.ToPhilippineTime(Model.CreatedAt).ToString("yyyy-MM-dd")</div>
     </div>
 
     <!-- ── BRAND LOGO ───────────────────────────────────────────── -->
@@ -91,7 +91,50 @@
             <label asp-for="Input.LogoImage" class="form-label fw-semibold">Upload New Logo</label>
             <input asp-for="Input.LogoImage" class="form-control" type="file" accept="image/png,image/jpeg,image/webp" />
             <span asp-validation-for="Input.LogoImage" class="text-danger"></span>
-            <div class="form-text">Supported formats: PNG, JPEG, WebP. Max 2 MB.</div>
+            <div class="form-text">Supported formats: PNG, JPEG, WebP. Max 3 MB.</div>
+        </div>
+    </div>
+
+    <!-- ── HERO IMAGE ───────────────────────────────────────────── -->
+    <h5 class="mb-1">Hero Image (Landing Page)</h5>
+    <p class="text-muted small mb-3">Upload a custom action or venue image to appear in the hero section of your public homepage.</p>
+
+    <div class="card mb-4 p-3 bg-light border">
+        <div class="d-flex align-items-center gap-3">
+            <div class="border rounded p-2 bg-white d-flex align-items-center justify-content-center" style="width: 120px; height: 80px;">
+                @if (!string.IsNullOrEmpty(Model.CurrentHeroImageUrl))
+                {
+                    <img src="@Model.CurrentHeroImageUrl" alt="Hero Image" class="img-fluid rounded" style="max-height: 64px; max-width: 100px; object-fit: cover;" />
+                }
+                else
+                {
+                    <img src="~/images/hero-player.png" alt="Default Hero Image" class="img-fluid rounded" style="max-height: 64px; max-width: 100px; object-fit: contain;" />
+                }
+            </div>
+            <div>
+                <div class="fw-semibold">
+                    @(string.IsNullOrEmpty(Model.CurrentHeroImageUrl) ? "Default Hero Image Active" : "Custom Hero Image Active")
+                </div>
+                <div class="text-muted small">
+                    @(string.IsNullOrEmpty(Model.CurrentHeroImageUrl) ? "Using default Pikolball player illustration." : "Using your uploaded custom hero artwork.")
+                </div>
+                @if (!string.IsNullOrEmpty(Model.CurrentHeroImageUrl))
+                {
+                    <div class="form-check mt-2">
+                        <input asp-for="Input.RemoveHeroImage" class="form-check-input" type="checkbox" id="removeHeroImageCheck" />
+                        <label class="form-check-label text-danger small fw-semibold" for="removeHeroImageCheck">
+                            <i class="bi bi-trash me-1"></i>Revert to default hero image
+                        </label>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <label asp-for="Input.HeroImage" class="form-label fw-semibold">Upload New Hero Image</label>
+            <input asp-for="Input.HeroImage" class="form-control" type="file" accept="image/png,image/jpeg,image/webp" />
+            <span asp-validation-for="Input.HeroImage" class="text-danger"></span>
+            <div class="form-text">Supported formats: PNG, JPEG, WebP. Max 3 MB.</div>
         </div>
     </div>
 

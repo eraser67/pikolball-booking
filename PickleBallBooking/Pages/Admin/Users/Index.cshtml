@@ -27,7 +27,7 @@ else
                     <tr>
                         <td>@(member.Email ?? member.UserId)</td>
                         <td>@member.Role</td>
-                        <td>@member.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td>@PickleBallBooking.Services.AppClock.ToPhilippineTime(member.CreatedAt).ToString("yyyy-MM-dd")</td>
                     </tr>
                 }
             </tbody>

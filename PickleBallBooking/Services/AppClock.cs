@@ -32,6 +32,26 @@ public static class AppClock
     public static DateTime NowLocal => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, LocalTimeZone);
 
     /// <summary>
+    /// Converts a UTC <see cref="DateTime"/> (or DateTime with unspecified kind treated as UTC)
+    /// to Philippines Standard Time (UTC+8).
+    /// </summary>
+    public static DateTime ToPhilippineTime(DateTime utcDateTime)
+    {
+        var utc = utcDateTime.Kind == DateTimeKind.Utc
+            ? utcDateTime
+            : DateTime.SpecifyKind(utcDateTime, DateTimeKind.Utc);
+        return TimeZoneInfo.ConvertTimeFromUtc(utc, LocalTimeZone);
+    }
+
+    /// <summary>
+    /// Converts a nullable UTC <see cref="DateTime"/> to Philippines Standard Time (UTC+8).
+    /// </summary>
+    public static DateTime? ToPhilippineTime(DateTime? utcDateTime)
+    {
+        return utcDateTime.HasValue ? ToPhilippineTime(utcDateTime.Value) : null;
+    }
+
+    /// <summary>
     /// Format a <see cref="TimeSpan"/> as a 12-hour clock label, e.g. "6:00 PM".
     /// Times of 24:00 (end-of-day) are rendered as "12:00 AM" of the next day's
     /// midnight boundary to keep overnight ranges readable.

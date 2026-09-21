@@ -96,7 +96,7 @@
                                     <span class="text-muted">—</span>
                                 }
                             </td>
-                            <td class="text-muted small">@org.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                            <td class="text-muted small">@PickleBallBooking.Services.AppClock.ToPhilippineTime(org.CreatedAt).ToString("yyyy-MM-dd")</td>
                             <td class="text-end">
                                 <div class="d-flex gap-1 justify-content-end">
                                     <a asp-page="Detail" asp-route-id="@org.Id"

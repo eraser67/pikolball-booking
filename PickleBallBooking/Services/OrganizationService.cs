@@ -106,6 +106,18 @@ public interface IOrganizationService
     /// </summary>
     Task<bool> UpdateCurrentLogoAsync(string? logoPath, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Updates the hero image storage path for the CURRENT tenant organization.
+    /// Null or empty clears the field (reverting to the default static hero image).
+    /// </summary>
+    Task<bool> UpdateCurrentHeroImageAsync(string? heroImagePath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates the hero image storage path for any organization by ID (platform admin only).
+    /// Null or empty clears the field.
+    /// </summary>
+    Task<bool> UpdateHeroImageForOrgAsync(int organizationId, string? heroImagePath, CancellationToken cancellationToken = default);
+
     /// <summary>Members of the CURRENT tenant organization (with their Identity info).</summary>
     Task<List<OrganizationMemberView>> GetCurrentMembersAsync(CancellationToken cancellationToken = default);
 
@@ -135,7 +147,9 @@ public sealed record OrganizationSummary(
     string Slug,
     OrganizationStatus Status,
     DateTime CreatedAt,
-    IReadOnlyList<OrganizationOwnerView> Owners);
+    IReadOnlyList<OrganizationOwnerView> Owners,
+    string? LogoPath = null,
+    string? HeroImagePath = null);
 
 /// <summary>An owner/member of an organization joined with Identity account info.</summary>
 public sealed record OrganizationOwnerView(
@@ -443,7 +457,9 @@ public sealed class OrganizationService : IOrganizationService
                         users.TryGetValue(m.UserId, out var email) ? email : null,
                         m.Role,
                         m.CreatedAt))
-                    .ToList()))
+                    .ToList(),
+                o.LogoPath,
+                o.HeroImagePath))
             .ToList();
     }
 
@@ -558,6 +574,36 @@ public sealed class OrganizationService : IOrganizationService
         if (organization is null) return false;
 
         organization.LogoPath = string.IsNullOrWhiteSpace(logoPath) ? null : logoPath.Trim();
+        organization.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> UpdateCurrentHeroImageAsync(string? heroImagePath, CancellationToken cancellationToken = default)
+    {
+        var id = _tenantContext.OrganizationId;
+        if (id is null) return false;
+
+        var organization = await _context.Organizations
+            .FirstOrDefaultAsync(o => o.Id == id.Value, cancellationToken);
+
+        if (organization is null) return false;
+
+        organization.HeroImagePath = string.IsNullOrWhiteSpace(heroImagePath) ? null : heroImagePath.Trim();
+        organization.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> UpdateHeroImageForOrgAsync(int organizationId, string? heroImagePath, CancellationToken cancellationToken = default)
+    {
+        // Platform-admin cross-tenant operation: load without tenant filter.
+        var organization = await _context.Organizations
+            .FirstOrDefaultAsync(o => o.Id == organizationId, cancellationToken);
+
+        if (organization is null) return false;
+
+        organization.HeroImagePath = string.IsNullOrWhiteSpace(heroImagePath) ? null : heroImagePath.Trim();
         organization.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);
         return true;

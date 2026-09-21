@@ -31,7 +31,14 @@
         </div>
         <div class="col-lg-6">
             <div class="pb-hero-art">
-                <img src="~/images/hero-player.png" alt="Pickleball player ready to serve" />
+                @if (!string.IsNullOrEmpty(Model.HeroImageUrl))
+                {
+                    <img src="@Model.HeroImageUrl" alt="Pickleball player ready to serve" />
+                }
+                else
+                {
+                    <img src="~/images/hero-player.png" asp-append-version="true" alt="Pickleball player ready to serve" />
+                }
             </div>
         </div>
     </div>

@@ -27,8 +27,16 @@ public interface ICourtImageStorage
     /// <summary>
     /// Validates and uploads an organization's custom brand logo to Supabase Storage (court-images public bucket).
     /// The storage path is built server-side: organizations/{orgId}/logo/logo{ext}
+    /// Max size: 3 MB.
     /// </summary>
     Task<string> UploadLogoAsync(int organizationId, IFormFile file, CancellationToken ct = default);
+
+    /// <summary>
+    /// Validates and uploads an organization's custom hero image to Supabase Storage (court-images public bucket).
+    /// The storage path is built server-side: organizations/{orgId}/hero/hero{ext}
+    /// Max size: 3 MB. Displayed on the public landing page instead of the default hero artwork.
+    /// </summary>
+    Task<string> UploadHeroImageAsync(int organizationId, IFormFile file, CancellationToken ct = default);
 
     /// <summary>
     /// Deletes a stored court image using the server-side stored path.
