@@ -67,6 +67,7 @@ public class IndexModel : PageModel
         Input.Latitude  = organization.Latitude;
         Input.Longitude = organization.Longitude;
         Input.NotificationEmail = organization.NotificationEmail;
+        Input.TelegramChatId    = organization.TelegramChatId;
 
         CurrentLogoUrl      = _imageStorage.GetPublicUrl(organization.LogoPath);
         CurrentHeroImageUrl = _imageStorage.GetPublicUrl(organization.HeroImagePath);
@@ -108,8 +109,9 @@ public class IndexModel : PageModel
         // Save location.
         await _organizationService.UpdateLocationAsync(Input.Address, Input.Latitude, Input.Longitude);
 
-        // Save notification email.
+        // Save notifications (email + Telegram).
         await _organizationService.UpdateNotificationEmailAsync(Input.NotificationEmail);
+        await _organizationService.UpdateTelegramChatIdAsync(Input.TelegramChatId);
 
         // Handle Brand Logo upload or removal.
         if (Input.RemoveLogo)
@@ -293,6 +295,10 @@ public class IndexModel : PageModel
         [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
         [Display(Name = "Notification Email")]
         public string? NotificationEmail { get; set; }
+
+        [StringLength(100)]
+        [Display(Name = "Telegram Chat ID")]
+        public string? TelegramChatId { get; set; }
 
         // Branding
         [Display(Name = "Brand Logo")]

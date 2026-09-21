@@ -11,6 +11,8 @@ public class BookingService : IBookingService
 {
     private readonly ApplicationDbContext _context;
     private readonly BookingEmailService? _emailService;
+    private readonly BookingSmsService? _smsService;
+    private readonly BookingTelegramService? _telegramService;
     private readonly ISubscriptionService? _subscriptionService;
     private readonly ILogger<BookingService>? _logger;
 
@@ -18,12 +20,16 @@ public class BookingService : IBookingService
         ApplicationDbContext context,
         BookingEmailService? emailService = null,
         ISubscriptionService? subscriptionService = null,
-        ILogger<BookingService>? logger = null)
+        ILogger<BookingService>? logger = null,
+        BookingSmsService? smsService = null,
+        BookingTelegramService? telegramService = null)
     {
         _context             = context;
         _emailService        = emailService;
         _subscriptionService = subscriptionService;
         _logger              = logger;
+        _smsService          = smsService;
+        _telegramService     = telegramService;
     }
 
         public async Task<bool> IsAvailableAsync(int courtId, DateOnly bookingDate, TimeSpan startTime, TimeSpan endTime)
@@ -282,21 +288,23 @@ public class BookingService : IBookingService
                         await transaction.CommitAsync();
                     }
 
-                    // Phase 26: fire customer + org emails after successful booking.
+                    // Phase 26: fire customer + org notifications (email + SMS) after successful booking.
                     try
                     {
                         var orgForEmail = await _context.Organizations
                             .FirstOrDefaultAsync(o => o.Id == bookingOrganizationId);
-                        if (orgForEmail is not null && _emailService is not null)
+                        if (orgForEmail is not null)
                         {
                             booking.Court = await _context.Courts.FindAsync(courtId);
-                            _emailService.SendBookingReceivedAsync(booking, orgForEmail);
-                            _emailService.SendNewBookingToOrgAsync(booking, orgForEmail);
+                            _emailService?.SendBookingReceivedAsync(booking, orgForEmail);
+                            _emailService?.SendNewBookingToOrgAsync(booking, orgForEmail);
+                            _smsService?.SendBookingReceivedAsync(booking, orgForEmail);
+                            _telegramService?.SendNewBookingAlertAsync(booking, orgForEmail);
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger?.LogWarning(ex, "Failed to send booking notification email for booking {BookingReference}", booking.BookingReference);
+                        _logger?.LogWarning(ex, "Failed to send booking notification for booking {BookingReference}", booking.BookingReference);
                     }
 
                     return BookingResult.Ok(booking);
@@ -601,11 +609,13 @@ public class BookingService : IBookingService
             {
                 var orgForEmail = await _context.Organizations
                     .FirstOrDefaultAsync(o => o.Id == booking.OrganizationId);
-                if (orgForEmail is not null && _emailService is not null)
+                if (orgForEmail is not null)
                 {
                     booking.Court ??= await _context.Courts.FindAsync(booking.CourtId);
-                    _emailService.SendBookingCancelledToCustomerAsync(booking, orgForEmail);
-                    _emailService.SendBookingCancelledToOrgAsync(booking, orgForEmail);
+                    _emailService?.SendBookingCancelledToCustomerAsync(booking, orgForEmail);
+                    _emailService?.SendBookingCancelledToOrgAsync(booking, orgForEmail);
+                    _smsService?.SendBookingCancelledToCustomerAsync(booking, orgForEmail);
+                    _telegramService?.SendBookingCancelledAlertAsync(booking, orgForEmail);
                 }
             }
             catch (Exception ex) { _ = ex; }

@@ -101,6 +101,12 @@ public interface IOrganizationService
     Task<bool> UpdateNotificationEmailAsync(string? email, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Updates the Telegram chat/group ID for staff alerts for the CURRENT tenant organization.
+    /// Null or empty clears the field (disabling org Telegram notifications).
+    /// </summary>
+    Task<bool> UpdateTelegramChatIdAsync(string? chatId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Updates the custom brand logo storage path for the CURRENT tenant organization.
     /// Null or empty clears the field (reverting to default logo).
     /// </summary>
@@ -558,6 +564,23 @@ public sealed class OrganizationService : IOrganizationService
 
         var trimmed = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
         organization.NotificationEmail = trimmed;
+        organization.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> UpdateTelegramChatIdAsync(string? chatId, CancellationToken cancellationToken = default)
+    {
+        var id = _tenantContext.OrganizationId;
+        if (id is null) return false;
+
+        var organization = await _context.Organizations
+            .FirstOrDefaultAsync(o => o.Id == id.Value, cancellationToken);
+
+        if (organization is null) return false;
+
+        var trimmed = string.IsNullOrWhiteSpace(chatId) ? null : chatId.Trim();
+        organization.TelegramChatId = trimmed;
         organization.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);
         return true;

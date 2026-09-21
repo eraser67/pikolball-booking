@@ -137,6 +137,22 @@ builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailO
 builder.Services.AddHttpClient<IEmailService, ResendEmailService>();
 builder.Services.AddScoped<BookingEmailService>();
 
+// Semaphore SMS notifications:
+// ISmsService → SemaphoreSmsService (typed HttpClient; IHttpClientFactory manages socket lifetime).
+// BookingSmsService is scoped: it composes and fires SMS for each request.
+// Set Sms:Enabled = true and set Sms:ApiKey (via User Secrets or env var) to activate.
+builder.Services.Configure<SmsOptions>(builder.Configuration.GetSection(SmsOptions.SectionName));
+builder.Services.AddHttpClient<ISmsService, SemaphoreSmsService>();
+builder.Services.AddScoped<BookingSmsService>();
+
+// Telegram Bot notifications (staff alerts):
+// ITelegramService → TelegramService (typed HttpClient; IHttpClientFactory manages socket lifetime).
+// BookingTelegramService is scoped: it composes and fires Telegram alerts for each request.
+// Set Telegram:Enabled = true and set Telegram:BotToken (via User Secrets or env var) to activate.
+builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection(TelegramOptions.SectionName));
+builder.Services.AddHttpClient<ITelegramService, TelegramService>();
+builder.Services.AddScoped<BookingTelegramService>();
+
 // Phase 23: organization/tenant administration.
 builder.Services.AddSingleton<IReservedSlugs, ReservedSlugs>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();

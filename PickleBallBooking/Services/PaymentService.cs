@@ -129,15 +129,21 @@ public sealed class PaymentService : IPaymentService
     private readonly ApplicationDbContext _context;
     private readonly ITenantContext _tenantContext;
     private readonly BookingEmailService? _emailService;
+    private readonly BookingSmsService? _smsService;
+    private readonly BookingTelegramService? _telegramService;
 
     public PaymentService(
         ApplicationDbContext context,
         ITenantContext tenantContext,
-        BookingEmailService? emailService = null)
+        BookingEmailService? emailService = null,
+        BookingSmsService? smsService = null,
+        BookingTelegramService? telegramService = null)
     {
-        _context      = context;
-        _tenantContext = tenantContext;
-        _emailService  = emailService;
+        _context         = context;
+        _tenantContext   = tenantContext;
+        _emailService    = emailService;
+        _smsService      = smsService;
+        _telegramService = telegramService;
     }
 
     public async Task<Payment?> CreateForBookingAsync(int bookingId, CancellationToken ct = default)
@@ -301,10 +307,11 @@ public sealed class PaymentService : IPaymentService
             var orgForEmail = bookingForEmail is not null
                 ? await _context.Organizations.FindAsync([payment.OrganizationId], ct)
                 : null;
-            if (bookingForEmail is not null && orgForEmail is not null && _emailService is not null)
+            if (bookingForEmail is not null && orgForEmail is not null)
             {
-                _emailService.SendPaymentSubmittedToCustomerAsync(bookingForEmail, payment, orgForEmail);
-                _emailService.SendPaymentSubmittedToOrgAsync(bookingForEmail, payment, orgForEmail);
+                _emailService?.SendPaymentSubmittedToCustomerAsync(bookingForEmail, payment, orgForEmail);
+                _emailService?.SendPaymentSubmittedToOrgAsync(bookingForEmail, payment, orgForEmail);
+                _telegramService?.SendPaymentSubmittedAlertAsync(bookingForEmail, payment, orgForEmail);
             }
         }
         catch (Exception ex)
@@ -351,8 +358,11 @@ public sealed class PaymentService : IPaymentService
             {
                 verifyBooking.Court ??= await _context.Courts.FindAsync([verifyBooking.CourtId], ct);
                 var verifyOrg = await _context.Organizations.FindAsync([payment.OrganizationId], ct);
-                if (verifyOrg is not null && _emailService is not null)
-                    _emailService.SendPaymentVerifiedAsync(verifyBooking, verifyOrg);
+                if (verifyOrg is not null)
+                {
+                    _emailService?.SendPaymentVerifiedAsync(verifyBooking, verifyOrg);
+                    _smsService?.SendPaymentVerifiedAsync(verifyBooking, verifyOrg);
+                }
             }
         }
         catch (Exception ex) { _ = ex; }
@@ -388,8 +398,11 @@ public sealed class PaymentService : IPaymentService
             if (rejectBooking is not null)
             {
                 var rejectOrg = await _context.Organizations.FindAsync([payment.OrganizationId], ct);
-                if (rejectOrg is not null && _emailService is not null)
-                    _emailService.SendPaymentRejectedAsync(rejectBooking, payment, rejectOrg);
+                if (rejectOrg is not null)
+                {
+                    _emailService?.SendPaymentRejectedAsync(rejectBooking, payment, rejectOrg);
+                    _smsService?.SendPaymentRejectedAsync(rejectBooking, payment, rejectOrg);
+                }
             }
         }
         catch (Exception ex) { _ = ex; }

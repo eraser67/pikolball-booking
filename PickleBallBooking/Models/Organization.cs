@@ -34,6 +34,14 @@ public class Organization
     [MaxLength(256)]
     public string? NotificationEmail { get; set; }
 
+    /// <summary>
+    /// Telegram Chat ID or Group ID for real-time staff alerts.
+    /// Nullable — Telegram notifications are skipped when not set.
+    /// Configured by the org admin in OrgSettings.
+    /// </summary>
+    [MaxLength(100)]
+    public string? TelegramChatId { get; set; }
+
     /// <summary>Relative storage path to the organization's custom brand logo in Supabase public storage.</summary>
     [MaxLength(500)]
     public string? LogoPath { get; set; }
