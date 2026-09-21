@@ -8,6 +8,8 @@ public class CourtTimeSlot
 {
     public int Id { get; set; }
 
+    public int OrganizationId { get; set; }
+
     public int CourtId { get; set; }
 
     public int TimeSlotId { get; set; }

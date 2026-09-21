@@ -1,0 +1,81 @@
+@page "/Booking/PaymentConfirmation"
+@model PickleBallBooking.Pages.Booking.PaymentConfirmationModel
+@{
+    ViewData["Title"] = "Payment Submitted";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6 text-center py-4">
+        <div class="mb-4">
+            @if (Model.AlreadySubmitted)
+            {
+                <i class="bi bi-clock-history display-1 text-warning"></i>
+            }
+            else
+            {
+                <i class="bi bi-check-circle-fill display-1 text-success"></i>
+            }
+        </div>
+
+        @if (Model.AlreadySubmitted)
+        {
+            <h1 class="mb-2">Already Submitted</h1>
+            <p class="lead text-muted mb-4">Your payment reference has already been submitted and is awaiting verification.</p>
+        }
+        else
+        {
+            <h1 class="mb-2">Payment Submitted!</h1>
+            <p class="lead text-muted mb-4">
+                Thank you! Your GCash reference number has been received and is being verified by the venue.
+            </p>
+        }
+
+        @if (Model.PaymentInfo is not null)
+        {
+            <div class="card text-start mb-4">
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Booking Reference</dt>
+                        <dd class="col-sm-7 font-monospace">@Model.PaymentInfo.BookingReference</dd>
+
+                        <dt class="col-sm-5">Court</dt>
+                        <dd class="col-sm-7">@Model.PaymentInfo.CourtName</dd>
+
+                        <dt class="col-sm-5">Date</dt>
+                        <dd class="col-sm-7">@Model.PaymentInfo.BookingDate.ToString("D")</dd>
+
+                        <dt class="col-sm-5">Amount</dt>
+                        <dd class="col-sm-7 fw-bold">@Model.PaymentInfo.Amount.ToString("C2")</dd>
+
+                        <dt class="col-sm-5">GCash Reference</dt>
+                        <dd class="col-sm-7 font-monospace">@(Model.PaymentInfo.ReferenceNumber ?? "—")</dd>
+
+                        <dt class="col-sm-5">Payment Status</dt>
+                        <dd class="col-sm-7">
+                            @{
+                                var (badge, label) = Model.PaymentInfo.Status switch
+                                {
+                                    PickleBallBooking.Models.PaymentStatus.Submitted => ("bg-info text-dark", "Awaiting Verification"),
+                                    PickleBallBooking.Models.PaymentStatus.Verified  => ("bg-success", "Verified ✓"),
+                                    PickleBallBooking.Models.PaymentStatus.Rejected  => ("bg-danger", "Rejected"),
+                                    _ => ("bg-secondary", Model.PaymentInfo.Status.ToString())
+                                };
+                            }
+                            <span class="badge @badge">@label</span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        }
+
+        <div class="alert alert-light border text-start small mb-4">
+            <i class="bi bi-info-circle me-1"></i>
+            <strong>What happens next?</strong> The venue will verify your payment within their operating hours.
+            Keep your booking reference <strong>@(Model.PaymentInfo?.BookingReference ?? "")</strong> — you'll need it to check your booking status.
+        </div>
+
+        <a asp-page="/Index" class="btn btn-primary">
+            <i class="bi bi-house me-1"></i>Back to Home
+        </a>
+    </div>
+</div>

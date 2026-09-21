@@ -2,18 +2,19 @@ using Microsoft.EntityFrameworkCore;
 using PickleBallBooking.Data;
 using PickleBallBooking.Models;
 using PickleBallBooking.Services;
+using PickleBallBooking.Tests.Infrastructure;
 
 namespace PickleBallBooking.Tests;
 
 public class AdminDeleteServiceTests
 {
+    // Phase 21: tenant-owned fixtures need a resolved tenant so query filters and the
+    // write guard behave as they do in production. All fixtures share one org id.
+    private const int TestOrganizationId = 1;
+
     private static ApplicationDbContext CreateContext()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        return new ApplicationDbContext(options);
+        return TestDbContextFactory.CreateInMemory(Guid.NewGuid().ToString(), TestOrganizationId);
     }
 
     [Fact]
@@ -62,8 +63,9 @@ public class AdminDeleteServiceTests
         var court = await service.CreateAsync("Court Y", null);
         var slot = new TimeSlot { Id = 1, StartTime = new TimeSpan(9, 0, 0), EndTime = new TimeSpan(10, 0, 0), Status = TimeSlotStatus.Active };
         context.TimeSlots.Add(slot);
-        context.BookingTimeSlots.Add(new BookingTimeSlot
+                context.BookingTimeSlots.Add(new BookingTimeSlot
         {
+            OrganizationId = court.OrganizationId,
             BookingId = 1,
             CourtId = court.Id,
             BookingDate = AppClock.TodayLocal,
@@ -89,8 +91,9 @@ public class AdminDeleteServiceTests
         var court = await courtService.CreateAsync("Court Z", null);
         var slot = await service.CreateAsync(new TimeSpan(9, 0, 0), new TimeSpan(10, 0, 0));
 
-        context.CourtTimeSlots.Add(new CourtTimeSlot
+                context.CourtTimeSlots.Add(new CourtTimeSlot
         {
+            OrganizationId = court.OrganizationId,
             CourtId = court.Id,
             TimeSlotId = slot.Id,
             AvailabilityStatus = CourtTimeSlotStatus.Active,
@@ -112,9 +115,10 @@ public class AdminDeleteServiceTests
         await using var context = CreateContext();
         var service = new TimeSlotService(context);
 
-        var slot = await service.CreateAsync(new TimeSpan(9, 0, 0), new TimeSpan(10, 0, 0));
+                var slot = await service.CreateAsync(new TimeSpan(9, 0, 0), new TimeSpan(10, 0, 0));
         context.BookingTimeSlots.Add(new BookingTimeSlot
         {
+            OrganizationId = 1,
             BookingId = 1,
             CourtId = 1,
             BookingDate = AppClock.TodayLocal,

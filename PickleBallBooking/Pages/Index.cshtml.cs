@@ -15,12 +15,21 @@ namespace PickleBallBooking.Pages
         private readonly ICourtService _courtService;
         private readonly IBookingService _bookingService;
         private readonly ITimeSlotService _timeSlotService;
+        private readonly ICourtImageStorage _imageStorage;
+        private readonly IOrganizationService _organizationService;
 
-        public IndexModel(ICourtService courtService, IBookingService bookingService, ITimeSlotService timeSlotService)
+        public IndexModel(
+            ICourtService courtService,
+            IBookingService bookingService,
+            ITimeSlotService timeSlotService,
+            ICourtImageStorage imageStorage,
+            IOrganizationService organizationService)
         {
-            _courtService = courtService;
-            _bookingService = bookingService;
-            _timeSlotService = timeSlotService;
+            _courtService        = courtService;
+            _bookingService      = bookingService;
+            _timeSlotService     = timeSlotService;
+            _imageStorage        = imageStorage;
+            _organizationService = organizationService;
         }
 
         /// <summary>Active courts loaded dynamically from the database.</summary>
@@ -29,9 +38,26 @@ namespace PickleBallBooking.Pages
         /// <summary>Date the preview availability refers to (today).</summary>
         public DateOnly PreviewDate { get; set; }
 
+        // ── Location (from Organization settings) ──
+        public string OrgName { get; set; } = "Our Pickleball Club";
+        public string? OrgAddress { get; set; }
+        public double OrgLatitude  { get; set; } = 10.671029;
+        public double OrgLongitude { get; set; } = 124.020279;
+        public bool HasMapCoordinates => OrgAddress is not null || (OrgLatitude != 0 && OrgLongitude != 0);
+
         public async Task OnGetAsync()
         {
             PreviewDate = AppClock.TodayLocal;
+
+            // Load organization location for the Find Us section.
+            var org = await _organizationService.GetCurrentAsync();
+            if (org is not null)
+            {
+                OrgName      = org.Name;
+                OrgAddress   = org.Address;
+                OrgLatitude  = org.Latitude  ?? 10.671029;
+                OrgLongitude = org.Longitude ?? 124.020279;
+            }
 
             var courts = await _courtService.GetActiveAsync();
             var timeSlots = await _timeSlotService.GetActiveAsync();
@@ -60,10 +86,14 @@ namespace PickleBallBooking.Pages
                     availableSlots = slots.Count(s => s.IsAvailable);
                 }
 
+                // Phase 24: use the uploaded Supabase image when available;
+                // fall back to the static placeholder artwork otherwise.
+                var uploadedUrl = _imageStorage.GetPublicUrl(court.ImagePath);
+
                 Courts.Add(new CourtCardViewModel
                 {
                     Court = court,
-                    ImageUrl = CourtImageFor(index),
+                    ImageUrl = uploadedUrl ?? CourtImageFor(index),
                     TotalSlots = totalSlots,
                     AvailableSlots = availableSlots,
                     HasAvailabilityData = availabilityByCourt is not null

@@ -1,0 +1,217 @@
+@page "/Admin/Payments/Details/{id:int}"
+@model PickleBallBooking.Pages.Admin.Payments.DetailsModel
+@using PickleBallBooking.Models
+@{
+    ViewData["Title"] = "Payment Details";
+    var p = Model.Payment;
+}
+
+@if (p is null)
+{
+    <div class="alert alert-danger">Payment not found.</div>
+    return;
+}
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a asp-page="Index" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to Payments
+    </a>
+    <h1 class="mb-0">Payment #@p.Id</h1>
+    @{
+        var (badgeCls, badgeLbl) = p.PaymentStatus switch
+        {
+            PaymentStatus.Pending   => ("bg-secondary", "Pending"),
+            PaymentStatus.Submitted => ("bg-warning text-dark", "Submitted — Action Required"),
+            PaymentStatus.Verified  => ("bg-success", "Verified"),
+            PaymentStatus.Rejected  => ("bg-danger", "Rejected"),
+            PaymentStatus.Cancelled => ("bg-light text-dark border", "Cancelled"),
+            _ => ("bg-secondary", p.PaymentStatus.ToString())
+        };
+    }
+    <span class="badge @badgeCls fs-6">@badgeLbl</span>
+</div>
+
+<div class="row g-4">
+    <!-- Payment Details -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">Payment Information</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Booking Ref</dt>
+                    <dd class="col-sm-7 font-monospace">@p.Booking?.BookingReference</dd>
+
+                    <dt class="col-sm-5">Customer</dt>
+                    <dd class="col-sm-7">@p.Booking?.CustomerName</dd>
+
+                    <dt class="col-sm-5">Court</dt>
+                    <dd class="col-sm-7">@p.Booking?.Court?.Name</dd>
+
+                    <dt class="col-sm-5">Date</dt>
+                    <dd class="col-sm-7">@p.Booking?.BookingDate.ToString("D")</dd>
+
+                    <dt class="col-sm-5">Amount</dt>
+                    <dd class="col-sm-7 fw-bold">@p.Amount.ToString("C2")</dd>
+
+                    <dt class="col-sm-5">Method</dt>
+                    <dd class="col-sm-7"><span class="badge bg-primary">@p.PaymentMethod</span></dd>
+
+                    <dt class="col-sm-5">GCash Reference</dt>
+                    <dd class="col-sm-7 font-monospace">@(p.ReferenceNumber ?? "—")</dd>
+
+                    <dt class="col-sm-5">Submitted At</dt>
+                    <dd class="col-sm-7">@(p.SubmittedAt.HasValue ? p.SubmittedAt.Value.ToLocalTime().ToString("f") : "—")</dd>
+
+                    @if (p.PaymentStatus is PaymentStatus.Verified or PaymentStatus.Rejected)
+                    {
+                        <dt class="col-sm-5">Acted At</dt>
+                        <dd class="col-sm-7">@(p.VerifiedAt.HasValue ? p.VerifiedAt.Value.ToLocalTime().ToString("f") : "—")</dd>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(p.Notes))
+                    {
+                        <dt class="col-sm-5">Notes</dt>
+                        <dd class="col-sm-7 text-danger">@p.Notes</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Proof Image -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                <span>Payment Proof Screenshot</span>
+                @if (!string.IsNullOrEmpty(Model.ProofSignedUrl))
+                {
+                    <a href="@Model.ProofSignedUrl" download="payment-proof.jpg"
+                       class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-download me-1"></i>Download
+                    </a>
+                }
+            </div>
+            <div class="card-body text-center">
+                @if (!string.IsNullOrEmpty(Model.ProofSignedUrl))
+                {
+                    <p class="text-muted small mb-2">
+                        <i class="bi bi-zoom-in me-1"></i>Click image to view full size
+                    </p>
+                    <button type="button" class="btn p-0 border-0 bg-transparent"
+                            data-bs-toggle="modal" data-bs-target="#proofZoomModal"
+                            title="Click to view full size">
+                        <img src="@Model.ProofSignedUrl" alt="Payment proof screenshot"
+                             class="img-fluid rounded shadow-sm"
+                             style="max-height:300px;object-fit:contain;cursor:zoom-in;border:1px solid #dee2e6;" />
+                    </button>
+                    <p class="text-muted small mt-2 mb-0">
+                        <i class="bi bi-clock me-1"></i>Signed link expires in 5 minutes.
+                        <a href="" class="text-decoration-none">Reload</a> if image breaks.
+                    </p>
+                }
+                else if (!string.IsNullOrEmpty(Model.ProofImagePath))
+                {
+                    <!-- Path exists but signing failed -->
+                    <div class="text-warning py-4">
+                        <i class="bi bi-exclamation-triangle display-4 d-block mb-2"></i>
+                        <strong>Proof image could not be loaded.</strong>
+                        <p class="small text-muted mt-1 mb-2">The signed URL may have expired or there was a storage error.</p>
+                        <a href="" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Reload Page
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-muted py-4">
+                        <i class="bi bi-image display-4 d-block mb-2"></i>
+                        No proof screenshot was uploaded.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Verify / Reject Actions (only when Submitted) -->
+@if (p.PaymentStatus == PaymentStatus.Submitted)
+{
+    <div class="row g-3 mt-2">
+        <div class="col-md-6">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white fw-semibold">Verify Payment</div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Confirm you have received <strong>@p.Amount.ToString("C2")</strong>
+                        from GCash reference <strong class="font-monospace">@p.ReferenceNumber</strong>.
+                    </p>
+                    <form method="post" asp-page-handler="Verify" asp-route-id="@p.Id">
+                        <button type="submit" class="btn btn-success w-100"
+                                onclick="return confirm('Mark this payment as Verified? The booking will automatically be Confirmed.')">
+                            <i class="bi bi-check-circle me-1"></i>Verify Payment
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white fw-semibold">Reject Payment</div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="Reject" asp-route-id="@p.Id">
+                        <div class="mb-3">
+                            <label asp-for="Input.Notes" class="form-label fw-semibold small">
+                                Reason (optional, shown in records)
+                            </label>
+                            <textarea asp-for="Input.Notes" class="form-control form-control-sm" rows="2"
+                                      placeholder="e.g. Wrong amount, reference not found"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100"
+                                onclick="return confirm('Reject this payment?')">
+                            <i class="bi bi-x-circle me-1"></i>Reject Payment
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ProofSignedUrl))
+{
+    <!-- Proof Image Zoom Modal -->
+    <div class="modal fade" id="proofZoomModal" tabindex="-1"
+         aria-labelledby="proofZoomModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-1">
+                    <h5 class="modal-title" id="proofZoomModalLabel">
+                        <i class="bi bi-image me-2"></i>Payment Proof Screenshot
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center pt-0">
+                    <img src="@Model.ProofSignedUrl"
+                         alt="Payment proof screenshot"
+                         class="img-fluid rounded"
+                         style="max-height:80vh;object-fit:contain;" />
+                </div>
+                <div class="modal-footer border-0 justify-content-center pt-0">
+                    <a href="@Model.ProofSignedUrl" download="payment-proof.jpg"
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-download me-1"></i>Download Image
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

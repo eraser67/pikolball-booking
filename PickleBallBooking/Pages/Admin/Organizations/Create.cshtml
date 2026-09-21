@@ -1,0 +1,87 @@
+@page "/Admin/Organizations/Create"
+@model PickleBallBooking.Pages.Admin.Organizations.CreateModel
+@{
+    ViewData["Title"] = "Create Organization";
+}
+
+<h1>Create Organization</h1>
+
+@if (!string.IsNullOrEmpty(Model.CreatedHostname))
+{
+    <div class="alert alert-success">
+        <h5 class="alert-heading">Organization created</h5>
+        <p class="mb-1">
+            Tenant hostname: <strong>@Model.CreatedHostname</strong>
+        </p>
+        @if (!string.IsNullOrEmpty(Model.ActivationLink))
+        {
+            <p class="mb-1">
+                A new owner account was created. Share this one-time activation link with the
+                owner so they can set their password:
+            </p>
+            <p class="mb-1"><a href="@Model.ActivationLink">@Model.ActivationLink</a></p>
+            <p class="mb-0 small text-muted">
+                Email delivery is not enabled yet, so the link is shown here. A future phase
+                will email this same link automatically.
+            </p>
+        }
+        else if (!string.IsNullOrEmpty(Model.ReusedOwnerEmail))
+        {
+            <p class="mb-0">
+                The owner email <strong>@Model.ReusedOwnerEmail</strong> already has an account.
+                It was added as the owner of this organization; the existing account and its
+                other memberships were left unchanged.
+            </p>
+        }
+    </div>
+    <a asp-page="Index" class="btn btn-primary">Back to Organizations</a>
+    <a asp-page="Create" class="btn btn-secondary">Create another</a>
+}
+else
+{
+    <form method="post" class="col-lg-6">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Input.Name" class="form-label"></label>
+            <input asp-for="Input.Name" class="form-control" />
+            <span asp-validation-for="Input.Name" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.Slug" class="form-label"></label>
+            <div class="input-group">
+                <input asp-for="Input.Slug" class="form-control" placeholder="cebupickleball" />
+                <span class="input-group-text">.@Model.BaseDomain</span>
+            </div>
+            <span asp-validation-for="Input.Slug" class="text-danger"></span>
+            <div class="form-text">
+                Enter only the subdomain label. The resulting hostname will be
+                <code>{subdomain}.@Model.BaseDomain</code>.
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.OwnerName" class="form-label"></label>
+            <input asp-for="Input.OwnerName" class="form-control" />
+            <span asp-validation-for="Input.OwnerName" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.OwnerEmail" class="form-label"></label>
+            <input asp-for="Input.OwnerEmail" class="form-control" />
+            <span asp-validation-for="Input.OwnerEmail" class="text-danger"></span>
+            <div class="form-text">
+                If this email already belongs to a user, that account is reused and simply
+                becomes an owner of the new organization.
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Create Organization</button>
+        <a asp-page="Index" class="btn btn-secondary">Cancel</a>
+    </form>
+
+    @section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+    }
+}

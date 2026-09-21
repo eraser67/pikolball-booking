@@ -1,0 +1,87 @@
+@page "/Admin/SubscriptionRequired"
+@model PickleBallBooking.Pages.Admin.SubscriptionRequiredModel
+@{
+    ViewData["Title"] = "Subscription Required";
+    Layout = "_Layout";
+
+    var sub    = Model.CurrentSubscription;
+    var status = sub?.Status;
+
+    var (emoji, heading, color) = status switch {
+        PickleBallBooking.Models.SubscriptionStatus.Expired   => ("⏰", "Your Subscription Has Expired",   "warning"),
+        PickleBallBooking.Models.SubscriptionStatus.Suspended => ("⏸️",  "Your Account Has Been Suspended", "danger"),
+        PickleBallBooking.Models.SubscriptionStatus.Cancelled => ("✖️",  "Your Subscription Is Cancelled",  "secondary"),
+        _                                                      => ("⚠️",  "Subscription Required",           "warning")
+    };
+}
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-6 text-center">
+        <div class="display-1 mb-3">@emoji</div>
+
+        <h1 class="h2 mb-2 text-@color">@heading</h1>
+
+        @if (status == PickleBallBooking.Models.SubscriptionStatus.Expired)
+        {
+            <p class="text-muted mb-1">
+                Your subscription period has ended.
+                @if (sub?.EndDate.HasValue == true)
+                {
+                    <text>It expired on <strong>@sub.EndDate.Value.ToString("MMMM d, yyyy")</strong>.</text>
+                }
+            </p>
+            <p class="text-muted mb-4">
+                New customer bookings are paused until your subscription is renewed.
+                Your existing data is safe and intact.
+            </p>
+        }
+        else if (status == PickleBallBooking.Models.SubscriptionStatus.Suspended)
+        {
+            <p class="text-muted mb-4">
+                Your organization account has been temporarily suspended by the platform administrator.
+                Please contact support to resolve this and restore your access.
+            </p>
+        }
+        else if (status == PickleBallBooking.Models.SubscriptionStatus.Cancelled)
+        {
+            <p class="text-muted mb-4">
+                Your subscription has been cancelled. Please contact support if you believe
+                this is a mistake or if you wish to reactivate your account.
+            </p>
+        }
+        else
+        {
+            <p class="text-muted mb-4">
+                Your organization does not have an active subscription.
+                Please contact the platform administrator to activate your account.
+            </p>
+        }
+
+        @if (sub?.Plan is not null)
+        {
+            <div class="alert alert-light border text-start mb-4">
+                <div class="fw-semibold mb-1">Current Plan: @sub.Plan.Name</div>
+                <div class="small text-muted">Status: <span class="text-@color fw-semibold">@sub.Status</span></div>
+                @if (sub.TrialEndDate.HasValue)
+                {
+                    <div class="small text-muted">Trial ended: @sub.TrialEndDate.Value.ToString("MMMM d, yyyy")</div>
+                }
+            </div>
+        }
+
+        <div class="d-flex gap-2 justify-content-center">
+            <a asp-page="/Admin/OrgSettings/Index" class="btn btn-outline-secondary">
+                <i class="bi bi-gear me-1"></i>Organization Settings
+            </a>
+            <a href="mailto:support@punitbola.com" class="btn btn-primary">
+                <i class="bi bi-envelope me-1"></i>Contact Support
+            </a>
+        </div>
+
+        <p class="text-muted small mt-4">
+            You can still view your <a asp-page="/Admin/OrgSettings/Index">organization settings</a>
+            and <a asp-page="/Admin/Bookings/Index">existing bookings</a>.
+            Your data is not deleted.
+        </p>
+    </div>
+</div>

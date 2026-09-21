@@ -1,0 +1,36 @@
+@page "/Admin/Users"
+@model PickleBallBooking.Pages.Admin.Users.IndexModel
+@{
+    ViewData["Title"] = "Users";
+}
+
+<h1>Users</h1>
+
+@if (Model.Members.Count == 0)
+{
+    <p class="text-muted">No members found for this organization.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Email</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">Added</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var member in Model.Members)
+                {
+                    <tr>
+                        <td>@(member.Email ?? member.UserId)</td>
+                        <td>@member.Role</td>
+                        <td>@member.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -76,59 +76,70 @@
 
 > Phase 18 is complete and merged to `main` (`c509b9a`).
 
-## Phase 19 — UI Polish (In Progress)
+## Phase 19 — UI Polish (Complete)
 
 - [x] Toast notifications (inline alerts enhanced into floating toasts; no logic changes)
 - [x] Confirmation dialogs (reusable modal replaces native confirm for destructive actions)
-- [ ] Empty states
-- [ ] Better validation feedback
-- [ ] Component consistency
+- [x] Empty states
+- [x] Better validation feedback
+- [x] Component consistency
 
 > Presentation-only changes. No functionality, business logic, or POST handlers altered.
 
-## Phase 20 — Multi-Tenant Database Foundation
+## Phase 20 — Multi-Tenant Database Foundation (Complete)
 
-- [ ] Analyze entire repository
-- [ ] Add Organization
-- [ ] Add OrganizationMember
-- [ ] Define roles
-- [ ] Identify tenant-owned entities
-- [ ] Add OrganizationId
-- [ ] Update EF relationships
-- [ ] Update indexes/constraints
-- [ ] Create Organization #1
-- [ ] Migrate existing Pikolball data
-- [ ] Create migration
-- [ ] Apply migration
-- [ ] Run existing tests
-- [ ] Add tenant foundation tests
+- [x] Analyze entire repository
+- [x] Add Organization
+- [x] Add OrganizationMember
+- [x] Define roles
+- [x] Identify tenant-owned entities
+- [x] Add OrganizationId
+- [x] Update EF relationships
+- [x] Update indexes/constraints
+- [x] Create Organization #1
+- [x] Migrate existing Pikolball data
+- [x] Create migration (`20260919042146_AddMultiTenantFoundation`)
+- [x] Apply migration
+- [x] Run existing tests
+- [x] Add tenant foundation tests
 
-## Phase 21 — Tenant Context & Isolation
+## Phase 21 — Tenant Context & Isolation (Complete)
 
-- [ ] IOrganizationContext
-- [ ] Tenant-aware services
-- [ ] Tenant-aware queries
-- [ ] Authorization
-- [ ] Cross-tenant read tests
-- [ ] Cross-tenant write tests
+- [x] ITenantContext / TenantContext (request-scoped)
+- [x] TenantResolutionMiddleware
+- [x] Tenant-aware services (EF global query filters)
+- [x] Tenant-aware queries
+- [x] TenantAdminAuthorization policy
+- [x] Cross-tenant read tests
+- [x] Cross-tenant write tests
 
-## Phase 22 — Subdomain Tenant Resolution
+## Phase 22 — Subdomain Tenant Resolution (Complete)
 
-- [ ] Define subdomain strategy
-- [ ] Resolve tenant from hostname
-- [ ] Unknown tenant handling
-- [ ] Reserved hosts
-- [ ] Local development strategy
-- [ ] Multiple subdomain testing
+- [x] Define subdomain strategy (`{slug}.punitbola.com`)
+- [x] TenantHostParser: resolve tenant from hostname
+- [x] Unknown/inactive tenant handling
+- [x] ReservedSlugs (www, admin, api, app, mail, support, …)
+- [x] TenantOptions (configurable BaseDomain)
+- [x] Multiple subdomain tests
 
-## Phase 23 — Organization Management & Branding
+## Phase 23 — Organization Management & Administration (Complete)
 
-- [ ] Organization profile
-- [ ] Logo
-- [ ] Contact details
-- [ ] Branding
-- [ ] Organization settings
-- [ ] Organization member management
+- [x] PlatformRoles (PlatformAdmin Identity role + policy)
+- [x] TenantAdminAuthorization (TenantAdmin policy + scoped handler)
+- [x] IOrganizationService / OrganizationService
+- [x] IReservedSlugs / ReservedSlugs (centralized reserved slug policy)
+- [x] TenantHostParser.IsValidSlugLabel (reuse resolver rules for creation)
+- [x] Platform admin: create organization + owner (Pages/Admin/Organizations/Create)
+- [x] Platform admin: list / activate / deactivate organizations (Pages/Admin/Organizations/Index)
+- [x] Tenant admin dashboard (Pages/Admin/Index)
+- [x] Tenant admin: organization settings / rename (Pages/Admin/OrgSettings/Index)
+- [x] Tenant admin: member list (Pages/Admin/Users/Index)
+- [x] Owner account activation flow (Pages/Account/Activate)
+- [x] AdminSeeder grants PlatformAdmin role to seeded admin
+- [x] Navbar: platform-admin-only "Organizations" link (divider-separated)
+- [x] DI lifetime fix: TenantResolvedHandler registered as Scoped (not Singleton)
+- [x] TestDbContextFactory: suppress InMemory transaction warning
+- [x] Phase 23 unit tests: 38 tests for OrganizationService (OrganizationServiceTests.cs)
 
 ## Phase 24 — Manual GCash Payment
 

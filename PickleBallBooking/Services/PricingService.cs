@@ -30,13 +30,16 @@ public class PricingService : IPricingService
             .ToListAsync();
     }
 
-    public async Task<Pricing?> GetByIdAsync(int id)
+        public async Task<Pricing?> GetByIdAsync(int id)
     {
-        return await _context.Pricings.FindAsync(id);
+        // Phase 21: query filters scope this to the current organization.
+        return await _context.Pricings.FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task<Pricing> CreateAsync(DayType dayType, TimeSpan startTime, TimeSpan endTime, decimal price)
     {
+        // Phase 21: the context's write guard stamps the current organization's id.
+        // Callers cannot choose the tenant.
         var pricing = new Pricing
         {
             DayType = dayType,
@@ -56,7 +59,7 @@ public class PricingService : IPricingService
 
     public async Task<bool> UpdateAsync(int id, DayType dayType, TimeSpan startTime, TimeSpan endTime, decimal price)
     {
-        var pricing = await _context.Pricings.FindAsync(id);
+        var pricing = await _context.Pricings.FirstOrDefaultAsync(p => p.Id == id);
         if (pricing is null)
         {
             return false;
@@ -74,7 +77,7 @@ public class PricingService : IPricingService
 
     public async Task<bool> SetStatusAsync(int id, PricingStatus status)
     {
-        var pricing = await _context.Pricings.FindAsync(id);
+        var pricing = await _context.Pricings.FirstOrDefaultAsync(p => p.Id == id);
         if (pricing is null)
         {
             return false;
@@ -89,7 +92,7 @@ public class PricingService : IPricingService
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var pricing = await _context.Pricings.FindAsync(id);
+        var pricing = await _context.Pricings.FirstOrDefaultAsync(p => p.Id == id);
         if (pricing is null)
         {
             return false;

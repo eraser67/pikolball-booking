@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PickleBallBooking.Data;
@@ -6,6 +7,7 @@ using PickleBallBooking.Services;
 
 namespace PickleBallBooking.Pages.Admin.Courts;
 
+[Authorize(Policy = TenantAdminAuthorization.TenantAdminPolicy)]
 public class MaintenanceModel : PageModel
 {
     private readonly ICourtService _courtService;

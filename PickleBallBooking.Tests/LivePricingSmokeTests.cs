@@ -10,10 +10,16 @@ namespace PickleBallBooking.Tests;
 /// </summary>
 public class LivePricingSmokeTests
 {
-    [Fact]
+        [Fact]
     public async Task LiveConfiguration_PricesEveryHourOfTheDay()
     {
         await using var context = PostgresTestDatabase.CreateContext();
+
+        // Phase 21: pricing is tenant-owned, so bind the context to the seeded
+        // Pikolball organization before asserting against the live configuration.
+        var organizationId = await PostgresTestDatabase.GetOrCreateTestOrganizationIdAsync(context);
+        context.UseTenant(organizationId);
+
         var service = new BookingService(context);
 
         // Try the next weekday and the next weekend day to cover both day types.

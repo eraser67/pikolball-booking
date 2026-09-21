@@ -4,6 +4,8 @@ public class Pricing
 {
     public int Id { get; set; }
 
+    public int OrganizationId { get; set; }
+
     public DayType DayType { get; set; }
 
     public TimeSpan StartTime { get; set; }

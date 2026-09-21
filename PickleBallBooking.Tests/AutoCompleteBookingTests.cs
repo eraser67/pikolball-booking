@@ -2,23 +2,26 @@ using Microsoft.EntityFrameworkCore;
 using PickleBallBooking.Data;
 using PickleBallBooking.Models;
 using PickleBallBooking.Services;
+using PickleBallBooking.Tests.Infrastructure;
 
 namespace PickleBallBooking.Tests;
 
 public class AutoCompleteBookingTests
 {
+    // Phase 21: fixtures use a resolved tenant so query filters/write guard apply.
+    private const int TestOrganizationId = 1;
+
     private static ApplicationDbContext CreateContext()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        return new ApplicationDbContext(options);
+        return TestDbContextFactory.CreateInMemory(Guid.NewGuid().ToString(), TestOrganizationId);
     }
 
     private static Booking NewBooking(DateOnly date, TimeSpan start, TimeSpan end, BookingStatus status)
-        => new()
+                => new()
         {
+            // Phase 20.5: tenant-owned entity; InMemory does not enforce the FK but the
+            // fixture stays tenant-aware for parity with the PostgreSQL schema.
+            OrganizationId = 1,
             BookingReference = $"PB-{date:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4]}",
             CustomerName = "Test",
             CustomerPhone = "0900",

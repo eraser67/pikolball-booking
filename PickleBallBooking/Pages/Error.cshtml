@@ -1,26 +1,63 @@
-﻿@page "{statusCode:int?}"
+@page "{statusCode:int?}"
 @model ErrorModel
 @{
-    ViewData["Title"] = "Error";
+    var is404 = Model.StatusCode == 404;
+    var is403 = Model.StatusCode == 403;
+    var is401 = Model.StatusCode == 401;
+
+    var (emoji, headline, subtext, code) = (is404, is403, is401) switch {
+        (true, _, _) => ("🔍", "Page Not Found",
+            "The page you're looking for doesn't exist or has been moved.",
+            "404"),
+        (_, true, _) => ("🚫", "Access Denied",
+            "You don't have permission to view this page.",
+            "403"),
+        (_, _, true) => ("🔐", "Login Required",
+            "Please log in to continue.",
+            "401"),
+        _            => ("⚠️", "Something Went Wrong",
+            "An unexpected error occurred. Please try again or contact support.",
+            "500")
+    };
+
+    ViewData["Title"] = $"{code} — {headline}";
 }
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">@Model.FriendlyMessage</h2>
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 65vh;">
+    <div class="text-center" style="max-width: 520px;">
 
-@if (Model.ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
-    </p>
-}
+        <div style="font-size: 5rem; line-height: 1;" class="mb-3">@emoji</div>
 
-<h3>Development Mode</h3>
-<p>
-    Swapping to the <strong>Development</strong> environment displays detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+        <div class="text-muted fw-semibold mb-1" style="font-size: 0.85rem; letter-spacing: 0.1em;">
+            ERROR @code
+        </div>
+
+        <h1 class="h2 fw-bold mb-2">@headline</h1>
+        <p class="text-muted mb-4">@subtext</p>
+
+        @if (Model.ShowRequestId)
+        {
+            <p class="text-muted small mb-4">
+                Reference: <code>@Model.RequestId</code>
+            </p>
+        }
+
+        <div class="d-flex gap-2 justify-content-center flex-wrap">
+            <a href="/" class="btn btn-primary">
+                <i class="bi bi-house-door me-1"></i>Go Home
+            </a>
+            @if (is401 || is403)
+            {
+                <a asp-page="/Account/Login" class="btn btn-outline-secondary">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                </a>
+            }
+            else
+            {
+                <a asp-page="/Booking/Index" class="btn btn-outline-success">
+                    <i class="bi bi-calendar-plus me-1"></i>Book a Court
+                </a>
+            }
+        </div>
+    </div>
+</div>

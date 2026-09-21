@@ -7,6 +7,8 @@ public class Booking
 {
     public int Id { get; set; }
 
+    public int OrganizationId { get; set; }
+
     [Required]
     [MaxLength(20)]
     public string BookingReference { get; set; } = string.Empty;

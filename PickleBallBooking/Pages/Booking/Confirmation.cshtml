@@ -10,31 +10,167 @@
 }
 else
 {
-    <h1>Booking Submitted</h1>
+    <h1 class="mb-1">Booking Submitted</h1>
 
-    <div class="alert alert-success">
-        Thank you, @Model.Booking.CustomerName! Your booking has been submitted and is now <strong>@Model.Booking.BookingStatus</strong>.
+    <div class="alert alert-success mb-4">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        Thank you, <strong>@Model.Booking.CustomerName</strong>! Your booking has been submitted.
+        Your reference is <strong>@Model.Booking.BookingReference</strong>.
     </div>
 
-    <dl class="row">
-        <dt class="col-sm-3">Booking Reference</dt>
-        <dd class="col-sm-9">@Model.Booking.BookingReference</dd>
+    <div class="row g-4">
+        <!-- Booking Details -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">
+                    <i class="bi bi-calendar-check me-1"></i>Booking Details
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Reference</dt>
+                        <dd class="col-sm-7 font-monospace">@Model.Booking.BookingReference</dd>
 
-        <dt class="col-sm-3">Court</dt>
-        <dd class="col-sm-9">@Model.Booking.Court?.Name</dd>
+                        <dt class="col-sm-5">Court</dt>
+                        <dd class="col-sm-7">@Model.Booking.Court?.Name</dd>
 
-        <dt class="col-sm-3">Date</dt>
-        <dd class="col-sm-9">@Model.Booking.BookingDate.ToString("D")</dd>
+                        <dt class="col-sm-5">Date</dt>
+                        <dd class="col-sm-7">@Model.Booking.BookingDate.ToString("D")</dd>
 
-                <dt class="col-sm-3">Time</dt>
-        <dd class="col-sm-9">@PickleBallBooking.Services.AppClock.To12HourRange(Model.Booking.StartTime, Model.Booking.EndTime)</dd>
+                        <dt class="col-sm-5">Time</dt>
+                        <dd class="col-sm-7">@PickleBallBooking.Services.AppClock.To12HourRange(Model.Booking.StartTime, Model.Booking.EndTime)</dd>
 
-        <dt class="col-sm-3">Price</dt>
-        <dd class="col-sm-9">@Model.Booking.Price.ToString("C2")</dd>
+                        <dt class="col-sm-5">Amount Due</dt>
+                        <dd class="col-sm-7 fw-bold text-success">@Model.Booking.Price.ToString("C2")</dd>
 
-        <dt class="col-sm-3">Status</dt>
-        <dd class="col-sm-9">@Model.Booking.BookingStatus</dd>
-    </dl>
+                        <dt class="col-sm-5">Status</dt>
+                        <dd class="col-sm-7"><span class="badge bg-warning text-dark">@Model.Booking.BookingStatus</span></dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
 
-    <a asp-page="Index" class="btn btn-primary">Book Another Court</a>
+        <!-- Payment CTA -->
+        @if (Model.PaymentSettings != null && Model.PaymentSettings.IsActive && Model.Payment is not null && Model.Booking is not null)
+        {
+            var settings = Model.PaymentSettings;
+            <div class="col-md-6">
+                <div class="card h-100 border-success">
+                    <div class="card-header bg-success text-white fw-semibold">
+                        <i class="bi bi-phone me-1"></i>Pay with GCash
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <p class="mb-3">
+                            To confirm your booking, please send
+                            <strong>@Model.Booking.Price.ToString("C2")</strong>
+                            via GCash to:
+                        </p>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.QRCodeUrl))
+                        {
+                            <!-- QR Code — full width, tappable to zoom -->
+                            <div class="text-center mb-3">
+                                <p class="text-muted small mb-2">
+                                    <i class="bi bi-zoom-in me-1"></i>Tap the QR code to enlarge it for scanning
+                                </p>
+                                <button type="button"
+                                        class="btn p-0 border-0 bg-transparent"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#qrZoomModal"
+                                        title="Tap to enlarge QR code">
+                                    <img src="@Model.QRCodeUrl"
+                                         alt="GCash QR Code — tap to enlarge"
+                                         class="img-fluid rounded shadow-sm"
+                                         style="max-width:260px;width:100%;border:2px solid #198754;cursor:zoom-in;" />
+                                </button>
+                                <div class="mt-2">
+                                    <a href="@Model.QRCodeUrl"
+                                       download="gcash-qr.png"
+                                       class="btn btn-outline-success btn-sm">
+                                        <i class="bi bi-download me-1"></i>Download QR Code
+                                    </a>
+                                </div>
+                            </div>
+                            <hr class="my-2" />
+                        }
+
+                        <ul class="list-unstyled mb-0">
+                            @if (!string.IsNullOrWhiteSpace(settings.AccountName))
+                            {
+                                <li><i class="bi bi-person me-2"></i><strong>@settings.AccountName</strong></li>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(settings.AccountNumber))
+                            {
+                                <li><i class="bi bi-phone me-2"></i><strong>@settings.AccountNumber</strong></li>
+                            }
+                        </ul>
+                        @if (!string.IsNullOrWhiteSpace(settings.Instructions))
+                        {
+                            <p class="text-muted small mt-2 mb-0">@settings.Instructions</p>
+                        }
+
+                        <div class="mt-auto pt-3">
+                            <a asp-page="/Booking/Payment"
+                               asp-route-reference="@Model.Booking.BookingReference"
+                               class="btn btn-success w-100">
+                                <i class="bi bi-send me-1"></i>Submit GCash Reference Number
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        else
+        {
+            <div class="col-md-6">
+                <div class="card h-100 border-secondary">
+                    <div class="card-body text-center text-muted d-flex flex-column justify-content-center">
+                        <i class="bi bi-info-circle display-5 mb-3"></i>
+                        <p class="mb-0">Payment instructions will be provided by the venue. Keep your booking reference safe.</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="mt-4">
+        <a asp-page="Index" class="btn btn-outline-primary">
+            <i class="bi bi-plus-circle me-1"></i>Book Another Court
+        </a>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.QRCodeUrl))
+{
+    <!-- QR Zoom Modal -->
+    <div class="modal fade" id="qrZoomModal" tabindex="-1"
+         aria-labelledby="qrZoomModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width:min(95vw,480px)">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-1">
+                    <h5 class="modal-title" id="qrZoomModalLabel">
+                        <i class="bi bi-qr-code me-2 text-success"></i>GCash QR Code
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center pt-0">
+                    <img src="@Model.QRCodeUrl"
+                         alt="GCash QR Code"
+                         class="img-fluid rounded"
+                         style="width:100%;max-width:440px;border:2px solid #198754;" />
+                    <p class="text-muted small mt-2 mb-0">
+                        Open your GCash app and tap <strong>Scan QR</strong> to pay.
+                    </p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pt-0">
+                    <a href="@Model.QRCodeUrl"
+                       download="gcash-qr.png"
+                       class="btn btn-success">
+                        <i class="bi bi-download me-1"></i>Download QR Code
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 }

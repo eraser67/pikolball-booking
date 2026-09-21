@@ -1,0 +1,182 @@
+@page "/Booking/Payment"
+@model PickleBallBooking.Pages.Booking.PaymentModel
+@{
+    ViewData["Title"] = "GCash Payment";
+}
+
+@if (Model.PaymentInfo is null)
+{
+    <div class="alert alert-danger">Payment record not found.</div>
+    return;
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-7">
+
+        <h1 class="mb-1"><i class="bi bi-phone me-2"></i>Pay with GCash</h1>
+        <p class="text-muted mb-4">
+            Booking <span class="font-monospace fw-bold">@Model.PaymentInfo.BookingReference</span>
+            — @Model.PaymentInfo.CustomerName
+        </p>
+
+        <!-- Step 1: Payment Instructions -->
+        <div class="card mb-4">
+            <div class="card-header fw-semibold bg-success text-white">
+                <span class="me-2">Step 1</span>Send Payment via GCash
+            </div>
+            <div class="card-body">
+
+                @if (!string.IsNullOrWhiteSpace(Model.QRCodeUrl))
+                {
+                    <!-- QR Code — full width on mobile, prominent and tappable -->
+                    <div class="text-center mb-3">
+                        <p class="text-muted small mb-2">
+                            <i class="bi bi-zoom-in me-1"></i>Tap the QR code to enlarge it for scanning
+                        </p>
+                        <button type="button"
+                                class="btn p-0 border-0 bg-transparent"
+                                data-bs-toggle="modal"
+                                data-bs-target="#qrZoomModal"
+                                title="Tap to enlarge QR code"
+                                id="qrThumbnailBtn">
+                            <img src="@Model.QRCodeUrl"
+                                 alt="GCash QR Code — tap to enlarge"
+                                 class="img-fluid rounded shadow-sm"
+                                 style="max-width:320px;width:100%;border:2px solid #198754;cursor:zoom-in;" />
+                        </button>
+                        <div class="mt-2">
+                            <a href="@Model.QRCodeUrl"
+                               download="gcash-qr.png"
+                               class="btn btn-outline-success btn-sm">
+                                <i class="bi bi-download me-1"></i>Download QR Code
+                            </a>
+                        </div>
+                    </div>
+                    <hr class="my-3" />
+                }
+
+                <p class="mb-2">Send exactly <strong class="text-success fs-5">@Model.PaymentInfo.Amount.ToString("C2")</strong> to:</p>
+                <ul class="list-unstyled mb-3">
+                    @if (Model.Settings is not null)
+                    {
+                        @if (!string.IsNullOrWhiteSpace(Model.Settings.AccountName))
+                        {
+                            <li class="mb-1"><i class="bi bi-person-fill me-2 text-success"></i><strong>@Model.Settings.AccountName</strong></li>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(Model.Settings.AccountNumber))
+                        {
+                            <li class="mb-1"><i class="bi bi-phone-fill me-2 text-success"></i><strong>@Model.Settings.AccountNumber</strong></li>
+                        }
+                    }
+                    else
+                    {
+                        <li class="text-muted">Payment details will be provided by the venue.</li>
+                    }
+                </ul>
+                @if (!string.IsNullOrWhiteSpace(Model.Settings?.Instructions))
+                {
+                    <div class="alert alert-light border small mb-0">
+                        <i class="bi bi-info-circle me-1"></i>@Model.Settings.Instructions
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Step 2: Submit Reference -->
+        <div class="card">
+            <div class="card-header fw-semibold">
+                <span class="me-2">Step 2</span>Enter Your GCash Reference Number
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <input type="hidden" asp-for="Input.Reference" />
+
+                    <div class="mb-3">
+                        <label asp-for="Input.GCashReference" class="form-label fw-semibold"></label>
+                        <input asp-for="Input.GCashReference" class="form-control form-control-lg"
+                               placeholder="e.g. 20241130123456789" autocomplete="off" />
+                        <div class="form-text">Find your reference number in the GCash app under Transaction History.</div>
+                        <span asp-validation-for="Input.GCashReference" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Input.ProofImage" class="form-label fw-semibold"></label>
+                        <input asp-for="Input.ProofImage" type="file" class="form-control"
+                               accept="image/jpeg,image/png,image/webp"
+                               id="proofImageInput" />
+                        <div class="form-text">Optional. Screenshot of your GCash payment. Max 1 MB (JPEG, PNG, WEBP).</div>
+                        <div id="proofSizeError" class="text-danger small mt-1" style="display:none;">
+                            File too large. Maximum allowed size is 1 MB.
+                        </div>
+                        <span asp-validation-for="Input.ProofImage" class="text-danger"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-lg w-100">
+                        <i class="bi bi-send me-1"></i>Submit Payment
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <p class="text-muted small mt-3 text-center">
+            <i class="bi bi-shield-check me-1"></i>
+            Your payment reference will be verified by the venue before your booking is confirmed.
+        </p>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.QRCodeUrl))
+{
+    <!-- QR Zoom Modal -->
+    <div class="modal fade" id="qrZoomModal" tabindex="-1"
+         aria-labelledby="qrZoomModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm" style="max-width:min(95vw,480px)">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-1">
+                    <h5 class="modal-title" id="qrZoomModalLabel">
+                        <i class="bi bi-qr-code me-2 text-success"></i>GCash QR Code
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center pt-0">
+                    <img src="@Model.QRCodeUrl"
+                         alt="GCash QR Code"
+                         class="img-fluid rounded"
+                         style="width:100%;max-width:440px;border:2px solid #198754;" />
+                    <p class="text-muted small mt-2 mb-0">
+                        Open your GCash app and tap <strong>Scan QR</strong> to pay.
+                    </p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pt-0">
+                    <a href="@Model.QRCodeUrl"
+                       download="gcash-qr.png"
+                       class="btn btn-success">
+                        <i class="bi bi-download me-1"></i>Download QR Code
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const MAX = 1 * 1024 * 1024; // 1 MB (1,048,576 bytes)
+            const input = document.getElementById('proofImageInput');
+            const err   = document.getElementById('proofSizeError');
+            if (!input) return;
+            input.addEventListener('change', function () {
+                if (this.files.length > 0 && this.files[0].size > MAX) {
+                    err.style.display = 'block';
+                    this.value = '';
+                } else {
+                    err.style.display = 'none';
+                }
+            });
+        })();
+    </script>
+}

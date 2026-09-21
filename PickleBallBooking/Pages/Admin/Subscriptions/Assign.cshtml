@@ -1,0 +1,127 @@
+@page "/Admin/Subscriptions/Assign/{organizationId:int}"
+@model PickleBallBooking.Pages.Admin.Subscriptions.AssignModel
+@{
+    ViewData["Title"] = $"Manage Subscription — {Model.OrganizationName}";
+}
+
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="Index">Subscriptions</a></li>
+            <li class="breadcrumb-item active">@Model.OrganizationName</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-0">Manage Subscription</h1>
+    <p class="text-muted small">Organization: <strong>@Model.OrganizationName</strong> (@Model.OrganizationSlug)</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-transparent fw-semibold">Subscription Details</div>
+            <div class="card-body">
+                <form method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.PlanId" class="form-label fw-semibold">Plan</label>
+                        <select asp-for="Input.PlanId" class="form-select"
+                                asp-items="@(new SelectList(Model.Plans, "Id", "Name"))">
+                            <option value="">— Select a plan —</option>
+                        </select>
+                        <span asp-validation-for="Input.PlanId" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Status" class="form-label fw-semibold">Status</label>
+                        <select asp-for="Input.Status" class="form-select"
+                                asp-items="Html.GetEnumSelectList<PickleBallBooking.Models.SubscriptionStatus>()"></select>
+                        <span asp-validation-for="Input.Status" class="text-danger"></span>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-4">
+                            <label asp-for="Input.StartDate" class="form-label fw-semibold"></label>
+                            <input asp-for="Input.StartDate" class="form-control" type="date" />
+                            <span asp-validation-for="Input.StartDate" class="text-danger"></span>
+                        </div>
+                        <div class="col-sm-4">
+                            <label asp-for="Input.EndDate" class="form-label fw-semibold"></label>
+                            <input asp-for="Input.EndDate" class="form-control" type="date" />
+                            <div class="form-text">Leave blank = no fixed end</div>
+                            <span asp-validation-for="Input.EndDate" class="text-danger"></span>
+                        </div>
+                        <div class="col-sm-4">
+                            <label asp-for="Input.TrialEndDate" class="form-label fw-semibold"></label>
+                            <input asp-for="Input.TrialEndDate" class="form-control" type="date" />
+                            <span asp-validation-for="Input.TrialEndDate" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Input.Notes" class="form-label fw-semibold"></label>
+                        <textarea asp-for="Input.Notes" class="form-control" rows="2"
+                                  placeholder="e.g. Paid via bank transfer Sept 2026"></textarea>
+                        <span asp-validation-for="Input.Notes" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-floppy me-1"></i>Save
+                        </button>
+                        <a asp-page="Index" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.CurrentSubscription is not null)
+    {
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-3">
+                <div class="card-header bg-transparent fw-semibold">Quick Status Change</div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">Quickly flip the subscription status without editing all fields.</p>
+                    <div class="d-grid gap-2">
+                        <form method="post" asp-page-handler="SetStatus" asp-route-status="Active">
+                            @Html.AntiForgeryToken()
+                            <button class="btn btn-success btn-sm w-100">
+                                <i class="bi bi-check-circle me-1"></i>Set Active
+                            </button>
+                        </form>
+                        <form method="post" asp-page-handler="SetStatus" asp-route-status="Trial">
+                            @Html.AntiForgeryToken()
+                            <button class="btn btn-info btn-sm w-100">
+                                <i class="bi bi-hourglass-split me-1"></i>Set Trial
+                            </button>
+                        </form>
+                        <form method="post" asp-page-handler="SetStatus" asp-route-status="Suspended">
+                            @Html.AntiForgeryToken()
+                            <button class="btn btn-warning btn-sm w-100">
+                                <i class="bi bi-pause-circle me-1"></i>Set Suspended
+                            </button>
+                        </form>
+                        <form method="post" asp-page-handler="SetStatus" asp-route-status="Expired">
+                            @Html.AntiForgeryToken()
+                            <button class="btn btn-secondary btn-sm w-100">
+                                <i class="bi bi-exclamation-circle me-1"></i>Set Expired
+                            </button>
+                        </form>
+                        <form method="post" asp-page-handler="SetStatus" asp-route-status="Cancelled"
+                              onsubmit="return confirm('Cancel this subscription? Bookings will be blocked.');">
+                            @Html.AntiForgeryToken()
+                            <button class="btn btn-outline-danger btn-sm w-100">
+                                <i class="bi bi-x-circle me-1"></i>Set Cancelled
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

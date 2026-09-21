@@ -17,17 +17,26 @@ public static class DemoDataSeeder
         using var scope = app.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+        // Phase 21: seeders run outside a request, so bind the scope's tenant context
+        // before touching any tenant-owned table (which is now query-filtered).
+        var organizationId = await scope.RequireResolvedTenantAsync();
+
         if (await context.Courts.AnyAsync())
         {
             // Demo data already present (or real data exists) - do nothing.
             return;
         }
 
+        // Phase 20.5/21: tenant-owned rows are attached to the resolved organization
+        // so the NOT NULL tenant foreign keys are satisfied. The write guard on the
+        // context stamps/validates this automatically, but the value is set explicitly
+        // for readability.
+
         var courts = new List<Court>
         {
-            new() { Name = "Court 1", Description = "Indoor court near the main entrance.", Status = CourtStatus.Active },
-            new() { Name = "Court 2", Description = "Indoor court with extra spectator seating.", Status = CourtStatus.Active },
-            new() { Name = "Court 3", Description = "Outdoor court, covered.", Status = CourtStatus.Inactive }
+            new() { OrganizationId = organizationId, Name = "Court 1", Description = "Indoor court near the main entrance.", Status = CourtStatus.Active },
+            new() { OrganizationId = organizationId, Name = "Court 2", Description = "Indoor court with extra spectator seating.", Status = CourtStatus.Active },
+            new() { OrganizationId = organizationId, Name = "Court 3", Description = "Outdoor court, covered.", Status = CourtStatus.Inactive }
         };
         context.Courts.AddRange(courts);
 
@@ -44,16 +53,16 @@ public static class DemoDataSeeder
 
         var pricings = new List<Pricing>
         {
-            new() { DayType = DayType.Weekday, StartTime = new TimeSpan(6, 0, 0), EndTime = new TimeSpan(9, 0, 0), Price = 250m, Status = PricingStatus.Active },
-            new() { DayType = DayType.Weekday, StartTime = new TimeSpan(17, 0, 0), EndTime = new TimeSpan(20, 0, 0), Price = 350m, Status = PricingStatus.Active },
-            new() { DayType = DayType.Weekend, StartTime = new TimeSpan(6, 0, 0), EndTime = new TimeSpan(9, 0, 0), Price = 300m, Status = PricingStatus.Active },
-            new() { DayType = DayType.Weekend, StartTime = new TimeSpan(17, 0, 0), EndTime = new TimeSpan(20, 0, 0), Price = 400m, Status = PricingStatus.Active }
+            new() { OrganizationId = organizationId, DayType = DayType.Weekday, StartTime = new TimeSpan(6, 0, 0), EndTime = new TimeSpan(9, 0, 0), Price = 250m, Status = PricingStatus.Active },
+            new() { OrganizationId = organizationId, DayType = DayType.Weekday, StartTime = new TimeSpan(17, 0, 0), EndTime = new TimeSpan(20, 0, 0), Price = 350m, Status = PricingStatus.Active },
+            new() { OrganizationId = organizationId, DayType = DayType.Weekend, StartTime = new TimeSpan(6, 0, 0), EndTime = new TimeSpan(9, 0, 0), Price = 300m, Status = PricingStatus.Active },
+            new() { OrganizationId = organizationId, DayType = DayType.Weekend, StartTime = new TimeSpan(17, 0, 0), EndTime = new TimeSpan(20, 0, 0), Price = 400m, Status = PricingStatus.Active }
         };
         context.Pricings.AddRange(pricings);
 
         await context.SaveChangesAsync();
 
-                var activeCourts = courts.Where(c => c.Status == CourtStatus.Active).ToList();
+        var activeCourts = courts.Where(c => c.Status == CourtStatus.Active).ToList();
         var today = AppClock.TodayLocal;
 
         var sampleBookings = new (Court Court, TimeSlot TimeSlot, DateOnly Date, string Name, string Phone, string Email, BookingStatus Status, decimal Price)[]
@@ -72,6 +81,7 @@ public static class DemoDataSeeder
         {
             var booking = new Booking
             {
+                OrganizationId = organizationId,
                 BookingReference = $"PB-{sample.Date:yyyyMMdd}-{sequence++:D4}",
                 CustomerName = sample.Name,
                 CustomerPhone = sample.Phone,
@@ -92,6 +102,7 @@ public static class DemoDataSeeder
             {
                 bookingSlots.Add(new BookingTimeSlot
                 {
+                    OrganizationId = organizationId,
                     Booking = booking,
                     CourtId = sample.Court.Id,
                     BookingDate = sample.Date,

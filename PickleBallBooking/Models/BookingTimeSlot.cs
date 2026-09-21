@@ -9,6 +9,13 @@ public class BookingTimeSlot
 {
     public int Id { get; set; }
 
+    /// <summary>
+    /// The organization that owns this booking timeslot.
+    /// Denormalized from Booking so the tenant-scoped double-booking constraint
+    /// can be enforced without a join.
+    /// </summary>
+    public int OrganizationId { get; set; }
+
     public int BookingId { get; set; }
 
     /// <summary>

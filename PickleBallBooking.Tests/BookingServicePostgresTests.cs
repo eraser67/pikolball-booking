@@ -14,14 +14,19 @@ namespace PickleBallBooking.Tests;
 public class BookingServicePostgresTests
 {
     // Fixed hour slots used by these tests: 201 = 09:00-10:00, 202 = 10:00-11:00, 203 = 11:00-12:00.
-    private static async Task RunWithSeedDataAsync(Func<ApplicationDbContext, Task> action)
+        private static async Task RunWithSeedDataAsync(Func<ApplicationDbContext, Task> action)
     {
-        await using var context = PostgresTestDatabase.CreateContext();
+                await using var context = PostgresTestDatabase.CreateContext();
         await using var transaction = await context.Database.BeginTransactionAsync();
 
+        // Phase 20.5/21: tenant-owned fixture rows must reference an organization, and
+        // Phase 21 requires the context to be bound to it for the query filters/write guard.
+        var organizationId = await PostgresTestDatabase.GetOrCreateTestOrganizationIdAsync(context);
+        context.UseTenant(organizationId);
+
         context.Courts.AddRange(
-            new Court { Id = 101, Name = "Court 1", Status = CourtStatus.Active },
-            new Court { Id = 102, Name = "Court 2", Status = CourtStatus.Active });
+            new Court { Id = 101, OrganizationId = organizationId, Name = "Court 1", Status = CourtStatus.Active },
+            new Court { Id = 102, OrganizationId = organizationId, Name = "Court 2", Status = CourtStatus.Active });
 
         context.TimeSlots.AddRange(
             new TimeSlot { Id = 201, StartTime = new TimeSpan(9, 0, 0), EndTime = new TimeSpan(10, 0, 0), Status = TimeSlotStatus.Active },
@@ -29,8 +34,8 @@ public class BookingServicePostgresTests
             new TimeSlot { Id = 203, StartTime = new TimeSpan(11, 0, 0), EndTime = new TimeSpan(12, 0, 0), Status = TimeSlotStatus.Active });
 
         context.Pricings.AddRange(
-            new Pricing { Id = 301, DayType = DayType.Weekday, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(23, 59, 59), Price = 100m, Status = PricingStatus.Active },
-            new Pricing { Id = 302, DayType = DayType.Weekend, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(23, 59, 59), Price = 120m, Status = PricingStatus.Active });
+            new Pricing { Id = 301, OrganizationId = organizationId, DayType = DayType.Weekday, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(23, 59, 59), Price = 100m, Status = PricingStatus.Active },
+            new Pricing { Id = 302, OrganizationId = organizationId, DayType = DayType.Weekend, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(23, 59, 59), Price = 120m, Status = PricingStatus.Active });
 
         await context.SaveChangesAsync();
         await action(context);
@@ -166,8 +171,12 @@ public class BookingServicePostgresTests
         // Mirrors the live pricing configuration: a daytime band ending at 18:00 and
         // an evening band that ends at the legacy 23:59 sentinel. The 23:00-00:00 slot
         // must still be priced (regression: the final hour of the day was unpriceable).
-        await using var context = PostgresTestDatabase.CreateContext();
+                await using var context = PostgresTestDatabase.CreateContext();
         await using var transaction = await context.Database.BeginTransactionAsync();
+
+                // Phase 20.5/21: reference an organization and bind the context to it.
+        var organizationId = await PostgresTestDatabase.GetOrCreateTestOrganizationIdAsync(context);
+        context.UseTenant(organizationId);
 
                         var date = AppClock.TodayLocal.AddDays(1);
         var dayType = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
@@ -182,10 +191,10 @@ public class BookingServicePostgresTests
             p.Status = PricingStatus.Inactive;
         }
 
-        context.Courts.Add(new Court { Id = 401, Name = "Late Night Court", Status = CourtStatus.Active });
+        context.Courts.Add(new Court { Id = 401, OrganizationId = organizationId, Name = "Late Night Court", Status = CourtStatus.Active });
         context.Pricings.AddRange(
-            new Pricing { Id = 401, DayType = dayType, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(18, 0, 0), Price = 250m, Status = PricingStatus.Active },
-            new Pricing { Id = 402, DayType = dayType, StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(23, 59, 0), Price = 300m, Status = PricingStatus.Active });
+            new Pricing { Id = 401, OrganizationId = organizationId, DayType = dayType, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(18, 0, 0), Price = 250m, Status = PricingStatus.Active },
+            new Pricing { Id = 402, OrganizationId = organizationId, DayType = dayType, StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(23, 59, 0), Price = 300m, Status = PricingStatus.Active });
         await context.SaveChangesAsync();
 
         var service = new BookingService(context);
@@ -204,20 +213,24 @@ public class BookingServicePostgresTests
         // The BookingPeriod computed column previously produced an inverted tsrange
         // (lower 23:00 > upper 00:00) which PostgreSQL rejected with error 22000,
         // surfacing as a DbUpdateException during booking creation.
-        await using var context = PostgresTestDatabase.CreateContext();
+                await using var context = PostgresTestDatabase.CreateContext();
         await using var transaction = await context.Database.BeginTransactionAsync();
+
+                // Phase 20.5/21: reference an organization and bind the context to it.
+        var organizationId = await PostgresTestDatabase.GetOrCreateTestOrganizationIdAsync(context);
+        context.UseTenant(organizationId);
 
         var date = AppClock.TodayLocal.AddDays(6);
         var dayType = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
             ? DayType.Weekend
             : DayType.Weekday;
 
-        context.Courts.Add(new Court { Id = 501, Name = "Midnight Court", Status = CourtStatus.Active });
+        context.Courts.Add(new Court { Id = 501, OrganizationId = organizationId, Name = "Midnight Court", Status = CourtStatus.Active });
         context.TimeSlots.AddRange(
             new TimeSlot { Id = 501, StartTime = new TimeSpan(22, 0, 0), EndTime = new TimeSpan(23, 0, 0), Status = TimeSlotStatus.Active },
             new TimeSlot { Id = 502, StartTime = new TimeSpan(23, 0, 0), EndTime = TimeSpan.Zero, Status = TimeSlotStatus.Active });
         context.Pricings.Add(
-            new Pricing { Id = 501, DayType = dayType, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(23, 59, 0), Price = 300m, Status = PricingStatus.Active });
+            new Pricing { Id = 501, OrganizationId = organizationId, DayType = dayType, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(23, 59, 0), Price = 300m, Status = PricingStatus.Active });
         await context.SaveChangesAsync();
 
         var service = new BookingService(context);
@@ -247,20 +260,24 @@ public class BookingServicePostgresTests
     {
         // Confirms the corrected exclusion constraint still blocks a second booking
         // that overlaps a 23:00-00:00 booking on the same court and date.
-        await using var context = PostgresTestDatabase.CreateContext();
+                await using var context = PostgresTestDatabase.CreateContext();
         await using var transaction = await context.Database.BeginTransactionAsync();
+
+                // Phase 20.5/21: reference an organization and bind the context to it.
+        var organizationId = await PostgresTestDatabase.GetOrCreateTestOrganizationIdAsync(context);
+        context.UseTenant(organizationId);
 
         var date = AppClock.TodayLocal.AddDays(7);
         var dayType = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday
             ? DayType.Weekend
             : DayType.Weekday;
 
-        context.Courts.Add(new Court { Id = 601, Name = "Overlap Court", Status = CourtStatus.Active });
+        context.Courts.Add(new Court { Id = 601, OrganizationId = organizationId, Name = "Overlap Court", Status = CourtStatus.Active });
         context.TimeSlots.AddRange(
             new TimeSlot { Id = 601, StartTime = new TimeSpan(22, 0, 0), EndTime = new TimeSpan(23, 0, 0), Status = TimeSlotStatus.Active },
             new TimeSlot { Id = 602, StartTime = new TimeSpan(23, 0, 0), EndTime = TimeSpan.Zero, Status = TimeSlotStatus.Active });
         context.Pricings.Add(
-            new Pricing { Id = 601, DayType = dayType, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(23, 59, 0), Price = 300m, Status = PricingStatus.Active });
+            new Pricing { Id = 601, OrganizationId = organizationId, DayType = dayType, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(23, 59, 0), Price = 300m, Status = PricingStatus.Active });
         await context.SaveChangesAsync();
 
         var service = new BookingService(context);
@@ -269,12 +286,41 @@ public class BookingServicePostgresTests
             601, date, new List<int> { 602 }, "Alice", "09170000001", "alice@example.com");
         Assert.True(first.Success, first.ErrorMessage);
 
-        // 22:00-00:00 overlaps the existing 23:00-00:00 booking and must be rejected.
+                // 22:00-00:00 overlaps the existing 23:00-00:00 booking and must be rejected.
         var overlapping = await service.CreateBookingWithSlotsAsync(
             601, date, new List<int> { 601, 602 }, "Bob", "09170000002", "bob@example.com");
         Assert.False(overlapping.Success);
         Assert.Contains("available", overlapping.ErrorMessage!, StringComparison.OrdinalIgnoreCase);
 
         await transaction.RollbackAsync();
+    }
+
+    [Fact]
+    public async Task CreateBookingWithSlotsAsync_StampsOrganizationId_OnBookingAndSlots()
+    {
+        // Phase 20.5: verifies the tenant write path. A booking created through the
+        // service must carry the OrganizationId of its court, on both the Booking and
+        // every BookingTimeSlot row, so the NOT NULL tenant foreign keys are satisfied.
+        await RunWithSeedDataAsync(async context =>
+        {
+            var service = new BookingService(context);
+            var date = AppClock.TodayLocal.AddDays(8);
+
+            var court = await context.Courts.FindAsync(101);
+            Assert.NotNull(court);
+
+            var result = await service.CreateBookingWithSlotsAsync(
+                101, date, new List<int> { 201, 202 }, "Alice", "09170000001", "alice@example.com");
+
+            Assert.True(result.Success, result.ErrorMessage);
+            Assert.Equal(court!.OrganizationId, result.Booking!.OrganizationId);
+
+            var slots = await context.BookingTimeSlots
+                .Where(bts => bts.BookingId == result.Booking.Id)
+                .ToListAsync();
+
+            Assert.Equal(2, slots.Count);
+            Assert.All(slots, bts => Assert.Equal(court.OrganizationId, bts.OrganizationId));
+        });
     }
 }

@@ -12,10 +12,13 @@ namespace PickleBallBooking.Pages
 
         public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 
+        public int? StatusCode { get; set; }
+
         public string FriendlyMessage { get; set; } = "An error occurred while processing your request.";
 
         public void OnGet(int? statusCode)
         {
+            StatusCode = statusCode;
             RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
 
             FriendlyMessage = statusCode switch

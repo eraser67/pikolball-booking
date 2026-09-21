@@ -1,0 +1,62 @@
+@page "/Account/Activate"
+@model PickleBallBooking.Pages.Account.ActivateModel
+@{
+    ViewData["Title"] = "Activate Account";
+}
+
+<h1>Activate Your Account</h1>
+
+@if (Model.LinkInvalid)
+{
+    <div class="alert alert-danger">
+        This activation link is invalid or has expired. Ask a platform administrator to
+        resend your invitation.
+    </div>
+    <a asp-page="/Account/Login" class="btn btn-secondary">Go to login</a>
+}
+else if (Model.Completed)
+{
+    <div class="alert alert-success">
+        Your account is active. You can now sign in with your email and the password you just set.
+    </div>
+    <a href="@Model.LoginUrl" class="btn btn-primary">Sign in</a>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-info">@Model.StatusMessage</div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    <p class="text-muted">Choose a password to set up your organization owner account.</p>
+
+    <form method="post" class="col-lg-5">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <input type="hidden" asp-for="Input.UserId" />
+        <input type="hidden" asp-for="Input.Token" />
+
+        <div class="mb-3">
+            <label asp-for="Input.Password" class="form-label"></label>
+            <input asp-for="Input.Password" class="form-control" autocomplete="new-password" />
+            <span asp-validation-for="Input.Password" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.ConfirmPassword" class="form-label"></label>
+            <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" />
+            <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Activate Account</button>
+    </form>
+
+    @section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+    }
+}

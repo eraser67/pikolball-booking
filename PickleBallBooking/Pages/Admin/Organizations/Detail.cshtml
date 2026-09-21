@@ -1,0 +1,254 @@
+@page "/Admin/Organizations/{id:int}"
+@model PickleBallBooking.Pages.Admin.Organizations.DetailModel
+@using PickleBallBooking.Models
+@{
+    ViewData["Title"] = $"Org — {Model.Org?.Name}";
+    var org = Model.Org!;
+}
+
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="Index">Organizations</a></li>
+            <li class="breadcrumb-item active">@org.Name</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="h3 mb-0">@org.Name</h1>
+            <code class="text-muted">@org.Slug</code>
+        </div>
+        @if (org.Status == OrganizationStatus.Active)
+        {
+            <span class="badge bg-success-subtle text-success border border-success-subtle fs-6">Active</span>
+        }
+        else
+        {
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle fs-6">Inactive</span>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle-fill me-2"></i>@Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-circle-fill me-2"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row g-4">
+
+    <!-- ── LEFT column ───────────────────────────────────────────── -->
+    <div class="col-lg-8">
+
+        <!-- Members table -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold d-flex justify-content-between">
+                <span><i class="bi bi-people me-2"></i>Members</span>
+                <span class="badge bg-secondary-subtle text-secondary border">@Model.Members.Count</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Joined</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var member in Model.Members)
+                            {
+                                <tr>
+                                    <td class="small">@(member.Email ?? member.UserId)</td>
+                                    <td>
+                                        <form method="post" asp-page-handler="ChangeRole"
+                                              asp-route-userId="@member.UserId"
+                                              class="d-flex gap-1 align-items-center">
+                                            @Html.AntiForgeryToken()
+                                            <select name="newRole" class="form-select form-select-sm w-auto"
+                                                    onchange="this.form.submit()">
+                                                @foreach (OrganizationRole role in Enum.GetValues<OrganizationRole>())
+                                                {
+                                                    <option value="@role" selected="@(role == member.Role)">@role</option>
+                                                }
+                                            </select>
+                                        </form>
+                                    </td>
+                                    <td class="text-muted small">@member.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                                    <td class="text-end">
+                                        <form method="post" asp-page-handler="RemoveMember"
+                                              asp-route-userId="@member.UserId"
+                                              onsubmit="return confirm('Remove this member from the organization?');">
+                                            @Html.AntiForgeryToken()
+                                            <button class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-person-dash me-1"></i>Remove
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                            @if (!Model.Members.Any())
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">No members yet.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Member -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-person-plus me-2"></i>Add Member
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="AddMember" class="row g-2 align-items-end">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    <div class="col-sm-6">
+                        <label asp-for="AddInput.Email" class="form-label fw-semibold small"></label>
+                        <input asp-for="AddInput.Email" class="form-control form-control-sm"
+                               placeholder="user@example.com" />
+                        <span asp-validation-for="AddInput.Email" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-3">
+                        <label asp-for="AddInput.Role" class="form-label fw-semibold small"></label>
+                        <select asp-for="AddInput.Role" class="form-select form-select-sm"
+                                asp-items="Html.GetEnumSelectList<PickleBallBooking.Models.OrganizationRole>()"></select>
+                    </div>
+                    <div class="col-sm-3">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="bi bi-person-plus me-1"></i>Add
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── RIGHT column ───────────────────────────────────────────── -->
+    <div class="col-lg-4">
+
+        <!-- Org Info -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-building me-2"></i>Details
+            </div>
+            <div class="card-body">
+                <dl class="row small mb-0">
+                    <dt class="col-5 text-muted">Created</dt>
+                    <dd class="col-7">@org.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")</dd>
+                    <dt class="col-5 text-muted">Owners</dt>
+                    <dd class="col-7">
+                        @if (org.Owners.Any())
+                        {
+                            @string.Join(", ", org.Owners.Select(o => o.Email ?? o.UserId))
+                        }
+                        else
+                        {
+                            <span class="text-muted">None</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Subscription -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-transparent fw-semibold d-flex justify-content-between">
+                <span><i class="bi bi-credit-card me-2"></i>Subscription</span>
+                <a asp-page="/Admin/Subscriptions/Assign" asp-route-organizationId="@org.Id"
+                   class="btn btn-sm btn-outline-primary py-0">Manage</a>
+            </div>
+            <div class="card-body">
+                @if (Model.CurrentSubscription is not null)
+                {
+                    var sub = Model.CurrentSubscription;
+                    var (badgeClass, icon) = sub.Status switch {
+                        SubscriptionStatus.Trial     => ("bg-info-subtle text-info border border-info-subtle", "bi-hourglass-split"),
+                        SubscriptionStatus.Active    => ("bg-success-subtle text-success border border-success-subtle", "bi-check-circle"),
+                        SubscriptionStatus.Expired   => ("bg-warning-subtle text-warning border border-warning-subtle", "bi-exclamation-circle"),
+                        SubscriptionStatus.Suspended => ("bg-danger-subtle text-danger border border-danger-subtle", "bi-pause-circle"),
+                        _                            => ("bg-secondary-subtle text-secondary border border-secondary-subtle", "bi-x-circle")
+                    };
+                    <div class="fw-semibold mb-1">@(sub.Plan?.Name ?? "—")</div>
+                    <span class="badge @badgeClass mb-2">
+                        <i class="bi @icon me-1"></i>@sub.Status
+                    </span>
+                    <dl class="row small mb-0 mt-1">
+                        @if (sub.StartDate.HasValue)
+                        {
+                            <dt class="col-5 text-muted">Start</dt>
+                            <dd class="col-7">@sub.StartDate.Value.ToString("yyyy-MM-dd")</dd>
+                        }
+                        @if (sub.EndDate.HasValue)
+                        {
+                            <dt class="col-5 text-muted">End</dt>
+                            <dd class="col-7">@sub.EndDate.Value.ToString("yyyy-MM-dd")</dd>
+                        }
+                        @if (sub.TrialEndDate.HasValue)
+                        {
+                            <dt class="col-5 text-muted">Trial End</dt>
+                            <dd class="col-7">@sub.TrialEndDate.Value.ToString("yyyy-MM-dd")</dd>
+                        }
+                    </dl>
+                }
+                else
+                {
+                    <p class="text-muted small mb-0">No subscription assigned.</p>
+                }
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="card border-danger border-opacity-25 shadow-sm">
+            <div class="card-header bg-transparent text-danger fw-semibold">
+                <i class="bi bi-exclamation-triangle me-2"></i>Danger Zone
+            </div>
+            <div class="card-body">
+                @if (org.Status == OrganizationStatus.Active)
+                {
+                    <p class="small text-muted mb-2">
+                        Deactivating will prevent org members from logging into their admin panel.
+                    </p>
+                    <form method="post" asp-page-handler="Deactivate"
+                          onsubmit="return confirm('Deactivate @org.Name? Their admin access will be blocked.');">
+                        @Html.AntiForgeryToken()
+                        <button class="btn btn-outline-danger btn-sm w-100">
+                            <i class="bi bi-pause-circle me-1"></i>Deactivate Organization
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <p class="small text-muted mb-2">Reactivate to restore admin access for this organization.</p>
+                    <form method="post" asp-page-handler="Activate">
+                        @Html.AntiForgeryToken()
+                        <button class="btn btn-outline-success btn-sm w-100">
+                            <i class="bi bi-play-circle me-1"></i>Activate Organization
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

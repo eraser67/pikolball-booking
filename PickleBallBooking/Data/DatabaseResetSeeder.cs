@@ -16,11 +16,17 @@ public static class DatabaseResetSeeder
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(DatabaseResetSeeder));
 
-        try
+                try
         {
             logger.LogInformation("Starting database reset and seeding...");
 
-                        // Delete all data in the correct order (respecting foreign keys)
+            // Phase 21: bind the scope's tenant context before querying/writing any
+            // tenant-owned table (the global query filters require a resolved tenant).
+            // The context's write guard then stamps every new tenant-owned row with this
+            // organization automatically, so no explicit OrganizationId is needed below.
+            await scope.RequireResolvedTenantAsync();
+
+            // Delete all data in the correct order (respecting foreign keys)
             logger.LogInformation("Clearing existing data...");
             context.BookingTimeSlots.RemoveRange(context.BookingTimeSlots);
             context.CourtTimeSlots.RemoveRange(context.CourtTimeSlots);

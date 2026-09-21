@@ -1629,3 +1629,18 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
     white-space: normal;
   }
 }
+
+/* ========================================================= */
+/* PHASE 29 — ADMIN QUICK CARDS                              */
+/* ========================================================= */
+
+.admin-quick-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  color: inherit;
+}
+
+.admin-quick-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.12) !important;
+  color: inherit;
+}

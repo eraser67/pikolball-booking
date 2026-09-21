@@ -2,18 +2,19 @@ using Microsoft.EntityFrameworkCore;
 using PickleBallBooking.Data;
 using PickleBallBooking.Models;
 using PickleBallBooking.Services;
+using PickleBallBooking.Tests.Infrastructure;
 
 namespace PickleBallBooking.Tests;
 
 public class OvernightPricingTests
 {
+    // Phase 21: pricing rows are tenant-owned, so the context must resolve to the
+    // same organization the fixtures use.
+    private const int TestOrganizationId = 1;
+
     private static ApplicationDbContext CreateContext()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        return new ApplicationDbContext(options);
+        return TestDbContextFactory.CreateInMemory(Guid.NewGuid().ToString(), TestOrganizationId);
     }
 
     private static DateOnly NextWeekday()
@@ -41,9 +42,9 @@ public class OvernightPricingTests
     {
         await using var context = CreateContext();
         // Legacy bands that end at the 23:59 sentinel.
-        context.Pricings.AddRange(
-            new Pricing { DayType = DayType.Weekday, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(18, 0, 0), Price = 250m, Status = PricingStatus.Active },
-            new Pricing { DayType = DayType.Weekday, StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(23, 59, 0), Price = 300m, Status = PricingStatus.Active });
+                context.Pricings.AddRange(
+            new Pricing { OrganizationId = 1, DayType = DayType.Weekday, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(18, 0, 0), Price = 250m, Status = PricingStatus.Active },
+            new Pricing { OrganizationId = 1, DayType = DayType.Weekday, StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(23, 59, 0), Price = 300m, Status = PricingStatus.Active });
         await context.SaveChangesAsync();
 
         var service = new BookingService(context);
@@ -60,9 +61,9 @@ public class OvernightPricingTests
     public async Task LateNightSlot_IsPriced_WhenBandEndsAtMidnight()
     {
         await using var context = CreateContext();
-        context.Pricings.AddRange(
-            new Pricing { DayType = DayType.Weekday, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(18, 0, 0), Price = 250m, Status = PricingStatus.Active },
-            new Pricing { DayType = DayType.Weekday, StartTime = new TimeSpan(18, 0, 0), EndTime = TimeSpan.Zero, Price = 300m, Status = PricingStatus.Active });
+                context.Pricings.AddRange(
+            new Pricing { OrganizationId = 1, DayType = DayType.Weekday, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(18, 0, 0), Price = 250m, Status = PricingStatus.Active },
+            new Pricing { OrganizationId = 1, DayType = DayType.Weekday, StartTime = new TimeSpan(18, 0, 0), EndTime = TimeSpan.Zero, Price = 300m, Status = PricingStatus.Active });
         await context.SaveChangesAsync();
 
         var service = new BookingService(context);
@@ -76,8 +77,8 @@ public class OvernightPricingTests
     public async Task LateNightSlot_IsPriced_WhenBandEndsAt235959()
     {
         await using var context = CreateContext();
-        context.Pricings.AddRange(
-            new Pricing { DayType = DayType.Weekend, StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(23, 59, 59), Price = 400m, Status = PricingStatus.Active });
+                context.Pricings.AddRange(
+            new Pricing { OrganizationId = 1, DayType = DayType.Weekend, StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(23, 59, 59), Price = 400m, Status = PricingStatus.Active });
         await context.SaveChangesAsync();
 
         var service = new BookingService(context);
@@ -95,9 +96,9 @@ public class OvernightPricingTests
         // types so the test is independent of which weekday "tomorrow" happens to be.
         foreach (var dayType in new[] { DayType.Weekday, DayType.Weekend })
         {
-            context.Pricings.AddRange(
-                new Pricing { DayType = dayType, StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(2, 0, 0), Price = 500m, Status = PricingStatus.Active },
-                new Pricing { DayType = dayType, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(2, 0, 0), Price = 500m, Status = PricingStatus.Active });
+                        context.Pricings.AddRange(
+                new Pricing { OrganizationId = 1, DayType = dayType, StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(2, 0, 0), Price = 500m, Status = PricingStatus.Active },
+                new Pricing { OrganizationId = 1, DayType = dayType, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(2, 0, 0), Price = 500m, Status = PricingStatus.Active });
         }
         await context.SaveChangesAsync();
 
@@ -119,9 +120,9 @@ public class OvernightPricingTests
     public async Task FullDayCoverage_AllTwentyFourHoursArePriced()
     {
         await using var context = CreateContext();
-        context.Pricings.AddRange(
-            new Pricing { DayType = DayType.Weekday, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(18, 0, 0), Price = 250m, Status = PricingStatus.Active },
-            new Pricing { DayType = DayType.Weekday, StartTime = new TimeSpan(18, 0, 0), EndTime = TimeSpan.Zero, Price = 300m, Status = PricingStatus.Active });
+                context.Pricings.AddRange(
+            new Pricing { OrganizationId = 1, DayType = DayType.Weekday, StartTime = TimeSpan.Zero, EndTime = new TimeSpan(18, 0, 0), Price = 250m, Status = PricingStatus.Active },
+            new Pricing { OrganizationId = 1, DayType = DayType.Weekday, StartTime = new TimeSpan(18, 0, 0), EndTime = TimeSpan.Zero, Price = 300m, Status = PricingStatus.Active });
         await context.SaveChangesAsync();
 
         var service = new BookingService(context);

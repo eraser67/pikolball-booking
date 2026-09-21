@@ -8,60 +8,88 @@
 
 @if (!string.IsNullOrEmpty(Model.StatusMessage))
 {
-    <div class="alert alert-success">@Model.StatusMessage</div>
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 
 <p>
-    <a asp-page="Create" class="btn btn-primary">Add Court</a>
+    <a asp-page="Create" class="btn btn-primary">+ Add Court</a>
 </p>
 
-<table class="pb-table">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Status</th>
-            <th><span class="pb-visually-hidden">Actions</span></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var court in Model.Courts)
-        {
+@if (!Model.Courts.Any())
+{
+    <div class="alert alert-secondary">No courts have been added yet.</div>
+}
+else
+{
+    <table class="pb-table">
+        <thead>
             <tr>
-                <td data-label="Name">@court.Name</td>
-                <td data-label="Description">@court.Description</td>
-                <td data-label="Status">
-                    @if (court.Status == PickleBallBooking.Models.CourtStatus.Active)
-                    {
-                        <span class="badge bg-success">Active</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-secondary">Inactive</span>
-                    }
-                </td>
-                <td class="pb-actions-cell">
-                    <div class="pb-actions">
-                        <a asp-page="Edit" asp-route-id="@court.Id" class="btn btn-sm btn-outline-primary">Edit</a>
-                        <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@court.Id">
-                            @if (court.Status == PickleBallBooking.Models.CourtStatus.Active)
-                            {
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate</button>
-                            }
-                            else
-                            {
-                                <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
-                            }
-                        </form>
-                        <form method="post" asp-page-handler="Delete" asp-route-id="@court.Id"
-                              data-pb-confirm="Delete court &quot;@court.Name&quot;? This cannot be undone."
-                              data-pb-confirm-title="Delete court"
-                              data-pb-confirm-ok="Delete">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                        </form>
-                    </div>
-                </td>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th><span class="pb-visually-hidden">Actions</span></th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var court in Model.Courts)
+            {
+                var imgUrl = Model.CourtImageUrls.GetValueOrDefault(court.Id);
+                <tr>
+                    <td data-label="Image" style="width:80px">
+                        @if (imgUrl is not null)
+                        {
+                            <img src="@imgUrl"
+                                 alt="@court.Name"
+                                 style="width:64px;height:64px;object-fit:cover;border-radius:6px;"
+                                 loading="lazy" />
+                        }
+                        else
+                        {
+                            <div style="width:64px;height:64px;background:#e9ecef;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#adb5bd;font-size:1.5rem;"
+                                 title="No image">
+                                &#x1F3D8;
+                            </div>
+                        }
+                    </td>
+                    <td data-label="Name">@court.Name</td>
+                    <td data-label="Description">@court.Description</td>
+                    <td data-label="Status">
+                        @if (court.Status == PickleBallBooking.Models.CourtStatus.Active)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </td>
+                    <td class="pb-actions-cell">
+                        <div class="pb-actions">
+                            <a asp-page="Edit" asp-route-id="@court.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@court.Id">
+                                @if (court.Status == PickleBallBooking.Models.CourtStatus.Active)
+                                {
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">Deactivate</button>
+                                }
+                                else
+                                {
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                                }
+                            </form>
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@court.Id"
+                                  data-pb-confirm="Delete court &quot;@court.Name&quot;? This cannot be undone."
+                                  data-pb-confirm-title="Delete court"
+                                  data-pb-confirm-ok="Delete">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

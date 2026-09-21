@@ -397,7 +397,7 @@ and branding applied to customer-facing pages.
 **Main Tasks:**
 
 - Organization profile management: name, logo, description, contact information,
-  address
+  address with map coordinates
 - Organization-level branding and booking settings
 - Customer-facing booking page uses the current organization's information
 - Enforce organization-scoped management (admins manage only their own
@@ -464,7 +464,7 @@ content. Depends on tenant context and organization settings.
 **Main Tasks:**
 
 - Server-side email service abstraction
-- Customer notifications (may include): booking received, payment instructions,
+- Customer notifications (may include): booking received,
   payment submitted, payment verified, payment rejected, booking cancelled
 - Organization notifications (may include): new booking, payment submitted,
   booking cancellation

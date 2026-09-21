@@ -193,8 +193,15 @@
             <h2 class="pb-section-title">FIND US</h2>
             <p class="pb-section-subtitle mb-4">Come play at our venue.</p>
             <ul class="list-unstyled pb-contact-list">
-                <li><i class="bi bi-building me-2"></i><strong>Pikol Bol Pickleball Club</strong></li>
-                <li><i class="bi bi-geo-alt me-2"></i>Venue address to be confirmed</li>
+                <li><i class="bi bi-building me-2"></i><strong>@Model.OrgName</strong></li>
+                @if (!string.IsNullOrWhiteSpace(Model.OrgAddress))
+                {
+                    <li><i class="bi bi-geo-alt me-2"></i>@Model.OrgAddress</li>
+                }
+                else
+                {
+                    <li><i class="bi bi-geo-alt me-2"></i><span class="text-muted">Address not set — configure in Admin &rarr; Settings.</span></li>
+                }
                 <li><i class="bi bi-clock me-2"></i>Open daily &mdash; book any available time slot</li>
                 <li><i class="bi bi-info-circle me-2"></i>Full directions available at the venue</li>
             </ul>
@@ -205,13 +212,13 @@
         <div class="col-lg-7">
             <div class="pb-map-wrap">
                 <a class="pb-map-link"
-                   href="https://www.google.com/maps/search/?api=1&query=10.671029,124.020279"
+                   href="https://www.google.com/maps/search/?api=1&query=@Model.OrgLatitude,@Model.OrgLongitude"
                    target="_blank"
                    rel="noopener noreferrer"
-                   aria-label="Open Pikol Bol Pickleball Club location in Google Maps">
+                   aria-label="Open @Model.OrgName location in Google Maps">
                     <iframe
-                        src="https://www.google.com/maps?q=10.671029,124.020279&z=17&output=embed"
-                        title="Map showing Pikol Bol Pickleball Club location"
+                        src="https://www.google.com/maps?q=@Model.OrgLatitude,@Model.OrgLongitude&z=17&output=embed"
+                        title="Map showing @Model.OrgName location"
                         width="100%"
                         height="450"
                         style="border:0; border-radius:12px;"

@@ -9,10 +9,17 @@ namespace PickleBallBooking.Services;
 public class BookingService : IBookingService
 {
     private readonly ApplicationDbContext _context;
+    private readonly BookingEmailService _emailService;
+    private readonly ISubscriptionService _subscriptionService;
 
-    public BookingService(ApplicationDbContext context)
+    public BookingService(
+        ApplicationDbContext context,
+        BookingEmailService emailService,
+        ISubscriptionService subscriptionService)
     {
-        _context = context;
+        _context             = context;
+        _emailService        = emailService;
+        _subscriptionService = subscriptionService;
     }
 
         public async Task<bool> IsAvailableAsync(int courtId, DateOnly bookingDate, TimeSpan startTime, TimeSpan endTime)
@@ -86,8 +93,15 @@ public class BookingService : IBookingService
             return BookingResult.Fail("Booking date cannot be in the past.");
         }
 
-        // Validate court is active
-        var court = await _context.Courts.FindAsync(courtId);
+        // Phase 26: subscription gate — block new bookings for expired/suspended orgs.
+        if (!await _subscriptionService.CanAcceptBookingsAsync())
+        {
+            return BookingResult.Fail(
+                "Bookings are currently unavailable. Please contact the venue to renew their subscription.");
+        }
+
+                // Validate court is active
+        var court = await _context.Courts.FirstOrDefaultAsync(c => c.Id == courtId);
         if (court is null || court.Status != CourtStatus.Active)
         {
             return BookingResult.Fail("The selected court is not available.");
@@ -140,25 +154,26 @@ public class BookingService : IBookingService
         // A retrying execution strategy (EnableRetryOnFailure) forbids opening a
         // second, user-initiated transaction on the same connection, and would also
         // conflict with the ambient one, so we only manage our own when there is none.
-        if (_context.Database.CurrentTransaction is null)
+                if (_context.Database.CurrentTransaction is null)
         {
             var strategy = _context.Database.CreateExecutionStrategy();
             return await strategy.ExecuteAsync(() => CreateBookingCoreAsync(
-                courtId, bookingDate, timeSlotIds,
+                courtId, court.OrganizationId, bookingDate, timeSlotIds,
                 customerName, customerPhone, customerEmail,
                 startTime, endTime, durationHours, priceResult.Price,
                 manageTransaction: true));
         }
 
         return await CreateBookingCoreAsync(
-            courtId, bookingDate, timeSlotIds,
+            courtId, court.OrganizationId, bookingDate, timeSlotIds,
             customerName, customerPhone, customerEmail,
             startTime, endTime, durationHours, priceResult.Price,
             manageTransaction: false);
     }
 
-    private async Task<BookingResult> CreateBookingCoreAsync(
+        private async Task<BookingResult> CreateBookingCoreAsync(
         int courtId,
+        int courtOrganizationId,
         DateOnly bookingDate,
         List<int> timeSlotIds,
         string customerName,
@@ -182,14 +197,21 @@ public class BookingService : IBookingService
             const int maxAttempts = 5;
             for (var attempt = 0; attempt < maxAttempts; attempt++)
             {
-                // Generate booking reference
+                                // Generate booking reference
                 var countForDate = await _context.Bookings.CountAsync(b => b.BookingDate == bookingDate);
                 var sequence = countForDate + 1 + attempt;
                 var reference = $"PB-{bookingDate:yyyyMMdd}-{sequence:D4}";
 
+                // Phase 20.5: attach the booking to the court's organization so the
+                // NOT NULL tenant foreign keys are satisfied. This uses the court's own
+                // OrganizationId (no tenant context/filtering yet; the app runs as the
+                // single Pikolball tenant).
+                var bookingOrganizationId = courtOrganizationId;
+
                 // Create the Booking record
                 var booking = new Booking
                 {
+                    OrganizationId = bookingOrganizationId,
                     BookingReference = reference,
                     CustomerName = customerName,
                     CustomerPhone = customerPhone,
@@ -216,8 +238,9 @@ public class BookingService : IBookingService
                     var slotOrder = 0;
                     foreach (var slotId in timeSlotIds)
                     {
-                        var bookingTimeSlot = new BookingTimeSlot
+                                                var bookingTimeSlot = new BookingTimeSlot
                         {
+                            OrganizationId = bookingOrganizationId,
                             BookingId = booking.Id,
                             CourtId = courtId,
                             BookingDate = bookingDate,
@@ -240,6 +263,20 @@ public class BookingService : IBookingService
                     {
                         await transaction.CommitAsync();
                     }
+
+                    // Phase 26: fire customer + org emails after successful booking.
+                    try
+                    {
+                        var orgForEmail = await _context.Organizations
+                            .FirstOrDefaultAsync(o => o.Id == bookingOrganizationId);
+                        if (orgForEmail is not null)
+                        {
+                            booking.Court = await _context.Courts.FindAsync(courtId);
+                            _emailService.SendBookingReceivedAsync(booking, orgForEmail);
+                            _emailService.SendNewBookingToOrgAsync(booking, orgForEmail);
+                        }
+                    }
+                    catch (Exception ex) { _ = ex; }
 
                     return BookingResult.Ok(booking);
                 }
@@ -381,9 +418,9 @@ public class BookingService : IBookingService
             .ToList();
     }
 
-    public async Task<BookingResult> CancelBookingAsync(int bookingId)
+        public async Task<BookingResult> CancelBookingAsync(int bookingId)
     {
-        var booking = await _context.Bookings.FindAsync(bookingId);
+        var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId);
         if (booking is null)
         {
             return BookingResult.Fail("Booking not found.");
@@ -504,9 +541,9 @@ public class BookingService : IBookingService
         return completed;
     }
 
-    public async Task<BookingResult> UpdateBookingStatusAsync(int id, BookingStatus newStatus)
+        public async Task<BookingResult> UpdateBookingStatusAsync(int id, BookingStatus newStatus)
     {
-        var booking = await _context.Bookings.FindAsync(id);
+        var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == id);
         if (booking is null)
         {
             return BookingResult.Fail("Booking not found.");
@@ -535,6 +572,23 @@ public class BookingService : IBookingService
         booking.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        // Phase 26: notify customer and org when booking is cancelled.
+        if (newStatus == BookingStatus.Cancelled)
+        {
+            try
+            {
+                var orgForEmail = await _context.Organizations
+                    .FirstOrDefaultAsync(o => o.Id == booking.OrganizationId);
+                if (orgForEmail is not null)
+                {
+                    booking.Court ??= await _context.Courts.FindAsync(booking.CourtId);
+                    _emailService.SendBookingCancelledToCustomerAsync(booking, orgForEmail);
+                    _emailService.SendBookingCancelledToOrgAsync(booking, orgForEmail);
+                }
+            }
+            catch (Exception ex) { _ = ex; }
+        }
 
         return BookingResult.Ok(booking);
     }
@@ -640,9 +694,9 @@ public class BookingService : IBookingService
             return PriceCalculationResult.Fail("End time must be after start time.");
         }
 
-        if (courtId.HasValue)
+                if (courtId.HasValue)
         {
-            var court = await _context.Courts.FindAsync(courtId.Value);
+            var court = await _context.Courts.FirstOrDefaultAsync(c => c.Id == courtId.Value);
             if (court is null || court.Status != CourtStatus.Active)
             {
                 return PriceCalculationResult.Fail("The selected court is not available.");

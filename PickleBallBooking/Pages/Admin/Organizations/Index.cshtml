@@ -1,0 +1,135 @@
+@page "/Admin/Organizations"
+@model PickleBallBooking.Pages.Admin.Organizations.IndexModel
+@using PickleBallBooking.Models
+@{
+    ViewData["Title"] = "Organizations";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Organizations</h1>
+        <p class="text-muted small mb-0">@Model.Organizations.Count organization(s) registered on the platform.</p>
+    </div>
+    <a asp-page="Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>New Organization
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle-fill me-2"></i>@Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-circle-fill me-2"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Organization</th>
+                        <th>Status</th>
+                        <th>Subscription</th>
+                        <th>Owner(s)</th>
+                        <th>Created</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var org in Model.Organizations)
+                    {
+                        Model.Subscriptions.TryGetValue(org.Id, out var sub);
+
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@org.Name</div>
+                                <code class="text-muted small">@org.Slug</code>
+                            </td>
+                            <td>
+                                @if (org.Status == OrganizationStatus.Active)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inactive</span>
+                                }
+                            </td>
+                            <td>
+                                @if (sub is not null)
+                                {
+                                    var (badgeClass, icon) = sub.Status switch {
+                                        SubscriptionStatus.Trial     => ("bg-info-subtle text-info border border-info-subtle", "bi-hourglass-split"),
+                                        SubscriptionStatus.Active    => ("bg-success-subtle text-success border border-success-subtle", "bi-check-circle"),
+                                        SubscriptionStatus.Expired   => ("bg-warning-subtle text-warning border border-warning-subtle", "bi-exclamation-circle"),
+                                        SubscriptionStatus.Suspended => ("bg-danger-subtle text-danger border border-danger-subtle", "bi-pause-circle"),
+                                        _                            => ("bg-secondary-subtle text-secondary border border-secondary-subtle", "bi-x-circle")
+                                    };
+                                    <div class="small fw-semibold">@sub.PlanName</div>
+                                    <span class="badge @badgeClass">
+                                        <i class="bi @icon me-1"></i>@sub.Status
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>No Plan
+                                    </span>
+                                }
+                            </td>
+                            <td class="text-muted small">
+                                @if (org.Owners.Any())
+                                {
+                                    @string.Join(", ", org.Owners.Select(o => o.Email ?? o.UserId))
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td class="text-muted small">@org.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                            <td class="text-end">
+                                <div class="d-flex gap-1 justify-content-end">
+                                    <a asp-page="Detail" asp-route-id="@org.Id"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye me-1"></i>View
+                                    </a>
+                                    @if (org.Status == OrganizationStatus.Active)
+                                    {
+                                        <form method="post" asp-page-handler="Deactivate" asp-route-id="@org.Id"
+                                              onsubmit="return confirm('Deactivate @org.Name?');">
+                                            @Html.AntiForgeryToken()
+                                            <button class="btn btn-sm btn-outline-warning">Deactivate</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form method="post" asp-page-handler="Activate" asp-route-id="@org.Id">
+                                            @Html.AntiForgeryToken()
+                                            <button class="btn btn-sm btn-outline-success">Activate</button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Organizations.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No organizations found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

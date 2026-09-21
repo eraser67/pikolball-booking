@@ -1,10 +1,122 @@
 @page "/Admin"
 @model PickleBallBooking.Pages.Admin.IndexModel
+@using PickleBallBooking.Models
 @{
     ViewData["Title"] = "Admin Dashboard";
+    var org = Model.Organization;
 }
 
-<h1>Admin Dashboard</h1>
+@* ── Platform Overview (PlatformAdmin only) ─────────────────────────── *@
+@if (Model.IsPlatformAdmin)
+{
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 class="h5 mb-0 fw-bold text-primary">
+                    <i class="bi bi-shield-lock me-2"></i>Platform Overview
+                </h2>
+                <p class="text-muted small mb-0">Cross-organization summary — visible to Platform Admins only.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a asp-page="/Admin/Organizations/Index" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-buildings me-1"></i>Organizations
+                </a>
+                <a asp-page="/Admin/Subscriptions/Index" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-credit-card-2-front me-1"></i>Subscriptions
+                </a>
+            </div>
+        </div>
+        <div class="row g-3 mb-2">
+            <div class="col-6 col-md-2">
+                <div class="card border-0 bg-primary bg-opacity-10 text-center h-100">
+                    <div class="card-body py-3">
+                        <div class="fs-3 fw-bold text-primary">@Model.TotalOrgsCount</div>
+                        <div class="small text-muted">Total Orgs</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div class="card border-0 bg-success bg-opacity-10 text-center h-100">
+                    <div class="card-body py-3">
+                        <div class="fs-3 fw-bold text-success">@Model.ActiveOrgsCount</div>
+                        <div class="small text-muted">Active Orgs</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div class="card border-0 bg-secondary bg-opacity-10 text-center h-100">
+                    <div class="card-body py-3">
+                        <div class="fs-3 fw-bold text-secondary">@Model.InactiveOrgsCount</div>
+                        <div class="small text-muted">Inactive Orgs</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div class="card border-0 bg-success bg-opacity-10 text-center h-100">
+                    <div class="card-body py-3">
+                        <div class="fs-3 fw-bold text-success">@Model.ActiveSubscriptionsCount</div>
+                        <div class="small text-muted">Active Plans</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div class="card border-0 bg-info bg-opacity-10 text-center h-100">
+                    <div class="card-body py-3">
+                        <div class="fs-3 fw-bold text-info">@Model.TrialSubscriptionsCount</div>
+                        <div class="small text-muted">On Trial</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div class="card border-0 bg-warning bg-opacity-10 text-center h-100">
+                    <div class="card-body py-3">
+                        <div class="fs-3 fw-bold text-warning">@Model.ExpiredOrSuspendedCount</div>
+                        <div class="small text-muted">Exp / Susp</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr />
+    </div>
+}
+
+<h1>@(org?.Name ?? "Organization") Administration</h1>
+
+@if (org is not null)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Organization</dt>
+                <dd class="col-sm-9">@org.Name</dd>
+                <dt class="col-sm-3">Subdomain</dt>
+                <dd class="col-sm-9"><code>@org.Slug</code></dd>
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">
+                    @if (org.Status == PickleBallBooking.Models.OrganizationStatus.Active)
+                    {
+                        <span class="badge bg-success">Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Inactive</span>
+                    }
+                </dd>
+
+                <dt class="col-sm-3">Created</dt>
+                <dd class="col-sm-9 mb-0">@org.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd")</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="mb-4">
+        <a asp-page="/Admin/OrgSettings/Index" class="btn btn-outline-primary">
+            <i class="bi bi-gear me-1"></i>Organization Settings
+        </a>
+        <a asp-page="/Admin/Users/Index" class="btn btn-outline-primary">
+            <i class="bi bi-people me-1"></i>Users
+        </a>
+    </div>
+}
 
 <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-5 g-3 mb-4">
     <div class="col">
@@ -49,11 +161,79 @@
     </div>
 </div>
 
-<h2>Manage</h2>
-<div class="list-group col-sm-6">
-    <a asp-page="/Admin/Bookings/Index" class="list-group-item list-group-item-action">Bookings</a>
-    <a asp-page="/Admin/Courts/Index" class="list-group-item list-group-item-action">Courts</a>
-    <a asp-page="/Admin/TimeSlots/Index" class="list-group-item list-group-item-action">Time Slots</a>
-    <a asp-page="/Admin/Pricing/Index" class="list-group-item list-group-item-action">Pricing</a>
-    <a asp-page="/Admin/Schedule/Index" class="list-group-item list-group-item-action">Schedule</a>
+<h2 class="h5 fw-bold mb-3 mt-2">Manage</h2>
+<div class="row row-cols-2 row-cols-sm-3 row-cols-lg-4 g-3 mb-4">
+    <div class="col">
+        <a asp-page="/Admin/Bookings/Index" class="card border-0 shadow-sm text-decoration-none h-100 admin-quick-card">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-journal-text fs-2 text-primary mb-2 d-block"></i>
+                <div class="fw-semibold">Bookings</div>
+                <div class="text-muted small">View &amp; manage</div>
+            </div>
+        </a>
+    </div>
+    <div class="col">
+        <a asp-page="/Admin/Payments/Index" class="card border-0 shadow-sm text-decoration-none h-100 admin-quick-card">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-credit-card fs-2 text-success mb-2 d-block"></i>
+                <div class="fw-semibold">Payments</div>
+                <div class="text-muted small">Verify GCash</div>
+            </div>
+        </a>
+    </div>
+    <div class="col">
+        <a asp-page="/Admin/Courts/Index" class="card border-0 shadow-sm text-decoration-none h-100 admin-quick-card">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-grid-3x3-gap fs-2 text-info mb-2 d-block"></i>
+                <div class="fw-semibold">Courts</div>
+                <div class="text-muted small">Manage courts</div>
+            </div>
+        </a>
+    </div>
+    <div class="col">
+        <a asp-page="/Admin/TimeSlots/Index" class="card border-0 shadow-sm text-decoration-none h-100 admin-quick-card">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-clock-history fs-2 text-warning mb-2 d-block"></i>
+                <div class="fw-semibold">Time Slots</div>
+                <div class="text-muted small">Configure times</div>
+            </div>
+        </a>
+    </div>
+    <div class="col">
+        <a asp-page="/Admin/Pricing/Index" class="card border-0 shadow-sm text-decoration-none h-100 admin-quick-card">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-tags fs-2 text-danger mb-2 d-block"></i>
+                <div class="fw-semibold">Pricing</div>
+                <div class="text-muted small">Set rates</div>
+            </div>
+        </a>
+    </div>
+    <div class="col">
+        <a asp-page="/Admin/Schedule/Index" class="card border-0 shadow-sm text-decoration-none h-100 admin-quick-card">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-calendar-week fs-2 text-secondary mb-2 d-block"></i>
+                <div class="fw-semibold">Schedule</div>
+                <div class="text-muted small">Court schedule</div>
+            </div>
+        </a>
+    </div>
+    <div class="col">
+        <a asp-page="/Admin/OrgSettings/Index" class="card border-0 shadow-sm text-decoration-none h-100 admin-quick-card">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-gear fs-2 text-primary mb-2 d-block"></i>
+                <div class="fw-semibold">Settings</div>
+                <div class="text-muted small">Organization</div>
+            </div>
+        </a>
+    </div>
+    <div class="col">
+        <a asp-page="/Admin/Users/Index" class="card border-0 shadow-sm text-decoration-none h-100 admin-quick-card">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-people fs-2 text-success mb-2 d-block"></i>
+                <div class="fw-semibold">Users</div>
+                <div class="text-muted small">Manage team</div>
+            </div>
+        </a>
+    </div>
 </div>
+
