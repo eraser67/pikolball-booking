@@ -12,5 +12,13 @@ public interface IEmailService
     /// <summary>
     /// Sends a single email. Never throws — logs on failure.
     /// </summary>
-    Task SendAsync(string toAddress, string toName, string subject, string htmlBody, CancellationToken ct = default);
+    Task SendAsync(
+        string toAddress,
+        string toName,
+        string subject,
+        string htmlBody,
+        string? fromAddress = null,
+        string? fromName = null,
+        string? replyTo = null,
+        CancellationToken ct = default);
 }

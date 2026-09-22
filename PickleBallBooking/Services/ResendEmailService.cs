@@ -39,6 +39,9 @@ public sealed class ResendEmailService : IEmailService
         string toName,
         string subject,
         string htmlBody,
+        string? fromAddress = null,
+        string? fromName = null,
+        string? replyTo = null,
         CancellationToken ct = default)
     {
         if (!_opts.Enabled)
@@ -49,7 +52,10 @@ public sealed class ResendEmailService : IEmailService
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(_opts.ApiKey) || string.IsNullOrWhiteSpace(_opts.FromAddress))
+        var effectiveFromAddress = !string.IsNullOrWhiteSpace(fromAddress) ? fromAddress : _opts.FromAddress;
+        var effectiveFromName = !string.IsNullOrWhiteSpace(fromName) ? fromName : _opts.FromName;
+
+        if (string.IsNullOrWhiteSpace(_opts.ApiKey) || string.IsNullOrWhiteSpace(effectiveFromAddress))
         {
             _logger.LogWarning(
                 "Email is enabled but Resend credentials are not fully configured. Skipping email to {To}.",
@@ -59,13 +65,28 @@ public sealed class ResendEmailService : IEmailService
 
         try
         {
-            var payload = new
+            object payload;
+            if (!string.IsNullOrWhiteSpace(replyTo))
             {
-                from    = $"{_opts.FromName} <{_opts.FromAddress}>",
-                to      = new[] { $"{toName} <{toAddress}>" },
-                subject,
-                html    = htmlBody
-            };
+                payload = new
+                {
+                    from     = $"{effectiveFromName} <{effectiveFromAddress}>",
+                    to       = new[] { $"{toName} <{toAddress}>" },
+                    subject,
+                    html     = htmlBody,
+                    reply_to = replyTo
+                };
+            }
+            else
+            {
+                payload = new
+                {
+                    from = $"{effectiveFromName} <{effectiveFromAddress}>",
+                    to   = new[] { $"{toName} <{toAddress}>" },
+                    subject,
+                    html = htmlBody
+                };
+            }
 
             var json    = JsonSerializer.Serialize(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -78,7 +99,7 @@ public sealed class ResendEmailService : IEmailService
 
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("Email sent to {To} — {Subject}", toAddress, subject);
+                _logger.LogInformation("Email sent from {From} to {To} — {Subject}", $"{effectiveFromName} <{effectiveFromAddress}>", toAddress, subject);
             }
             else
             {

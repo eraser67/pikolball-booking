@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
 using PickleBallBooking.Models;
 
 namespace PickleBallBooking.Services;
@@ -15,6 +17,7 @@ public sealed class BookingEmailService
 {
     private readonly IEmailService _email;
     private readonly ILogger<BookingEmailService> _logger;
+    private readonly EmailOptions _opts;
 
     // Brand colors
     private const string Green      = "#16a34a";
@@ -24,53 +27,115 @@ public sealed class BookingEmailService
     private const string RedLight   = "#fee2e2";
     private const string Red        = "#dc2626";
 
-    public BookingEmailService(IEmailService email, ILogger<BookingEmailService> logger)
+    public BookingEmailService(
+        IEmailService email,
+        ILogger<BookingEmailService> logger,
+        IOptions<EmailOptions>? emailOptions = null)
     {
         _email  = email;
         _logger = logger;
+        _opts   = emailOptions?.Value ?? new EmailOptions();
+    }
+
+    private (string FromAddress, string FromName, string? ReplyTo) GetSenderForOrg(Organization? org)
+    {
+        var fromName = !string.IsNullOrWhiteSpace(org?.Name) ? org.Name.Trim() : (!string.IsNullOrWhiteSpace(_opts.FromName) ? _opts.FromName : "Pikolball Booking");
+
+        var domain = "punitbola.tech";
+        if (!string.IsNullOrWhiteSpace(_opts.FromAddress) && _opts.FromAddress.Contains('@'))
+        {
+            var parts = _opts.FromAddress.Split('@');
+            if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1]))
+            {
+                domain = parts[1].Trim();
+            }
+        }
+
+        var slug = org?.Slug?.Trim().ToLowerInvariant();
+        var safeSlug = !string.IsNullOrEmpty(slug) ? Regex.Replace(slug, @"[^a-z0-9\-]", "") : "noreply";
+        if (string.IsNullOrEmpty(safeSlug))
+        {
+            safeSlug = "noreply";
+        }
+
+        var fromAddress = $"{safeSlug}@{domain}";
+
+        var replyTo = !string.IsNullOrWhiteSpace(org?.NotificationEmail) ? org.NotificationEmail.Trim() : null;
+
+        return (fromAddress, fromName, replyTo);
     }
 
     // ─── Customer notifications ──────────────────────────────────────────────
 
     /// <summary>Booking received — sent immediately after booking is created.</summary>
     public void SendBookingReceivedAsync(Booking booking, Organization org)
-        => Fire(_email.SendAsync(
+    {
+        var sender = GetSenderForOrg(org);
+        Fire(_email.SendAsync(
             booking.CustomerEmail,
             booking.CustomerName,
             $"🏓 Booking Received — {booking.BookingReference}",
-            BuildBookingReceivedHtml(booking, org)));
+            BuildBookingReceivedHtml(booking, org),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: sender.ReplyTo));
+    }
 
     /// <summary>Payment submitted — sent after customer submits GCash reference.</summary>
     public void SendPaymentSubmittedToCustomerAsync(Booking booking, Payment payment, Organization org)
-        => Fire(_email.SendAsync(
+    {
+        var sender = GetSenderForOrg(org);
+        Fire(_email.SendAsync(
             booking.CustomerEmail,
             booking.CustomerName,
             $"✅ Payment Received — {booking.BookingReference}",
-            BuildPaymentSubmittedCustomerHtml(booking, payment, org)));
+            BuildPaymentSubmittedCustomerHtml(booking, payment, org),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: sender.ReplyTo));
+    }
 
     /// <summary>Payment verified — sent after admin verifies the payment.</summary>
     public void SendPaymentVerifiedAsync(Booking booking, Organization org)
-        => Fire(_email.SendAsync(
+    {
+        var sender = GetSenderForOrg(org);
+        Fire(_email.SendAsync(
             booking.CustomerEmail,
             booking.CustomerName,
             $"🎉 Booking Confirmed — {booking.BookingReference}",
-            BuildPaymentVerifiedHtml(booking, org)));
+            BuildPaymentVerifiedHtml(booking, org),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: sender.ReplyTo));
+    }
 
     /// <summary>Payment rejected — sent after admin rejects the payment.</summary>
     public void SendPaymentRejectedAsync(Booking booking, Payment payment, Organization org)
-        => Fire(_email.SendAsync(
+    {
+        var sender = GetSenderForOrg(org);
+        Fire(_email.SendAsync(
             booking.CustomerEmail,
             booking.CustomerName,
             $"⚠️ Payment Not Accepted — {booking.BookingReference}",
-            BuildPaymentRejectedHtml(booking, payment, org)));
+            BuildPaymentRejectedHtml(booking, payment, org),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: sender.ReplyTo));
+    }
 
     /// <summary>Booking cancelled — sent after a booking is cancelled.</summary>
     public void SendBookingCancelledToCustomerAsync(Booking booking, Organization org)
-        => Fire(_email.SendAsync(
+    {
+        var sender = GetSenderForOrg(org);
+        Fire(_email.SendAsync(
             booking.CustomerEmail,
             booking.CustomerName,
             $"Booking Cancelled — {booking.BookingReference}",
-            BuildBookingCancelledCustomerHtml(booking, org)));
+            BuildBookingCancelledCustomerHtml(booking, org),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: sender.ReplyTo));
+    }
 
     // ─── Organization notifications ──────────────────────────────────────────
 
@@ -78,33 +143,45 @@ public sealed class BookingEmailService
     public void SendNewBookingToOrgAsync(Booking booking, Organization org)
     {
         if (string.IsNullOrWhiteSpace(org.NotificationEmail)) return;
+        var sender = GetSenderForOrg(org);
         Fire(_email.SendAsync(
             org.NotificationEmail,
             org.Name,
             $"📋 New Booking — {booking.BookingReference}",
-            BuildNewBookingOrgHtml(booking, org)));
+            BuildNewBookingOrgHtml(booking, org),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: !string.IsNullOrWhiteSpace(booking.CustomerEmail) ? booking.CustomerEmail : sender.ReplyTo));
     }
 
     /// <summary>Payment submitted alert — sent to org when customer submits proof.</summary>
     public void SendPaymentSubmittedToOrgAsync(Booking booking, Payment payment, Organization org)
     {
         if (string.IsNullOrWhiteSpace(org.NotificationEmail)) return;
+        var sender = GetSenderForOrg(org);
         Fire(_email.SendAsync(
             org.NotificationEmail,
             org.Name,
             $"💳 Payment to Verify — {booking.BookingReference}",
-            BuildPaymentSubmittedOrgHtml(booking, payment, org)));
+            BuildPaymentSubmittedOrgHtml(booking, payment, org),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: !string.IsNullOrWhiteSpace(booking.CustomerEmail) ? booking.CustomerEmail : sender.ReplyTo));
     }
 
     /// <summary>Booking cancelled alert — sent to org when a booking is cancelled.</summary>
     public void SendBookingCancelledToOrgAsync(Booking booking, Organization org)
     {
         if (string.IsNullOrWhiteSpace(org.NotificationEmail)) return;
+        var sender = GetSenderForOrg(org);
         Fire(_email.SendAsync(
             org.NotificationEmail,
             org.Name,
             $"❌ Booking Cancelled — {booking.BookingReference}",
-            BuildBookingCancelledOrgHtml(booking, org)));
+            BuildBookingCancelledOrgHtml(booking, org),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: !string.IsNullOrWhiteSpace(booking.CustomerEmail) ? booking.CustomerEmail : sender.ReplyTo));
     }
 
     // ─── HTML templates ──────────────────────────────────────────────────────
