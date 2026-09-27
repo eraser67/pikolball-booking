@@ -1,4 +1,4 @@
-﻿@page "/Activities"
+@page "/Activities"
 @model PickleBallBooking.Pages.Activities.IndexModel
 @using PickleBallBooking.Models
 @{
@@ -82,7 +82,7 @@
                                 </li>
                                 <li class="mb-1">
                                     <i class="bi bi-clock text-muted me-2"></i>
-                                    @a.StartTime.ToString(@"h\:mm") – @a.EndTime.ToString(@"h\:mm tt")
+                                    @a.StartTime.ToString(@"hh\:mm") – @a.EndTime.ToString(@"hh\:mm")
                                 </li>
                                 @if (a.ActivityCourts.Any())
                                 {
