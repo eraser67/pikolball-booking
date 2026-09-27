@@ -117,3 +117,43 @@
   - Load available/booked slots asynchronously via `OnGetSlotsAsync` on court or date changes without page reload or link refresh.
 - [x] **Philippine Peso (`₱`) Currency Standardization:**
   - Standardize all currency rendering across frontend, admin pages, and transactional email templates to use the Philippine Peso (`₱`) symbol with `en-PH` formatting.
+
+## Future Phases (31–61) — PLANNED
+
+The long-term community and competitive feature roadmap is documented in [`COMMUNITY_ROADMAP.md`](COMMUNITY_ROADMAP.md).
+
+All items below are **PLANNED / FUTURE**. No features have been implemented.
+
+- [ ] **Phase 31 — Customer Account Registration & Authentication** *(Self-registration, Name/Email/Password/Mobile, Customer/Player role, platform-level identity)*
+- [ ] **Phase 32 — Player Account & Profile Foundation** *(Player Profile, Skill Level, Player Dashboard, Privacy Settings)*
+- [ ] **Phase 33 — Open Play / Activities** *(Admin-created events, Activity States, RSVP integration)*
+- [ ] **Phase 34 — RSVP & Waitlist** *(RSVP States, Waitlist ordering, Automatic promotion, Payment integration future)*
+- [ ] **Phase 35 — Recurring Activities** *(Weekly/Monthly recurrence, Series management, Cancel/Pause/Modify)*
+- [ ] **Phase 36 — Notifications** *(Email + In-App notifications for community events, Admin/Player triggers)*
+- [ ] **Phase 37 — Calendar Integration** *(ICS, Google Calendar, Apple Calendar, Outlook)*
+- [ ] **Phase 38 — Player Check-In** *(QR Check-In, Admin Check-In, No-Show tracking, Attendance history)*
+- [ ] **Phase 39 — Court Assignment** *(Manual, Automatic, Skill-Based grouping, Lock Assignment)*
+- [ ] **Phase 40 — Round Robin Engine** *(Rotating Partners, Fixed Partners, Singles, Match schedule generation)*
+- [ ] **Phase 41 — Match Scoring** *(Score entry, Live score, Admin finalization, Score correction with audit)*
+- [ ] **Phase 42 — Standings & Leaderboards** *(Wins, Losses, Win %, Point differential, Tenant-scoped)*
+- [ ] **Phase 43 — Player Statistics & Match History** *(Games played, Partner/Opponent history, Privacy controls)*
+- [ ] **Phase 44 — Tournament Foundation** *(Single Elimination, Round Robin, Pool Play, Divisions)*
+- [ ] **Phase 45 — Tournament Registration** *(Individual/Team, GCash payment integration, Waitlist)*
+- [ ] **Phase 46 — Tournament Brackets** *(Seeding, Bracket generation, Match advancement, Finalization)*
+- [ ] **Phase 47 — Tournament Scheduling** *(Court assignment, Conflict detection, Rest periods)*
+- [ ] **Phase 48 — League Management** *(Seasons, Divisions, Teams, Schedule, Standings, Playoffs)*
+- [ ] **Phase 49 — Community Feed** *(Admin announcements, Event/Tournament/Venue notices, Results)*
+- [ ] **Phase 50 — Player Connections** *(Follow players, View profiles, Invite players, Privacy controls)*
+- [ ] **Phase 51 — Kudos / Recognition** *(Great Partner, Good Sportsmanship — with anti-abuse controls)*
+- [ ] **Phase 52 — Community Leaderboards** *(Most Active, Most Games, Most Events — separate from competitive)*
+- [ ] **Phase 53 — Achievements / Badges** *(First Game, 10 Wins, Tournament Champion, Community Regular)*
+- [ ] **Phase 54 — DUPR Integration** *(Match submission to DUPR, Player opt-in, Tenant isolation — external API required)*
+- [ ] **Phase 55 — Advanced Notifications** *(In-App feed, Browser Push, Per-category preferences)*
+- [ ] **Phase 56 — Find a Game (Game Discovery)** *(Location, Date, Skill, Format filters — uses Phase 31 platform account)*
+- [ ] **Phase 57 — Multi-Tenant Community Marketplace** *(Platform-wide opt-in discovery, Tenant data isolation)*
+- [ ] **Phase 58 — Advanced Tenant Community Controls** *(Feature flags per tenant: profiles, tournaments, DUPR, etc.)*
+- [ ] **Phase 59 — Community Analytics** *(Booking, Community, Competitive analytics dashboards)*
+- [ ] **Phase 60 — Advanced Match Scheduling** *(Constraint-based scheduling engine — future optimization)*
+- [ ] **Phase 61 — PWA / Mobile Experience** *(Installable app, Push notifications, QR scanning, Mobile scoring)*
+
+

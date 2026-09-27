@@ -2,6 +2,8 @@
 
 **Overall Status:** Phases 1–30 Complete + Deployed to Production (`punitbola.tech` / `demo.punitbola.tech`)
 
+**Next Phase:** Phase 31 — See [COMMUNITY_ROADMAP.md](COMMUNITY_ROADMAP.md) for the full long-term feature roadmap (Phases 31–61).
+
 ---
 
 ## Completed Core Phases (1–15)
@@ -226,3 +228,24 @@ The following features were introduced following the production deployment:
   - Payment lifecycle (submission, verification, rejection)
   - Payment proof storage & MIME-type validation
   - Subscription status gating and limits
+
+---
+
+## Long-Term Feature Roadmap (Phases 31–60)
+
+The community and competitive feature roadmap continues in a dedicated document:
+
+**See:** [`COMMUNITY_ROADMAP.md`](COMMUNITY_ROADMAP.md)
+
+| Release               | Phases | Purpose                                    | Status  |
+|-----------------------|--------|--------------------------------------------|---------||
+| Community Foundation  | 31–37  | Customer accounts, players, activities     | PLANNED |
+| Venue Operations      | 38–39  | Attendance and court management            | PLANNED |
+| Competitive           | 40–43  | Matches and rankings                       | PLANNED |
+| Tournaments & Leagues | 44–48  | Competitions and leagues                   | PLANNED |
+| Community             | 49–53  | Social engagement                          | PLANNED |
+| Integrations          | 54–55  | DUPR and advanced notifications            | PLANNED |
+| Discovery & SaaS      | 56–60  | Platform-wide expansion                    | PLANNED |
+| Mobile                | 61     | PWA / mobile experience                    | PLANNED |
+
+All phases in `COMMUNITY_ROADMAP.md` are **PLANNED / FUTURE**. No application code has been modified.
