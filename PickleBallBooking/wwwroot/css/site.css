@@ -790,7 +790,7 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   background-color: var(--pb-surface);
   border-radius: 2rem;
   margin: 0.5rem 0;
-  padding: 5rem 2rem;
+  padding: 3rem 2rem;
 }
 
 .pb-section-label {
@@ -1354,7 +1354,7 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   background: var(--pb-surface);
   border: 1px solid var(--pb-border);
   border-radius: 1.25rem;
-  padding: 2rem 1.75rem;
+  padding: 1.4rem 1.5rem;
   text-align: center;
   box-shadow:
     0 1px 2px rgba(15,61,46,0.04),
@@ -1386,14 +1386,14 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 1rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.75rem;
   background: linear-gradient(135deg, var(--pb-green-700), var(--pb-green-600));
   color: #fff;
   font-weight: 800;
-  font-size: 1.05rem;
-  margin-bottom: 1.1rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
   box-shadow:
     0 4px 12px rgba(25,135,84,0.3),
     inset 0 1px 0 rgba(255,255,255,0.2);
@@ -1405,7 +1405,7 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   display: none;
   align-items: center;
   justify-content: center;
-  padding-top: 3.5rem;
+  padding-top: 2rem;
 }
 
 @media (min-width: 768px) {
