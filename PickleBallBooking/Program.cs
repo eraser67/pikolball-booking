@@ -169,6 +169,9 @@ builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 // Phase 31: customer self-registration.
 builder.Services.AddScoped<CustomerRegistrationService>();
 
+// Phase 32: player profile management.
+builder.Services.AddScoped<PlayerProfileService>();
+
 // Phase 21/22: server-side tenant context and resolution.
 // The context is request-scoped so concurrent requests never share an organization.
 // ITenantResolver identifies the tenant from the request HOSTNAME (a strict

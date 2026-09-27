@@ -10,57 +10,70 @@ using PickleBallBooking.Services;
 namespace PickleBallBooking.Pages.Customer;
 
 /// <summary>
-/// Phase 31: customer / player dashboard.
+/// Phase 32: customer / player dashboard (updated).
 ///
-/// Displays the authenticated player's account summary:
-///   - Full name and email (from Identity claims / user)
-///   - Recent bookings linked to their email address
-///
-/// Authorization: requires the Customer role (enforced by AuthorizeFolder in
-/// Program.cs via the CustomerOnly policy).
+/// Now uses PlayerProfile as the primary data source for display name, skill level,
+/// and location. Falls back to Phase 31 claims if the profile has not yet been
+/// completed.
 /// </summary>
 public class DashboardModel : PageModel
 {
     private readonly UserManager<IdentityUser> _userManager;
     private readonly ApplicationDbContext _context;
+    private readonly PlayerProfileService _profileService;
 
     public DashboardModel(
         UserManager<IdentityUser> userManager,
-        ApplicationDbContext context)
+        ApplicationDbContext context,
+        PlayerProfileService profileService)
     {
-        _userManager = userManager;
-        _context = context;
+        _userManager    = userManager;
+        _context        = context;
+        _profileService = profileService;
     }
 
-    public string FullName { get; private set; } = string.Empty;
+    public string DisplayName { get; private set; } = string.Empty;
     public string Email { get; private set; } = string.Empty;
     public string Mobile { get; private set; } = string.Empty;
+    public string? Location { get; private set; }
+    public string? SkillLevelLabel { get; private set; }
+    public bool HasProfile { get; private set; }
 
-    /// <summary>
-    /// The 5 most recent bookings matched by the customer's email address.
-    /// Anonymous bookings made before account creation are included.
-    /// </summary>
     public IReadOnlyList<BookingSummary> RecentBookings { get; private set; } = [];
 
     public async Task<IActionResult> OnGetAsync()
     {
         var user = await _userManager.GetUserAsync(User);
-        if (user is null)
-        {
-            return RedirectToPage("/Account/Login");
-        }
+        if (user is null) return RedirectToPage("/Account/Login");
 
         Email  = user.Email ?? string.Empty;
         Mobile = user.PhoneNumber ?? string.Empty;
 
-        // Full name is stored as a claim in Phase 31.
-        // Phase 32 (PlayerProfile) moves this to a proper DB entity.
-        FullName = User.FindFirstValue("fullName") ?? Email;
+        // Phase 32: prefer PlayerProfile data over raw claims.
+        var profile = await _profileService.GetByUserIdAsync(user.Id);
+        HasProfile = profile is not null;
 
-        // Fetch the 5 most recent bookings linked to this customer's email.
-        // IgnoreQueryFilters bypasses the tenant (OrganizationId) global query filter
-        // so that bookings from all tenant venues the customer has used are returned.
-        // Phase 32 introduces a proper cross-tenant participation model.
+        if (profile is not null)
+        {
+            DisplayName     = profile.DisplayName.Length > 0 ? profile.DisplayName : $"{profile.FirstName} {profile.LastName}";
+            Mobile          = profile.Mobile ?? Mobile;
+            Location        = profile.Location;
+            SkillLevelLabel = profile.SkillLevel switch
+            {
+                PlayerSkillLevel.Beginner     => "🟢 Beginner",
+                PlayerSkillLevel.Intermediate => "🟡 Intermediate",
+                PlayerSkillLevel.Advanced     => "🔴 Advanced",
+                _                             => null
+            };
+        }
+        else
+        {
+            // Phase 31 fallback: claims stored at registration.
+            DisplayName = User.FindFirstValue("fullName") ?? Email;
+        }
+
+        // Fetch the 5 most recent bookings across all tenants by email.
+        // IgnoreQueryFilters bypasses the tenant (OrganizationId) global query filter.
         RecentBookings = await _context.Bookings
             .IgnoreQueryFilters()
             .Include(b => b.Court)
@@ -69,15 +82,15 @@ public class DashboardModel : PageModel
             .Take(5)
             .Select(b => new BookingSummary
             {
-                Id          = b.Id,
-                CourtName   = b.Court != null ? b.Court.Name : "Court",
-                Date        = b.BookingDate,
-                StartTime   = b.StartTime,
-                EndTime     = b.EndTime,
-                Status      = b.BookingStatus,
-                Price       = b.Price,
-                Reference   = b.BookingReference,
-                CreatedAt   = b.CreatedAt
+                Id        = b.Id,
+                CourtName = b.Court != null ? b.Court.Name : "Court",
+                Date      = b.BookingDate,
+                StartTime = b.StartTime,
+                EndTime   = b.EndTime,
+                Status    = b.BookingStatus,
+                Price     = b.Price,
+                Reference = b.BookingReference,
+                CreatedAt = b.CreatedAt
             })
             .ToListAsync();
 

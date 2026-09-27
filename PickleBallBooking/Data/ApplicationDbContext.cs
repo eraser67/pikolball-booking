@@ -80,6 +80,10 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
 
+    // Phase 32: player profile (global — no tenant query filter).
+    // The player identity belongs to the platform, not to any single tenant.
+    public DbSet<PlayerProfile> PlayerProfiles => Set<PlayerProfile>();
+
     /// <summary>
     /// The set of tenant-owned entity CLR types. Used by the write guard below so a
     /// single implementation covers every tenant-owned entity.
@@ -476,6 +480,33 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             entity.HasOne(s => s.Plan)
                 .WithMany(sp => sp.Subscriptions)
                 .HasForeignKey(s => s.PlanId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Phase 32: PlayerProfile — global (no tenant query filter).
+        // One profile per Identity user; linked by UserId (string FK to AspNetUsers).
+        modelBuilder.Entity<PlayerProfile>(entity =>
+        {
+            entity.HasKey(p => p.Id);
+
+            entity.Property(p => p.UserId).IsRequired().HasMaxLength(450);
+            entity.Property(p => p.FirstName).IsRequired().HasMaxLength(50);
+            entity.Property(p => p.LastName).IsRequired().HasMaxLength(50);
+            entity.Property(p => p.DisplayName).HasMaxLength(100);
+            entity.Property(p => p.Mobile).HasMaxLength(20);
+            entity.Property(p => p.Bio).HasMaxLength(500);
+            entity.Property(p => p.Location).HasMaxLength(100);
+
+            // One profile per player.
+            entity.HasIndex(p => p.UserId)
+                .IsUnique()
+                .HasDatabaseName("IX_PlayerProfile_UserId");
+
+            // FK to AspNetUsers. Restrict: profile must not cascade-delete when the
+            // Identity user is deleted (admin must handle data retention explicitly).
+            entity.HasOne<IdentityUser>()
+                .WithMany()
+                .HasForeignKey(p => p.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

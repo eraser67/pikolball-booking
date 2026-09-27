@@ -24,6 +24,21 @@
 
 <div class="container py-4">
 
+    <!-- Profile completion nudge -->
+    @if (!Model.HasProfile)
+    {
+        <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center gap-3 mb-4">
+            <i class="bi bi-person-exclamation" style="font-size:1.5rem;flex-shrink:0;"></i>
+            <div class="flex-grow-1">
+                <div class="fw-semibold">Complete your player profile</div>
+                <div class="small text-muted">Add your skill level, location, and bio so other players can find you.</div>
+            </div>
+            <a asp-page="/Customer/Profile" class="btn btn-warning btn-sm fw-semibold flex-shrink-0">
+                Set up profile
+            </a>
+        </div>
+    }
+
     <!-- Welcome Header -->
     <div class="row mb-4">
         <div class="col">
@@ -33,16 +48,29 @@
                     <i class="bi bi-person-fill text-success" style="font-size:1.8rem;"></i>
                 </div>
                 <div>
-                    <h1 class="h4 fw-bold mb-0">Welcome back, @Model.FullName</h1>
+                    <h1 class="h4 fw-bold mb-0">Welcome back, @Model.DisplayName</h1>
                     <p class="text-muted mb-0 small">
                         <i class="bi bi-envelope me-1"></i>@Model.Email
                         @if (!string.IsNullOrEmpty(Model.Mobile))
                         {
                             <span class="ms-3"><i class="bi bi-phone me-1"></i>@Model.Mobile</span>
                         }
+                        @if (!string.IsNullOrEmpty(Model.Location))
+                        {
+                            <span class="ms-3"><i class="bi bi-geo-alt me-1"></i>@Model.Location</span>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.SkillLevelLabel))
+                        {
+                            <span class="ms-3">@Model.SkillLevelLabel</span>
+                        }
                     </p>
                 </div>
             </div>
+        </div>
+        <div class="col-auto">
+            <a asp-page="/Customer/Profile" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-pencil me-1"></i>Edit Profile
+            </a>
         </div>
     </div>
 
@@ -73,10 +101,10 @@
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-page="/Index" class="card text-decoration-none h-100 border-0 shadow-sm pb-action-card">
+            <a asp-page="/Customer/Profile" class="card text-decoration-none h-100 border-0 shadow-sm pb-action-card">
                 <div class="card-body text-center py-4">
-                    <i class="bi bi-house text-info mb-2" style="font-size:1.8rem;"></i>
-                    <div class="fw-semibold small">Home</div>
+                    <i class="bi bi-person-badge text-info mb-2" style="font-size:1.8rem;"></i>
+                    <div class="fw-semibold small">My Profile</div>
                 </div>
             </a>
         </div>
@@ -123,11 +151,7 @@
                             @foreach (var booking in Model.RecentBookings)
                             {
                                 <tr>
-                                    <td>
-                                        <span class="font-monospace small fw-semibold text-muted">
-                                            @booking.Reference
-                                        </span>
-                                    </td>
+                                    <td><span class="font-monospace small fw-semibold text-muted">@booking.Reference</span></td>
                                     <td class="fw-medium">@booking.CourtName</td>
                                     <td class="small">@booking.Date.ToString("MMM d, yyyy")</td>
                                     <td class="small text-muted">
@@ -138,9 +162,7 @@
                                             <i class="bi @StatusIcon(booking.Status) me-1"></i>@booking.Status
                                         </span>
                                     </td>
-                                    <td class="text-end fw-semibold">
-                                        ₱@booking.Price.ToString("N2")
-                                    </td>
+                                    <td class="text-end fw-semibold">₱@booking.Price.ToString("N2")</td>
                                 </tr>
                             }
                         </tbody>
@@ -150,14 +172,14 @@
         </div>
     </div>
 
-    <!-- Upcoming Features Notice -->
+    <!-- Upcoming Features -->
     <div class="alert alert-info border-0 shadow-sm mt-4 d-flex align-items-start gap-3">
         <i class="bi bi-stars text-info mt-1" style="font-size:1.4rem;flex-shrink:0;"></i>
         <div>
             <div class="fw-semibold mb-1">More features coming soon</div>
             <div class="small text-muted">
-                Player profiles, activity sign-ups, match history, and tournament registration
-                are being built next. Your account is ready to grow with these features.
+                Open Play activities, RSVP, match history, tournaments, and league registration
+                are being built. Your profile is ready to grow with these features.
             </div>
         </div>
     </div>

@@ -1,0 +1,175 @@
+﻿@page "/Customer/Profile"
+@model PickleBallBooking.Pages.Customer.ProfileModel
+@using PickleBallBooking.Models
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<div class="container py-4">
+
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a asp-page="/Customer/Dashboard">My Dashboard</a></li>
+                    <li class="breadcrumb-item active">My Profile</li>
+                </ol>
+            </nav>
+            <h1 class="h4 fw-bold mb-0">
+                <i class="bi bi-person-badge text-success me-2"></i>
+                @(Model.IsNewProfile ? "Complete Your Player Profile" : "Edit My Profile")
+            </h1>
+            @if (Model.IsNewProfile)
+            {
+                <p class="text-muted small mt-1">Fill in your player profile so other players and venue organisers can learn about you.</p>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show py-2" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <form method="post" id="profileForm" novalidate>
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small"></div>
+
+        <div class="row g-4">
+
+            <!-- Left column -->
+            <div class="col-lg-8">
+
+                <!-- Basic Info card -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                        <h2 class="h6 fw-bold mb-0"><i class="bi bi-person me-2 text-success"></i>Basic Information</h2>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <label asp-for="Input.FirstName" class="form-label fw-medium"></label>
+                                <input asp-for="Input.FirstName" class="form-control" placeholder="Juan" id="profileFirstName" />
+                                <span asp-validation-for="Input.FirstName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-sm-6">
+                                <label asp-for="Input.LastName" class="form-label fw-medium"></label>
+                                <input asp-for="Input.LastName" class="form-control" placeholder="dela Cruz" id="profileLastName" />
+                                <span asp-validation-for="Input.LastName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="Input.DisplayName" class="form-label fw-medium"></label>
+                                <input asp-for="Input.DisplayName" class="form-control" placeholder="Leave blank to use your full name" id="profileDisplayName" />
+                                <div class="form-text">This is the name shown to other players.</div>
+                                <span asp-validation-for="Input.DisplayName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-sm-6">
+                                <label asp-for="Input.Mobile" class="form-label fw-medium"></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-phone"></i></span>
+                                    <input asp-for="Input.Mobile" class="form-control" placeholder="09XXXXXXXXX" id="profileMobile" />
+                                </div>
+                                <span asp-validation-for="Input.Mobile" class="text-danger small"></span>
+                            </div>
+                            <div class="col-sm-6">
+                                <label asp-for="Input.Location" class="form-label fw-medium"></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                                    <input asp-for="Input.Location" class="form-control" placeholder="Manila, Metro Manila" id="profileLocation" />
+                                </div>
+                                <span asp-validation-for="Input.Location" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="Input.Bio" class="form-label fw-medium"></label>
+                                <textarea asp-for="Input.Bio" class="form-control" rows="3"
+                                          placeholder="A short intro about yourself and your pickleball journey…"
+                                          id="profileBio"></textarea>
+                                <div class="form-text text-end"><span id="bioCount">0</span> / 500</div>
+                                <span asp-validation-for="Input.Bio" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pickleball Info card -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                        <h2 class="h6 fw-bold mb-0"><i class="bi bi-trophy me-2 text-success"></i>Pickleball Info</h2>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <label asp-for="Input.SkillLevel" class="form-label fw-medium"></label>
+                                <select asp-for="Input.SkillLevel" class="form-select" id="profileSkillLevel">
+                                    <option value="@((int)PlayerSkillLevel.Beginner)">🟢 Beginner — Learning the fundamentals</option>
+                                    <option value="@((int)PlayerSkillLevel.Intermediate)">🟡 Intermediate — Developing consistency</option>
+                                    <option value="@((int)PlayerSkillLevel.Advanced)">🔴 Advanced — Competitive player</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-6">
+                                <label asp-for="Input.PlayingHand" class="form-label fw-medium"></label>
+                                <select asp-for="Input.PlayingHand" class="form-select" id="profilePlayingHand">
+                                    <option value="@((int)PlayingHand.Right)">Right</option>
+                                    <option value="@((int)PlayingHand.Left)">Left</option>
+                                    <option value="@((int)PlayingHand.Ambidextrous)">Ambidextrous</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right column — Privacy -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                        <h2 class="h6 fw-bold mb-0"><i class="bi bi-shield-check me-2 text-success"></i>Privacy</h2>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="form-check form-switch mb-3">
+                            <input asp-for="Input.IsDiscoverable" class="form-check-input" role="switch" id="profileDiscoverable" />
+                            <label class="form-check-label fw-medium" for="profileDiscoverable">
+                                Discoverable profile
+                            </label>
+                            <div class="form-text">Your profile appears in platform-wide player search (coming soon).</div>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input asp-for="Input.PrivacyMobile" class="form-check-input" role="switch" id="profilePrivacyMobile" />
+                            <label class="form-check-label fw-medium" for="profilePrivacyMobile">
+                                Show mobile to other players
+                            </label>
+                            <div class="form-text">Off by default. Enable to let other players see your number.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success btn-lg fw-semibold" id="profileSave">
+                        <i class="bi bi-check-circle me-2"></i>Save Profile
+                    </button>
+                    <a asp-page="/Customer/Dashboard" class="btn btn-outline-secondary">
+                        Cancel
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Bio character counter
+        const bio = document.getElementById('profileBio');
+        const bioCount = document.getElementById('bioCount');
+        if (bio && bioCount) {
+            const update = () => { bioCount.textContent = bio.value.length; };
+            bio.addEventListener('input', update);
+            update();
+        }
+    </script>
+}
