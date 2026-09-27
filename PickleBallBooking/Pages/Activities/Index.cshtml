@@ -82,7 +82,7 @@
                                 </li>
                                 <li class="mb-1">
                                     <i class="bi bi-clock text-muted me-2"></i>
-                                    @a.StartTime.ToString(@"hh\:mm") – @a.EndTime.ToString(@"hh\:mm")
+                                    @PickleBallBooking.Services.AppClock.To12HourRange(a.StartTime, a.EndTime)
                                 </li>
                                 @if (a.ActivityCourts.Any())
                                 {

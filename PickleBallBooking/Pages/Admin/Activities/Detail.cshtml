@@ -1,4 +1,4 @@
-﻿@page "/Admin/Activities/{id:int}"
+@page "/Admin/Activities/{id:int}"
 @model PickleBallBooking.Pages.Admin.Activities.DetailModel
 @using PickleBallBooking.Models
 @{
@@ -49,7 +49,7 @@
                     <dt class="col-sm-4 text-muted small">Date</dt>
                     <dd class="col-sm-8 fw-medium">@a.Date.ToString("dddd, MMMM d, yyyy")</dd>
                     <dt class="col-sm-4 text-muted small">Time</dt>
-                    <dd class="col-sm-8">@a.StartTime.ToString(@"hh\:mm") – @a.EndTime.ToString(@"hh\:mm")</dd>
+                    <dd class="col-sm-8">@PickleBallBooking.Services.AppClock.To12HourRange(a.StartTime, a.EndTime)</dd>
                     <dt class="col-sm-4 text-muted small">Courts</dt>
                     <dd class="col-sm-8">
                         @if (a.ActivityCourts.Any())

@@ -1,4 +1,4 @@
-﻿@page "/Admin/Activities"
+@page "/Admin/Activities"
 @model PickleBallBooking.Pages.Admin.Activities.IndexModel
 @using PickleBallBooking.Models
 @{
@@ -72,7 +72,7 @@ else
                             </td>
                             <td class="small">@a.Date.ToString("MMM d, yyyy")</td>
                             <td class="small text-muted">
-                                @a.StartTime.ToString(@"hh\:mm") – @a.EndTime.ToString(@"hh\:mm")
+                                @PickleBallBooking.Services.AppClock.To12HourRange(a.StartTime, a.EndTime)
                             </td>
                             <td class="small">
                                 @if (a.ActivityCourts.Any())
