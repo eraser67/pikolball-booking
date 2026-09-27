@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -61,9 +61,32 @@ public class LoginModel : PageModel
 
         if (result.Succeeded)
         {
+            // Resolve the authenticated user first so we know their role before
+            // making any redirect decision.
+            var user = await _userManager.FindByEmailAsync(Input.Email);
+            var isPlatformAdmin = user is not null && await _userManager.IsInRoleAsync(user, PlatformRoles.PlatformAdmin);
+
+            // Phase 31: Customer / Player accounts always go to /Customer/Dashboard.
+            // This check is UNCONDITIONAL — it does NOT depend on which domain the
+            // login form was submitted from, because:
+            //   - Customers are platform-level accounts with no OrganizationMember rows.
+            //   - When logging in from a tenant subdomain, the TenantResolver resolves
+            //     the tenant anonymously (before auth), so IsResolved is true — but that
+            //     must NOT cause a customer to be routed to /Admin/Index.
+            var isCustomer = user is not null && await _userManager.IsInRoleAsync(user, PlatformRoles.Customer);
+            if (isCustomer && !isPlatformAdmin)
+            {
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                {
+                    return LocalRedirect(returnUrl);
+                }
+                return RedirectToPage("/Customer/Dashboard");
+            }
+
+            // ── Admin / staff accounts from here on ─────────────────────────────────
             // If the request is on a tenant subdomain but the tenant did NOT resolve
-            // (org is inactive, suspended, or unknown), sign the user back out and show
-            // a clear error rather than silently looping back to the login page.
+            // (org is inactive, suspended, or unknown), sign the admin back out and
+            // show a clear error rather than silently looping back to the login page.
             var host = HttpContext.Request.Host.Host;
             var isOnTenantSubdomain = _hostParser.TryGetTenantSlug(host, _tenantOptions.BaseDomain, out _);
 
@@ -79,33 +102,20 @@ public class LoginModel : PageModel
                 return LocalRedirect(returnUrl);
             }
 
-            // Resolve the user to determine the correct post-login destination.
-            var user = await _userManager.FindByEmailAsync(Input.Email);
-            var isPlatformAdmin = user is not null && await _userManager.IsInRoleAsync(user, PlatformRoles.PlatformAdmin);
-
-            // Phase 31: customers / players go directly to their dashboard.
-            // Checked before admin flows so a pure customer account never hits
-            // the "no org membership" error at the bottom.
-            var isCustomer = user is not null && await _userManager.IsInRoleAsync(user, PlatformRoles.Customer);
-            if (isCustomer && !isPlatformAdmin && !_tenantContext.IsResolved)
-            {
-                return RedirectToPage("/Customer/Dashboard");
-            }
-
-            // 1. If tenant is resolved on this request (user is on their subdomain):
+            // 1. Admin on their own tenant subdomain.
             if (_tenantContext.IsResolved)
             {
                 return RedirectToPage("/Admin/Index");
             }
 
-            // 2. If user is a PlatformAdmin on the root/apex domain:
+            // 2. PlatformAdmin on the root/apex domain.
             if (isPlatformAdmin)
             {
                 return RedirectToPage("/Admin/Organizations/Index");
             }
 
-            // 3. User is an organization owner/admin/staff logging in from the apex/root domain:
-            // Locate their primary active organization and redirect them to their subdomain dashboard.
+            // 3. Org owner/admin/staff on the root domain: find their primary active
+            //    organization and redirect to its subdomain admin dashboard.
             if (user is not null)
             {
                 var tenantSlug = await _context.OrganizationMembers
@@ -129,7 +139,7 @@ public class LoginModel : PageModel
                 }
             }
 
-            // 4. User is neither a PlatformAdmin, a Customer, nor a member of an active organization:
+            // 4. Authenticated but not a Customer, PlatformAdmin, or org member:
             await _signInManager.SignOutAsync();
             ErrorMessage = "You do not have administrative access to an active organization. Please contact your administrator.";
             return Page();
@@ -137,7 +147,6 @@ public class LoginModel : PageModel
 
         ErrorMessage = "Invalid login attempt.";
         return Page();
-
     }
 
     public class LoginInput
