@@ -384,6 +384,7 @@ body {
 }
 
 body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: var(--pb-ink);
   background-color: var(--pb-surface-alt);
 }
@@ -398,9 +399,10 @@ a:hover {
 }
 
 h1, h2, h3, h4, h5, .display-4, .display-5 {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: var(--pb-green-900);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  letter-spacing: -0.025em;
 }
 
 /* -------- Navbar -------- */
@@ -776,38 +778,345 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
 }
 
 /* ========================================================= */
-/* PHASE 18 - HOME PAGE                                       */
+/* PHASE 30 — HOMEPAGE 3D REDESIGN                           */
 /* ========================================================= */
 
+/* ── Section System ───────────────────────────────────────── */
 .pb-section {
-  padding: 3.5rem 0;
+  padding: 5rem 0;
 }
 
 .pb-section-alt {
   background-color: var(--pb-surface);
-  border-radius: var(--pb-radius-lg);
-  margin: 1rem 0;
+  border-radius: 2rem;
+  margin: 0.5rem 0;
+  padding: 5rem 2rem;
 }
 
-.pb-hero-tagline {
-  font-size: 1.4rem;
+.pb-section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pb-green-600);
+  background-color: var(--pb-green-100);
+  border: 1px solid rgba(25, 135, 84, 0.2);
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  margin-bottom: 1rem;
+}
+
+.pb-section-title {
+  font-weight: 800;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  letter-spacing: -0.03em;
+  margin-bottom: 0.5rem;
+  color: var(--pb-green-900);
+}
+
+.pb-section-subtitle {
+  color: var(--pb-muted);
+  font-size: 1.05rem;
+  font-weight: 400;
+  margin-bottom: 3rem;
+  max-width: 44rem;
+}
+
+/* ── Hero ─────────────────────────────────────────────────── */
+.pb-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2rem;
+  background:
+    radial-gradient(ellipse at 80% 0%, rgba(180, 227, 61, 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse at 0% 100%, rgba(20, 108, 67, 0.4) 0%, transparent 50%),
+    linear-gradient(135deg, var(--pb-green-900) 0%, #1a4d35 55%, var(--pb-green-700) 100%);
+  color: #eafaf2;
+  padding: 4.5rem 3rem 4rem;
+  margin-bottom: 2rem;
+  box-shadow:
+    0 4px 6px rgba(15, 61, 46, 0.07),
+    0 20px 60px rgba(15, 61, 46, 0.22),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* subtle noise texture overlay */
+.pb-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.35;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.pb-hero h1 {
+  color: #ffffff;
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.pb-hero h1 span.pb-hero-accent {
+  color: var(--pb-lime-400);
+}
+
+.pb-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: rgba(180, 227, 61, 0.15);
+  color: var(--pb-lime-400);
+  border: 1px solid rgba(180, 227, 61, 0.35);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  margin-bottom: 1.5rem;
+}
+
+.pb-hero .pb-hero-lead {
+  color: rgba(234, 250, 242, 0.82);
+  font-size: 1.1rem;
+  font-weight: 400;
+  max-width: 32rem;
+  line-height: 1.65;
+}
+
+.pb-hero .pb-hero-tagline {
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--pb-lime-400);
   letter-spacing: -0.01em;
+  margin-bottom: 0.25rem;
 }
 
+/* Hero benefit pills */
 .pb-hero-benefits {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.75rem;
-  color: rgba(234, 250, 242, 0.92);
-  font-weight: 500;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.pb-hero-benefits li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: rgba(234, 250, 242, 0.88);
+  background-color: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
 }
 
 .pb-hero-benefits .bi {
   color: var(--pb-lime-400);
+  font-size: 0.8rem;
 }
 
+/* Hero CTA buttons */
+.pb-hero .btn-lime {
+  background-color: var(--pb-lime-400);
+  border-color: var(--pb-lime-400);
+  color: var(--pb-green-900);
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0.7rem 1.75rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 14px rgba(180, 227, 61, 0.35), 0 1px 3px rgba(0,0,0,0.15);
+  transition: all 0.2s ease;
+}
+
+.pb-hero .btn-lime:hover {
+  background-color: var(--pb-lime-500);
+  border-color: var(--pb-lime-500);
+  color: var(--pb-green-900);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(180, 227, 61, 0.45), 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.pb-hero .btn-lime:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(180, 227, 61, 0.25);
+}
+
+.pb-hero .btn-ghost {
+  background-color: transparent;
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.7rem 1.5rem;
+  border-radius: 0.75rem;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.pb-hero .btn-ghost:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255,255,255,0.55);
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+/* ── Hero Art (right column 3D card) ─────────────────────── */
+.pb-hero-art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1000px;
+}
+
+.pb-hero-img-frame {
+  position: relative;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.06),
+    0 12px 40px rgba(0,0,0,0.28),
+    0 40px 80px rgba(15,61,46,0.22);
+  transform: perspective(900px) rotateY(-6deg) rotateX(2deg);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  background: var(--pb-green-900);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.pb-hero-art:hover .pb-hero-img-frame {
+  transform: perspective(900px) rotateY(-2deg) rotateX(1deg) translateY(-4px);
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.06),
+    0 16px 50px rgba(0,0,0,0.32),
+    0 50px 100px rgba(15,61,46,0.28);
+}
+
+.pb-hero-img-frame img {
+  display: block;
+  width: 100%;
+  max-height: 380px;
+  object-fit: cover;
+  border-radius: inherit;
+  transition: transform 0.4s ease;
+}
+
+.pb-hero-art:hover .pb-hero-img-frame img {
+  transform: scale(1.025);
+}
+
+/* Floating availability chip */
+.pb-hero-float-badge {
+  position: absolute;
+  bottom: 1.5rem;
+  right: -0.5rem;
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 0.65rem 1rem;
+  box-shadow:
+    0 4px 16px rgba(0,0,0,0.14),
+    0 1px 3px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--pb-green-900);
+  white-space: nowrap;
+  animation: heroFloatBadge 3.5s ease-in-out infinite;
+  z-index: 2;
+  border: 1px solid rgba(25,135,84,0.12);
+}
+
+.pb-hero-float-badge .pb-float-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--pb-green-600);
+  animation: heroPulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes heroFloatBadge {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes heroPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+/* Hero entrance animation */
+@keyframes heroSlideUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.pb-hero-content {
+  animation: heroSlideUp 0.6s ease both;
+}
+
+.pb-hero-art {
+  animation: heroSlideUp 0.7s 0.1s ease both;
+}
+
+/* Mobile hero */
+@media (max-width: 767.98px) {
+  .pb-hero {
+    padding: 2.75rem 1.5rem 2.5rem;
+    border-radius: 1.25rem;
+    text-align: center;
+  }
+
+  .pb-hero .pb-hero-lead {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .pb-hero-benefits {
+    justify-content: center;
+  }
+
+  .pb-hero-art {
+    margin-top: 2.5rem;
+    perspective: none;
+  }
+
+  .pb-hero-img-frame {
+    transform: none;
+    border-radius: 1.25rem;
+    max-width: 100%;
+  }
+
+  .pb-hero-art:hover .pb-hero-img-frame {
+    transform: none;
+  }
+
+  .pb-hero-img-frame img {
+    max-height: 260px;
+  }
+
+  .pb-hero-float-badge {
+    position: static;
+    margin: 1rem auto 0;
+    width: fit-content;
+    animation: none;
+    transform: none;
+    right: auto;
+    bottom: auto;
+  }
+}
+
+/* ── Empty State ──────────────────────────────────────────── */
 .pb-empty-state {
   background-color: var(--pb-surface);
   border: 1px dashed var(--pb-border);
@@ -816,21 +1125,36 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   color: var(--pb-muted);
 }
 
-/* -------- Court cards -------- */
+/* ── Court Cards 3D ──────────────────────────────────────── */
 .pb-court-card {
   display: flex;
   flex-direction: column;
   background-color: var(--pb-surface);
   border: 1px solid var(--pb-border);
-  border-radius: var(--pb-radius);
+  border-radius: 1.25rem;
   overflow: hidden;
-  box-shadow: var(--pb-shadow-sm);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  box-shadow:
+    0 1px 2px rgba(15,61,46,0.04),
+    0 8px 24px rgba(15,61,46,0.08);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  position: relative;
+}
+
+.pb-court-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .pb-court-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--pb-shadow-md);
+  transform: translateY(-6px) scale(1.01);
+  box-shadow:
+    0 4px 8px rgba(15,61,46,0.06),
+    0 24px 48px rgba(15,61,46,0.14);
 }
 
 .pb-court-card-img {
@@ -845,97 +1169,287 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.3s ease;
+  transition: transform 0.4s ease;
+}
+
+.pb-court-card-img::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(15,61,46,0.55) 0%, transparent 50%);
+  pointer-events: none;
 }
 
 .pb-court-card:hover .pb-court-card-img img {
-  transform: scale(1.05);
+  transform: scale(1.07);
 }
 
 .pb-court-badge {
   position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
+  top: 0.85rem;
+  left: 0.85rem;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  padding: 0.3rem 0.65rem;
+  padding: 0.32rem 0.7rem;
   border-radius: 999px;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
   color: #fff;
+  z-index: 2;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(255,255,255,0.15);
 }
 
 .pb-badge-open {
-  background-color: rgba(25, 135, 84, 0.92);
+  background-color: rgba(22, 163, 74, 0.9);
+}
+
+.pb-badge-limited {
+  background-color: rgba(234, 179, 8, 0.92);
+  color: #1c2b26;
 }
 
 .pb-badge-closed {
-  background-color: rgba(108, 117, 125, 0.92);
+  background-color: rgba(71, 85, 105, 0.88);
 }
 
 .pb-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 999px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   background-color: var(--pb-lime-400);
+  box-shadow: 0 0 0 2px rgba(180,227,61,0.25);
 }
 
 .pb-badge-closed .pb-dot {
-  background-color: #e9ecef;
+  background-color: #94a3b8;
+  box-shadow: none;
+}
+
+.pb-badge-limited .pb-dot {
+  background-color: #fef08a;
+  box-shadow: none;
 }
 
 .pb-court-card-body {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  padding: 1.25rem;
+  padding: 1.35rem 1.35rem 1.5rem;
+  position: relative;
+  z-index: 2;
 }
 
 .pb-court-name {
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.35rem;
   color: var(--pb-green-900);
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
 }
 
 .pb-court-desc {
   color: var(--pb-muted);
-  font-size: 0.925rem;
-  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.85rem;
+  line-height: 1.5;
 }
 
 .pb-court-preview {
-  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--pb-green-700);
   background-color: var(--pb-green-100);
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.65rem;
+  border-radius: 0.6rem;
+  padding: 0.45rem 0.75rem;
   margin-bottom: 1rem;
+  border: 1px solid rgba(25,135,84,0.12);
 }
 
-/* -------- Feature icon tile -------- */
+/* Court card action buttons */
+.pb-court-card-body .d-grid .btn {
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.6rem 1rem;
+  transition: all 0.18s ease;
+}
+
+.pb-court-card-body .d-grid .btn:hover {
+  transform: translateY(-1px);
+}
+
+/* ── Feature Icon Tiles ───────────────────────────────────── */
 .pb-feature-icon-wrap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 1rem;
-  background-color: var(--pb-green-100);
+  width: 60px;
+  height: 60px;
+  border-radius: 1.1rem;
+  background: linear-gradient(135deg, var(--pb-green-100), rgba(180,227,61,0.15));
   color: var(--pb-green-700);
-  font-size: 1.75rem;
-  margin-bottom: 1rem;
+  font-size: 1.6rem;
+  margin-bottom: 1.1rem;
+  box-shadow:
+    0 2px 8px rgba(25,135,84,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+  border: 1px solid rgba(25,135,84,0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* -------- Contact / map -------- */
+.pb-feature-card:hover .pb-feature-icon-wrap {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow:
+    0 6px 20px rgba(25,135,84,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+/* ── Feature / Step Cards ─────────────────────────────────── */
+.pb-feature-card {
+  background: var(--pb-surface);
+  border: 1px solid var(--pb-border);
+  border-radius: 1.25rem;
+  padding: 2rem;
+  height: 100%;
+  box-shadow:
+    0 1px 2px rgba(15,61,46,0.04),
+    0 6px 20px rgba(15,61,46,0.06);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.pb-feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--pb-green-600), var(--pb-lime-400));
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.pb-feature-card:hover::before {
+  opacity: 1;
+}
+
+.pb-feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow:
+    0 4px 8px rgba(15,61,46,0.06),
+    0 20px 44px rgba(15,61,46,0.12);
+}
+
+/* Step cards */
+.pb-step-card {
+  position: relative;
+  background: var(--pb-surface);
+  border: 1px solid var(--pb-border);
+  border-radius: 1.25rem;
+  padding: 2rem 1.75rem;
+  text-align: center;
+  box-shadow:
+    0 1px 2px rgba(15,61,46,0.04),
+    0 6px 20px rgba(15,61,46,0.06);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  overflow: hidden;
+}
+
+.pb-step-card::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  right: -20px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(180,227,61,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.pb-step-card:hover {
+  transform: translateY(-5px);
+  box-shadow:
+    0 4px 8px rgba(15,61,46,0.06),
+    0 20px 44px rgba(15,61,46,0.12);
+}
+
+.pb-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, var(--pb-green-700), var(--pb-green-600));
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.05rem;
+  margin-bottom: 1.1rem;
+  box-shadow:
+    0 4px 12px rgba(25,135,84,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+  letter-spacing: -0.02em;
+}
+
+/* Step connector (desktop only) */
+.pb-step-connector {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding-top: 3.5rem;
+}
+
+@media (min-width: 768px) {
+  .pb-step-connector {
+    display: flex;
+  }
+}
+
+.pb-step-connector-line {
+  height: 2px;
+  background: linear-gradient(90deg, var(--pb-green-600), var(--pb-lime-400));
+  flex: 1;
+  border-radius: 1px;
+  position: relative;
+}
+
+.pb-step-connector-line::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid var(--pb-lime-400);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+/* ── Contact / Map ────────────────────────────────────────── */
 .pb-contact-list li {
-  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
   color: var(--pb-ink);
+  font-weight: 500;
 }
 
 .pb-contact-list .bi {
   color: var(--pb-green-600);
+  font-size: 1rem;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
 }
 
 .pb-map-placeholder {
@@ -950,6 +1464,75 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   color: var(--pb-green-700);
   text-align: center;
   padding: 2rem;
+}
+
+/* ── Final CTA Band ───────────────────────────────────────── */
+.pb-cta-band {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 15% 50%, rgba(180, 227, 61, 0.18) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 50%, rgba(20,108,67,0.5) 0%, transparent 50%),
+    linear-gradient(135deg, var(--pb-green-900) 0%, #1a4d35 60%, var(--pb-green-700) 100%);
+  border-radius: 2rem;
+  padding: 5rem 2rem;
+  margin: 2rem 0 1rem;
+  text-align: center;
+  box-shadow:
+    0 4px 6px rgba(15,61,46,0.07),
+    0 20px 60px rgba(15,61,46,0.22);
+}
+
+.pb-cta-band::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(180,227,61,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.pb-cta-band h2 {
+  color: #ffffff;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  margin-bottom: 0.5rem;
+}
+
+.pb-cta-band p {
+  color: rgba(234,250,242,0.75);
+  font-size: 1.05rem;
+  margin-bottom: 2rem;
+}
+
+/* ── Footer extras ────────────────────────────────────────── */
+.pb-footer-brand {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.pb-footer-heading {
+  color: #ffffff;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  margin-bottom: 1rem;
+}
+
+.pb-footer .list-unstyled li {
+  margin-bottom: 0.5rem;
+}
+
+.pb-footer-divider {
+  border-color: rgba(255, 255, 255, 0.1);
+  margin: 2rem 0 1rem;
 }
 
 /* -------- Clickable / responsive map embed -------- */
@@ -1799,4 +2382,58 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   transform: translateY(-3px);
   box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.12) !important;
   color: inherit;
+}
+
+/* ========================================================= */
+/* ACCESSIBILITY — prefers-reduced-motion                    */
+/* ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .pb-hero-content,
+  .pb-hero-art,
+  .pb-hero-float-badge,
+  .pb-hero-float-badge .pb-float-dot {
+    animation: none !important;
+  }
+
+  .pb-hero-img-frame,
+  .pb-hero-img-frame img,
+  .pb-court-card,
+  .pb-court-card-img img,
+  .pb-feature-card,
+  .pb-step-card,
+  .pb-feature-icon-wrap,
+  .pb-hero .btn-lime,
+  .pb-hero .btn-ghost {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .pb-hero-art:hover .pb-hero-img-frame,
+  .pb-hero-art:hover .pb-hero-img-frame img {
+    transform: none !important;
+  }
+}
+
+/* ========================================================= */
+/* SCROLL REVEAL — fade-up on scroll                         */
+/* ========================================================= */
+
+.pb-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.pb-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pb-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
