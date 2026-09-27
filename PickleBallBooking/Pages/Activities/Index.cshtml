@@ -1,0 +1,161 @@
+﻿@page "/Activities"
+@model PickleBallBooking.Pages.Activities.IndexModel
+@using PickleBallBooking.Models
+@{
+    ViewData["Title"] = "Activities";
+}
+@functions {
+    static string StatusBadge(ActivityStatus s) => s switch {
+        ActivityStatus.RegistrationOpen   => "bg-success",
+        ActivityStatus.Published          => "bg-info text-dark",
+        ActivityStatus.Full               => "bg-warning text-dark",
+        ActivityStatus.RegistrationClosed => "bg-secondary",
+        _                                 => "bg-light text-dark"
+    };
+    static string SkillColor(ActivitySkillLevel sk) => sk switch {
+        ActivitySkillLevel.Beginner     => "text-success",
+        ActivitySkillLevel.Intermediate => "text-warning",
+        ActivitySkillLevel.Advanced     => "text-danger",
+        _                               => "text-primary"
+    };
+    static string SkillIcon(ActivitySkillLevel sk) => sk switch {
+        ActivitySkillLevel.Beginner     => "🟢",
+        ActivitySkillLevel.Intermediate => "🟡",
+        ActivitySkillLevel.Advanced     => "🔴",
+        _                               => "🔵"
+    };
+}
+
+<div class="container py-4">
+
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h4 fw-bold mb-0">
+                <i class="bi bi-calendar-event text-success me-2"></i>Upcoming Activities
+            </h1>
+            <p class="text-muted small mt-1">Browse and join organised pickleball activities at this venue.</p>
+        </div>
+    </div>
+
+    @if (!Model.Activities.Any())
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-calendar-x text-muted" style="font-size:2.5rem;"></i>
+                <p class="text-muted mt-3 mb-0">No upcoming activities right now. Check back soon!</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var a in Model.Activities)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-0 shadow-sm activity-card">
+                        <div class="card-body p-4">
+                            <!-- Header -->
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <span class="badge @StatusBadge(a.Status) rounded-pill small mb-2">@a.Status.ToString().Replace("Registration", "Reg. ")</span>
+                                    <h2 class="h6 fw-bold mb-0">@a.Name</h2>
+                                    <div class="small text-muted mt-1">@a.Format</div>
+                                </div>
+                                <div class="text-end flex-shrink-0 ms-2">
+                                    @if (a.PricePerPlayer == 0)
+                                    {
+                                        <span class="badge bg-success-subtle text-success fw-semibold">Free</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="fw-bold text-success">₱@a.PricePerPlayer.ToString("N0")</span>
+                                        <div class="text-muted" style="font-size:0.7rem;">per player</div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Details -->
+                            <ul class="list-unstyled small mb-3">
+                                <li class="mb-1">
+                                    <i class="bi bi-calendar3 text-muted me-2"></i>
+                                    <strong>@a.Date.ToString("dddd, MMM d")</strong>
+                                </li>
+                                <li class="mb-1">
+                                    <i class="bi bi-clock text-muted me-2"></i>
+                                    @a.StartTime.ToString(@"h\:mm") – @a.EndTime.ToString(@"h\:mm tt")
+                                </li>
+                                @if (a.ActivityCourts.Any())
+                                {
+                                    <li class="mb-1">
+                                        <i class="bi bi-grid text-muted me-2"></i>
+                                        @string.Join(", ", a.ActivityCourts.Select(ac => ac.Court?.Name ?? "?"))
+                                    </li>
+                                }
+                                <li class="mb-1">
+                                    <i class="bi bi-bar-chart text-muted me-2"></i>
+                                    @SkillIcon(a.SkillLevel) @a.SkillLevel
+                                </li>
+                                <li>
+                                    <i class="bi bi-people text-muted me-2"></i>
+                                    @(a.MaxCapacity == 0 ? "Unlimited spots" : $"{a.MaxCapacity} max players")
+                                </li>
+                            </ul>
+
+                            @if (!string.IsNullOrEmpty(a.Description))
+                            {
+                                <p class="small text-muted mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                                    @a.Description
+                                </p>
+                            }
+
+                            <!-- CTA -->
+                            @if (a.Status == ActivityStatus.RegistrationOpen)
+                            {
+                                <div class="d-grid">
+                                    @if (User.Identity?.IsAuthenticated == true)
+                                    {
+                                        <button class="btn btn-success fw-semibold" disabled title="RSVP coming in Phase 34">
+                                            <i class="bi bi-check-circle me-2"></i>Join Activity
+                                            <span class="badge bg-white text-success ms-2 small">Phase 34</span>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <a asp-page="/Account/Login" class="btn btn-success fw-semibold">
+                                            <i class="bi bi-person-check me-2"></i>Sign In to Join
+                                        </a>
+                                    }
+                                </div>
+                            }
+                            else if (a.Status == ActivityStatus.Full)
+                            {
+                                <div class="d-grid">
+                                    <button class="btn btn-outline-warning fw-semibold" disabled>
+                                        <i class="bi bi-hourglass me-2"></i>Activity Full — Waitlist (Phase 34)
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-grid">
+                                    <button class="btn btn-outline-secondary fw-semibold" disabled>
+                                        @a.Status
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+</div>
+
+@section Styles {
+<style>
+.activity-card { transition: transform .15s, box-shadow .15s; }
+.activity-card:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.12) !important; }
+.bg-success-subtle { background-color: rgba(25,135,84,.12); }
+</style>
+}

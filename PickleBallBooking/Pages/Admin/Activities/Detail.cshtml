@@ -1,0 +1,114 @@
+﻿@page "/Admin/Activities/{id:int}"
+@model PickleBallBooking.Pages.Admin.Activities.DetailModel
+@using PickleBallBooking.Models
+@{
+    var a = Model.Activity!;
+    ViewData["Title"] = a.Name;
+}
+@functions {
+    static string StatusBadge(ActivityStatus s) => s switch {
+        ActivityStatus.Draft              => "bg-secondary",
+        ActivityStatus.Published          => "bg-info text-dark",
+        ActivityStatus.RegistrationOpen   => "bg-success",
+        ActivityStatus.Full               => "bg-warning text-dark",
+        ActivityStatus.RegistrationClosed => "bg-secondary",
+        ActivityStatus.InProgress         => "bg-primary",
+        ActivityStatus.Completed          => "bg-dark",
+        ActivityStatus.Cancelled          => "bg-danger",
+        _                                 => "bg-light text-dark"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a asp-page="Index">Activities</a></li>
+                <li class="breadcrumb-item active">@a.Name</li>
+            </ol>
+        </nav>
+        <h1 class="h4 fw-bold mb-0">
+            @a.Name
+            <span class="badge @StatusBadge(a.Status) ms-2">@a.Status</span>
+        </h1>
+        <div class="text-muted small mt-1">@a.Format &bull; @a.SkillLevel</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-page="Edit" asp-route-id="@a.Id" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <!-- Details -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body px-4 py-4">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-muted small">Date</dt>
+                    <dd class="col-sm-8 fw-medium">@a.Date.ToString("dddd, MMMM d, yyyy")</dd>
+                    <dt class="col-sm-4 text-muted small">Time</dt>
+                    <dd class="col-sm-8">@a.StartTime.ToString(@"hh\:mm") – @a.EndTime.ToString(@"hh\:mm")</dd>
+                    <dt class="col-sm-4 text-muted small">Courts</dt>
+                    <dd class="col-sm-8">
+                        @if (a.ActivityCourts.Any())
+                            { @string.Join(", ", a.ActivityCourts.Select(ac => ac.Court?.Name ?? "?")) }
+                        else { <span class="text-muted">None assigned</span> }
+                    </dd>
+                    <dt class="col-sm-4 text-muted small">Capacity</dt>
+                    <dd class="col-sm-8">@(a.MaxCapacity == 0 ? "Unlimited" : a.MaxCapacity.ToString() + " players")</dd>
+                    <dt class="col-sm-4 text-muted small">Price</dt>
+                    <dd class="col-sm-8">@(a.PricePerPlayer == 0 ? "Free" : "₱" + a.PricePerPlayer.ToString("N2"))</dd>
+                    <dt class="col-sm-4 text-muted small">Registration Opens</dt>
+                    <dd class="col-sm-8">@(a.RegistrationOpensAt?.ToString("MMM d, yyyy h:mm tt") ?? "Manual")</dd>
+                    <dt class="col-sm-4 text-muted small">Registration Closes</dt>
+                    <dd class="col-sm-8">@(a.RegistrationClosesAt?.ToString("MMM d, yyyy h:mm tt") ?? "Manual")</dd>
+                </dl>
+                @if (!string.IsNullOrEmpty(a.Description))
+                {
+                    <hr />
+                    <p class="mb-0">@a.Description</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Status management -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                <h2 class="h6 fw-bold mb-0"><i class="bi bi-toggle-on me-2 text-success"></i>Change Status</h2>
+            </div>
+            <div class="card-body px-4 pb-4">
+                @foreach (var s in Enum.GetValues<ActivityStatus>())
+                {
+                    if (s == a.Status) continue;
+                    <form method="post" asp-page-handler="SetStatus" class="mb-2">
+                        <input type="hidden" name="id" value="@a.Id" />
+                        <input type="hidden" name="status" value="@((int)s)" />
+                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
+                            Set: @s
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+
+        <!-- Danger zone -->
+        <div class="card border-0 border-danger shadow-sm">
+            <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                <h2 class="h6 fw-bold mb-0 text-danger"><i class="bi bi-trash me-2"></i>Danger Zone</h2>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <form method="post" asp-page-handler="Delete"
+                      onsubmit="return confirm('Delete this activity? This cannot be undone.')">
+                    <input type="hidden" name="id" value="@a.Id" />
+                    <button type="submit" class="btn btn-danger btn-sm w-100">
+                        <i class="bi bi-trash me-1"></i>Delete Activity
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

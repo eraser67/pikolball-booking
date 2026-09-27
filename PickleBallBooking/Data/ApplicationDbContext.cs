@@ -84,6 +84,10 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     // The player identity belongs to the platform, not to any single tenant.
     public DbSet<PlayerProfile> PlayerProfiles => Set<PlayerProfile>();
 
+    // Phase 33: activities (tenant-owned).
+    public DbSet<Activity> Activities => Set<Activity>();
+    public DbSet<ActivityCourt> ActivityCourts => Set<ActivityCourt>();
+
     /// <summary>
     /// The set of tenant-owned entity CLR types. Used by the write guard below so a
     /// single implementation covers every tenant-owned entity.
@@ -97,6 +101,9 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         typeof(BookingTimeSlot),
         typeof(Payment),
         typeof(OrganizationPaymentSettings),
+        // Phase 33
+        typeof(Activity),
+        typeof(ActivityCourt),
     };
 
     public override int SaveChanges()
@@ -466,8 +473,6 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         {
             entity.HasKey(s => s.Id);
 
-            // One subscription per organization (unique constraint).
-            // To change plan, update the existing row rather than creating new ones.
             entity.HasIndex(s => s.OrganizationId)
                 .IsUnique()
                 .HasDatabaseName("IX_Subscription_OrganizationId");
@@ -484,7 +489,6 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         });
 
         // Phase 32: PlayerProfile — global (no tenant query filter).
-        // One profile per Identity user; linked by UserId (string FK to AspNetUsers).
         modelBuilder.Entity<PlayerProfile>(entity =>
         {
             entity.HasKey(p => p.Id);
@@ -497,17 +501,73 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             entity.Property(p => p.Bio).HasMaxLength(500);
             entity.Property(p => p.Location).HasMaxLength(100);
 
-            // One profile per player.
             entity.HasIndex(p => p.UserId)
                 .IsUnique()
                 .HasDatabaseName("IX_PlayerProfile_UserId");
 
-            // FK to AspNetUsers. Restrict: profile must not cascade-delete when the
-            // Identity user is deleted (admin must handle data retention explicitly).
             entity.HasOne<IdentityUser>()
                 .WithMany()
                 .HasForeignKey(p => p.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Phase 33: Activity — tenant-owned.
+        modelBuilder.Entity<Activity>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+
+            entity.Property(a => a.Name).IsRequired().HasMaxLength(150);
+            entity.Property(a => a.Description).HasMaxLength(2000);
+            entity.Property(a => a.PricePerPlayer).HasColumnType("numeric(8,2)");
+            entity.Property(a => a.StartTime).HasColumnType("time without time zone");
+            entity.Property(a => a.EndTime).HasColumnType("time without time zone");
+
+            // Index: activities for a tenant on a specific date
+            entity.HasIndex(a => new { a.OrganizationId, a.Date, a.Status })
+                .HasDatabaseName("IX_Activity_OrganizationId_Date_Status");
+
+            // Tenant FK
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(a => a.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Courts via join table
+            entity.HasMany(a => a.ActivityCourts)
+                .WithOne(ac => ac.Activity)
+                .HasForeignKey(ac => ac.ActivityId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Tenant query filter
+            entity.HasQueryFilter(a => CurrentOrganizationId != null && a.OrganizationId == CurrentOrganizationId);
+        });
+
+        // Phase 33: ActivityCourt join table — tenant-owned.
+        modelBuilder.Entity<ActivityCourt>(entity =>
+        {
+            entity.HasKey(ac => ac.Id);
+
+            // One court assigned to one activity only once per org
+            entity.HasIndex(ac => new { ac.OrganizationId, ac.ActivityId, ac.CourtId })
+                .IsUnique()
+                .HasDatabaseName("IX_ActivityCourt_Org_Activity_Court");
+
+            entity.HasOne(ac => ac.Activity)
+                .WithMany(a => a.ActivityCourts)
+                .HasForeignKey(ac => ac.ActivityId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(ac => ac.Court)
+                .WithMany()
+                .HasForeignKey(ac => ac.CourtId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(ac => ac.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(ac => CurrentOrganizationId != null && ac.OrganizationId == CurrentOrganizationId);
         });
     }
 }

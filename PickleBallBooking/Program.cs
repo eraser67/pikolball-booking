@@ -172,6 +172,9 @@ builder.Services.AddScoped<CustomerRegistrationService>();
 // Phase 32: player profile management.
 builder.Services.AddScoped<PlayerProfileService>();
 
+// Phase 33: activity management.
+builder.Services.AddScoped<ActivityService>();
+
 // Phase 21/22: server-side tenant context and resolution.
 // The context is request-scoped so concurrent requests never share an organization.
 // ITenantResolver identifies the tenant from the request HOSTNAME (a strict
