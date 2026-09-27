@@ -2436,4 +2436,145 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
     transform: none;
     transition: none;
   }
+}
+
+/* ========================================================= */
+/* PHASE 30 — WHY PLAY AT PUNIT BOLA CARDS                   */
+/* ========================================================= */
+
+.pb-why-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+@media (max-width: 1199.98px) {
+  .pb-why-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .pb-why-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pb-why-card {
+  position: relative;
+  background: var(--pb-surface);
+  border: 1px solid var(--pb-border);
+  border-radius: 1.25rem;
+  padding: 2rem 1.6rem 1.75rem;
+  overflow: hidden;
+  box-shadow:
+    0 1px 2px rgba(15, 61, 46, 0.04),
+    0 6px 22px rgba(15, 61, 46, 0.07);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Diagonal accent strip in the top-right corner */
+.pb-why-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 90px;
+  height: 90px;
+  background: radial-gradient(circle at top right,
+    rgba(180, 227, 61, 0.14) 0%,
+    transparent 70%);
+  border-radius: 0 1.25rem 0 90px;
+  pointer-events: none;
+}
+
+/* Bottom accent line — visible on hover */
+.pb-why-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 1.6rem;
+  right: 1.6rem;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, var(--pb-green-600), var(--pb-lime-400));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.pb-why-card:hover::after {
+  transform: scaleX(1);
+}
+
+.pb-why-card:hover {
+  transform: translateY(-6px);
+  box-shadow:
+    0 4px 8px rgba(15, 61, 46, 0.06),
+    0 22px 46px rgba(15, 61, 46, 0.13);
+}
+
+/* Icon orb */
+.pb-why-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 1rem;
+  background: linear-gradient(135deg,
+    var(--pb-green-100) 0%,
+    rgba(180, 227, 61, 0.18) 100%);
+  color: var(--pb-green-700);
+  font-size: 1.5rem;
+  margin-bottom: 1.15rem;
+  border: 1px solid rgba(25, 135, 84, 0.12);
+  box-shadow:
+    0 2px 8px rgba(25, 135, 84, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+  flex-shrink: 0;
+}
+
+.pb-why-card:hover .pb-why-icon {
+  transform: translateY(-3px) scale(1.06);
+  background: linear-gradient(135deg,
+    rgba(25, 135, 84, 0.12) 0%,
+    rgba(180, 227, 61, 0.25) 100%);
+  box-shadow:
+    0 6px 18px rgba(25, 135, 84, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.pb-why-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--pb-green-900);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+  line-height: 1.25;
+}
+
+.pb-why-desc {
+  font-size: 0.875rem;
+  color: var(--pb-muted);
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .pb-why-card,
+  .pb-why-card::after,
+  .pb-why-icon {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .pb-why-card:hover::after {
+    transform: scaleX(1);
+  }
 }
