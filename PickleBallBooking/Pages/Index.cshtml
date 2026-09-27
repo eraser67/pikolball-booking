@@ -70,23 +70,6 @@
                     {
                         <img src="~/images/hero-player.png" asp-append-version="true" alt="Pickleball player ready to serve" />
                     }
-                </div>
-                <!-- Floating availability badge -->
-                <div class="pb-hero-float-badge" aria-live="polite">
-                    <span class="pb-float-dot" aria-hidden="true"></span>
-                    @if (Model.Courts.Any(c => c.HasLiveAvailability))
-                    {
-                        <span>Courts available today</span>
-                    }
-                    else if (Model.Courts.Any())
-                    {
-                        <span>Check tomorrow&rsquo;s slots</span>
-                    }
-                    else
-                    {
-                        <span>Book your court now</span>
-                    }
-                </div>
             </div>
         </div>
     </div>
