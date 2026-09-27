@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using PickleBallBooking.Data;
 using PickleBallBooking.Models;
 
@@ -15,6 +15,18 @@ public sealed class ActivityService
     private readonly ApplicationDbContext _context;
 
     public ActivityService(ApplicationDbContext context) => _context = context;
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Ensures a DateTime has DateTimeKind.Utc before being written to PostgreSQL.
+    /// The datetime-local HTML input produces Kind=Unspecified; this treats
+    /// such values as UTC (the server timezone is UTC in production).
+    /// </summary>
+    private static DateTime? ToUtc(DateTime? dt)
+        => dt is null ? null
+         : dt.Value.Kind == DateTimeKind.Utc ? dt
+         : DateTime.SpecifyKind(dt.Value, DateTimeKind.Utc);
 
     // ── Admin ─────────────────────────────────────────────────────────────
 
@@ -57,8 +69,8 @@ public sealed class ActivityService
             SkillLevel            = skillLevel,
             MaxCapacity           = maxCapacity,
             PricePerPlayer        = pricePerPlayer,
-            RegistrationOpensAt   = registrationOpensAt,
-            RegistrationClosesAt  = registrationClosesAt,
+            RegistrationOpensAt   = ToUtc(registrationOpensAt),
+            RegistrationClosesAt  = ToUtc(registrationClosesAt),
             Status                = ActivityStatus.Draft,
             CreatedAt             = DateTime.UtcNow,
             UpdatedAt             = DateTime.UtcNow,
@@ -99,8 +111,8 @@ public sealed class ActivityService
         activity.SkillLevel           = skillLevel;
         activity.MaxCapacity          = maxCapacity;
         activity.PricePerPlayer       = pricePerPlayer;
-        activity.RegistrationOpensAt  = registrationOpensAt;
-        activity.RegistrationClosesAt = registrationClosesAt;
+        activity.RegistrationOpensAt  = ToUtc(registrationOpensAt);
+        activity.RegistrationClosesAt = ToUtc(registrationClosesAt);
         activity.UpdatedAt            = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
