@@ -90,29 +90,43 @@ public sealed class TenantResolver : ITenantResolver
         }
 
         // If the caller is authenticated, they must be a member of the hostname-identified
-        // organization. Membership in another organization does not grant access here.
+        // organization — UNLESS they are a platform-level Customer / Player account.
+        //
+        // Phase 31: Customers self-register at the platform level and have no
+        // OrganizationMember rows. They browse tenant subdomains exactly like anonymous
+        // visitors: the tenant resolves from the hostname, so they can see courts,
+        // check availability, book courts, and eventually RSVP to activities.
+        // The membership gate applies only to admin / staff accounts.
         var user = httpContext.User;
         if (user?.Identity?.IsAuthenticated == true)
         {
-            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
+            // Customer role = platform-level player; treat as anonymous for tenant resolution.
+            if (user.IsInRole(PlatformRoles.Customer))
             {
-                return null;
+                // Fall through to return organization.Id below.
             }
-
-            var isMember = await _context.OrganizationMembers
-                .AnyAsync(m => m.OrganizationId == organization.Id && m.UserId == userId, cancellationToken);
-
-            if (!isMember)
+            else
             {
-                // Authenticated but not a member of this tenant: no tenant resolved, so
-                // tenant-owned data stays invisible and access is denied by the existing
-                // authorization model (e.g. AuthorizeFolder("/Admin")).
-                return null;
+                var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return null;
+                }
+
+                var isMember = await _context.OrganizationMembers
+                    .AnyAsync(m => m.OrganizationId == organization.Id && m.UserId == userId, cancellationToken);
+
+                if (!isMember)
+                {
+                    // Authenticated admin/staff not a member of this tenant: no tenant resolved,
+                    // so tenant-owned data stays invisible and access is denied by the existing
+                    // authorization model (e.g. AuthorizeFolder("/Admin")).
+                    return null;
+                }
             }
         }
 
-        // Anonymous users, and members of this organization, resolve to the tenant.
+        // Anonymous users, Customer-role users, and org members all resolve to the tenant.
         return organization.Id;
     }
 }
