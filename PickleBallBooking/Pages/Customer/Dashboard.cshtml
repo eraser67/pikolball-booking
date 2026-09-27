@@ -1,0 +1,165 @@
+﻿@page "/Customer/Dashboard"
+@model PickleBallBooking.Pages.Customer.DashboardModel
+@using PickleBallBooking.Models
+@{
+    ViewData["Title"] = "My Dashboard";
+
+    string StatusBadgeClass(BookingStatus status) => status switch
+    {
+        BookingStatus.Confirmed  => "bg-success",
+        BookingStatus.Pending    => "bg-warning text-dark",
+        BookingStatus.Cancelled  => "bg-danger",
+        BookingStatus.Completed  => "bg-secondary",
+        _                        => "bg-light text-dark"
+    };
+    string StatusIcon(BookingStatus status) => status switch
+    {
+        BookingStatus.Confirmed  => "bi-check-circle-fill",
+        BookingStatus.Pending    => "bi-hourglass-split",
+        BookingStatus.Cancelled  => "bi-x-circle-fill",
+        BookingStatus.Completed  => "bi-archive-fill",
+        _                        => "bi-question-circle"
+    };
+}
+
+<div class="container py-4">
+
+    <!-- Welcome Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                     style="width:60px;height:60px;flex-shrink:0;">
+                    <i class="bi bi-person-fill text-success" style="font-size:1.8rem;"></i>
+                </div>
+                <div>
+                    <h1 class="h4 fw-bold mb-0">Welcome back, @Model.FullName</h1>
+                    <p class="text-muted mb-0 small">
+                        <i class="bi bi-envelope me-1"></i>@Model.Email
+                        @if (!string.IsNullOrEmpty(Model.Mobile))
+                        {
+                            <span class="ms-3"><i class="bi bi-phone me-1"></i>@Model.Mobile</span>
+                        }
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <a asp-page="/Booking/Index" class="card text-decoration-none h-100 border-0 shadow-sm pb-action-card">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-lightning-charge-fill text-success mb-2" style="font-size:1.8rem;"></i>
+                    <div class="fw-semibold small">Book a Court</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a asp-page="/Availability/Index" class="card text-decoration-none h-100 border-0 shadow-sm pb-action-card">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-calendar3 text-primary mb-2" style="font-size:1.8rem;"></i>
+                    <div class="fw-semibold small">Check Availability</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a asp-page="/Booking/Lookup" class="card text-decoration-none h-100 border-0 shadow-sm pb-action-card">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-search text-warning mb-2" style="font-size:1.8rem;"></i>
+                    <div class="fw-semibold small">Look Up Booking</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a asp-page="/Index" class="card text-decoration-none h-100 border-0 shadow-sm pb-action-card">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-house text-info mb-2" style="font-size:1.8rem;"></i>
+                    <div class="fw-semibold small">Home</div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Bookings -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <h2 class="h6 fw-bold mb-0">
+                    <i class="bi bi-journal-text text-success me-2"></i>Recent Bookings
+                </h2>
+                <a asp-page="/Booking/Lookup" class="btn btn-sm btn-outline-secondary">
+                    Look up a booking
+                </a>
+            </div>
+        </div>
+        <div class="card-body px-4">
+            @if (!Model.RecentBookings.Any())
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-calendar-x text-muted" style="font-size:2.5rem;"></i>
+                    <p class="text-muted mt-3 mb-2">No bookings found linked to your email address.</p>
+                    <a asp-page="/Booking/Index" class="btn btn-success btn-sm">
+                        <i class="bi bi-lightning-charge-fill me-1"></i>Make Your First Booking
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="fw-semibold small text-muted">Reference</th>
+                                <th class="fw-semibold small text-muted">Court</th>
+                                <th class="fw-semibold small text-muted">Date</th>
+                                <th class="fw-semibold small text-muted">Time</th>
+                                <th class="fw-semibold small text-muted">Status</th>
+                                <th class="fw-semibold small text-muted text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var booking in Model.RecentBookings)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="font-monospace small fw-semibold text-muted">
+                                            @booking.Reference
+                                        </span>
+                                    </td>
+                                    <td class="fw-medium">@booking.CourtName</td>
+                                    <td class="small">@booking.Date.ToString("MMM d, yyyy")</td>
+                                    <td class="small text-muted">
+                                        @booking.StartTime.ToString(@"hh\:mm") – @booking.EndTime.ToString(@"hh\:mm")
+                                    </td>
+                                    <td>
+                                        <span class="badge @StatusBadgeClass(booking.Status) rounded-pill">
+                                            <i class="bi @StatusIcon(booking.Status) me-1"></i>@booking.Status
+                                        </span>
+                                    </td>
+                                    <td class="text-end fw-semibold">
+                                        ₱@booking.Price.ToString("N2")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Upcoming Features Notice -->
+    <div class="alert alert-info border-0 shadow-sm mt-4 d-flex align-items-start gap-3">
+        <i class="bi bi-stars text-info mt-1" style="font-size:1.4rem;flex-shrink:0;"></i>
+        <div>
+            <div class="fw-semibold mb-1">More features coming soon</div>
+            <div class="small text-muted">
+                Player profiles, activity sign-ups, match history, and tournament registration
+                are being built next. Your account is ready to grow with these features.
+            </div>
+        </div>
+    </div>
+
+</div>

@@ -63,6 +63,8 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AuthorizeFolder("/Admin");
+    // Phase 31: customer-only pages require authentication with the Customer role.
+    options.Conventions.AuthorizeFolder("/Customer", PlatformRoles.CustomerPolicy);
 });
 
 // Phase 23: platform-level authorization policy. Only Identity users in the
@@ -77,6 +79,10 @@ builder.Services.AddAuthorization(options =>
     // Phase 23: tenant administration requires an authenticated member of the
     // hostname-resolved organization.
     options.AddTenantAdminPolicy();
+
+    // Phase 31: customer / player pages require a Customer role.
+    options.AddPolicy(PlatformRoles.CustomerPolicy, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(PlatformRoles.Customer));
 });
 
 // Phase 23: handler backing the tenant-admin policy.
@@ -159,6 +165,9 @@ builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 
 // Phase 26: subscription management.
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+
+// Phase 31: customer self-registration.
+builder.Services.AddScoped<CustomerRegistrationService>();
 
 // Phase 21/22: server-side tenant context and resolution.
 // The context is request-scoped so concurrent requests never share an organization.

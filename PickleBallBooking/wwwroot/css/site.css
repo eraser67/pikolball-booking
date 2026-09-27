@@ -2577,4 +2577,30 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   .pb-why-card:hover::after {
     transform: scaleX(1);
   }
-}
+}
+
+/* =========================================================
+   Phase 31 — Customer Dashboard
+   ========================================================= */
+
+/* Quick-action cards on the customer dashboard */
+.pb-action-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  cursor: pointer;
+  color: inherit;
+}
+
+.pb-action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10) !important;
+  color: inherit;
+}
+
+.pb-action-card .card-body {
+  transition: background-color 0.18s ease;
+}
+
+.pb-action-card:hover .card-body {
+  background-color: #f8fffe;
+}
+

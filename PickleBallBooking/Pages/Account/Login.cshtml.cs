@@ -79,9 +79,18 @@ public class LoginModel : PageModel
                 return LocalRedirect(returnUrl);
             }
 
-            // Check if the authenticated user is a PlatformAdmin
+            // Resolve the user to determine the correct post-login destination.
             var user = await _userManager.FindByEmailAsync(Input.Email);
             var isPlatformAdmin = user is not null && await _userManager.IsInRoleAsync(user, PlatformRoles.PlatformAdmin);
+
+            // Phase 31: customers / players go directly to their dashboard.
+            // Checked before admin flows so a pure customer account never hits
+            // the "no org membership" error at the bottom.
+            var isCustomer = user is not null && await _userManager.IsInRoleAsync(user, PlatformRoles.Customer);
+            if (isCustomer && !isPlatformAdmin && !_tenantContext.IsResolved)
+            {
+                return RedirectToPage("/Customer/Dashboard");
+            }
 
             // 1. If tenant is resolved on this request (user is on their subdomain):
             if (_tenantContext.IsResolved)
@@ -120,7 +129,7 @@ public class LoginModel : PageModel
                 }
             }
 
-            // 4. User is neither a PlatformAdmin nor a member of an active organization:
+            // 4. User is neither a PlatformAdmin, a Customer, nor a member of an active organization:
             await _signInManager.SignOutAsync();
             ErrorMessage = "You do not have administrative access to an active organization. Please contact your administrator.";
             return Page();
@@ -128,6 +137,7 @@ public class LoginModel : PageModel
 
         ErrorMessage = "Invalid login attempt.";
         return Page();
+
     }
 
     public class LoginInput
