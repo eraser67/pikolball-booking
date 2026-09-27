@@ -21,33 +21,94 @@
             </h1>
             @if (Model.IsNewProfile)
             {
-                <p class="text-muted small mt-1">Fill in your player profile so other players and venue organisers can learn about you.</p>
+                <p class="text-muted small mt-1">Fill in your details so other players and venue organisers can find you.</p>
             }
         </div>
     </div>
 
     @if (!string.IsNullOrEmpty(Model.StatusMessage))
     {
-        <div class="alert alert-success alert-dismissible fade show py-2" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>@Model.StatusMessage
+        var isError = Model.StatusMessage.StartsWith("Upload failed") || Model.StatusMessage.StartsWith("Please");
+        <div class="alert @(isError ? "alert-warning" : "alert-success") alert-dismissible fade show py-2" role="alert">
+            <i class="bi @(isError ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill") me-2"></i>@Model.StatusMessage
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
-    <form method="post" id="profileForm" novalidate>
-        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small"></div>
+    <div class="row g-4">
 
-        <div class="row g-4">
+        <!-- Left column: Avatar + Profile Info -->
+        <div class="col-lg-8">
 
-            <!-- Left column -->
-            <div class="col-lg-8">
+            <!-- Avatar card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body px-4 py-4">
+                    <div class="d-flex align-items-center gap-4 flex-wrap">
 
-                <!-- Basic Info card -->
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
-                        <h2 class="h6 fw-bold mb-0"><i class="bi bi-person me-2 text-success"></i>Basic Information</h2>
+                        <!-- Avatar preview -->
+                        <div class="position-relative flex-shrink-0">
+                            @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+                            {
+                                <img src="@Model.AvatarUrl" id="avatarPreview"
+                                     class="rounded-circle border border-3 border-success shadow-sm"
+                                     style="width:96px;height:96px;object-fit:cover;"
+                                     alt="Profile photo" />
+                            }
+                            else
+                            {
+                                <div id="avatarPlaceholder"
+                                     class="rounded-circle bg-success bg-opacity-10 border border-3 border-success d-flex align-items-center justify-content-center"
+                                     style="width:96px;height:96px;">
+                                    <i class="bi bi-person-fill text-success" style="font-size:2.5rem;"></i>
+                                </div>
+                                <img src="" id="avatarPreview"
+                                     class="rounded-circle border border-3 border-success shadow-sm d-none"
+                                     style="width:96px;height:96px;object-fit:cover;"
+                                     alt="Profile photo preview" />
+                            }
+                        </div>
+
+                        <!-- Upload form -->
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold mb-1">Profile Photo</div>
+                            <div class="text-muted small mb-3">JPEG, PNG or WEBP. Max 2 MB.</div>
+                            @if (Model.IsNewProfile)
+                            {
+                                <div class="alert alert-info py-2 small mb-0">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Save your profile first, then you can upload a photo.
+                                </div>
+                            }
+                            else
+                            {
+                                <form method="post" asp-page-handler="Avatar" enctype="multipart/form-data" id="avatarForm">
+                                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                                        <label class="btn btn-outline-success btn-sm mb-0" for="avatarFileInput">
+                                            <i class="bi bi-camera me-1"></i>Choose Photo
+                                        </label>
+                                        <input type="file" name="avatarFile" id="avatarFileInput"
+                                               accept="image/jpeg,image/png,image/webp"
+                                               class="d-none" />
+                                        <button type="submit" class="btn btn-success btn-sm d-none" id="avatarUploadBtn">
+                                            <i class="bi bi-upload me-1"></i>Upload
+                                        </button>
+                                        <span class="small text-muted" id="avatarFileName"></span>
+                                    </div>
+                                </form>
+                            }
+                        </div>
                     </div>
-                    <div class="card-body px-4 pb-4">
+                </div>
+            </div>
+
+            <!-- Basic Info card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                    <h2 class="h6 fw-bold mb-0"><i class="bi bi-person me-2 text-success"></i>Basic Information</h2>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <form method="post" id="profileForm" novalidate>
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small"></div>
                         <div class="row g-3">
                             <div class="col-sm-6">
                                 <label asp-for="Input.FirstName" class="form-label fw-medium"></label>
@@ -62,7 +123,7 @@
                             <div class="col-12">
                                 <label asp-for="Input.DisplayName" class="form-label fw-medium"></label>
                                 <input asp-for="Input.DisplayName" class="form-control" placeholder="Leave blank to use your full name" id="profileDisplayName" />
-                                <div class="form-text">This is the name shown to other players.</div>
+                                <div class="form-text">Shown to other players in rosters, leaderboards, etc.</div>
                                 <span asp-validation-for="Input.DisplayName" class="text-danger small"></span>
                             </div>
                             <div class="col-sm-6">
@@ -85,25 +146,20 @@
                                 <label asp-for="Input.Bio" class="form-label fw-medium"></label>
                                 <textarea asp-for="Input.Bio" class="form-control" rows="3"
                                           placeholder="A short intro about yourself and your pickleball journey…"
-                                          id="profileBio"></textarea>
+                                          id="profileBio" maxlength="500"></textarea>
                                 <div class="form-text text-end"><span id="bioCount">0</span> / 500</div>
                                 <span asp-validation-for="Input.Bio" class="text-danger small"></span>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Pickleball Info card -->
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
-                        <h2 class="h6 fw-bold mb-0"><i class="bi bi-trophy me-2 text-success"></i>Pickleball Info</h2>
-                    </div>
-                    <div class="card-body px-4 pb-4">
+                        <!-- Pickleball Info (inside the same form) -->
+                        <hr class="my-4" />
+                        <h2 class="h6 fw-bold mb-3"><i class="bi bi-trophy me-2 text-success"></i>Pickleball Info</h2>
                         <div class="row g-3">
                             <div class="col-sm-6">
                                 <label asp-for="Input.SkillLevel" class="form-label fw-medium"></label>
                                 <select asp-for="Input.SkillLevel" class="form-select" id="profileSkillLevel">
-                                    <option value="@((int)PlayerSkillLevel.Beginner)">🟢 Beginner — Learning the fundamentals</option>
+                                    <option value="@((int)PlayerSkillLevel.Beginner)">🟢 Beginner — Learning fundamentals</option>
                                     <option value="@((int)PlayerSkillLevel.Intermediate)">🟡 Intermediate — Developing consistency</option>
                                     <option value="@((int)PlayerSkillLevel.Advanced)">🔴 Advanced — Competitive player</option>
                                 </select>
@@ -117,47 +173,45 @@
                                 </select>
                             </div>
                         </div>
-                    </div>
-                </div>
 
+                        <div class="mt-4 d-flex gap-2">
+                            <button type="submit" class="btn btn-success fw-semibold px-4" id="profileSave">
+                                <i class="bi bi-check-circle me-2"></i>Save Profile
+                            </button>
+                            <a asp-page="/Customer/Dashboard" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
             </div>
 
-            <!-- Right column — Privacy -->
-            <div class="col-lg-4">
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
-                        <h2 class="h6 fw-bold mb-0"><i class="bi bi-shield-check me-2 text-success"></i>Privacy</h2>
-                    </div>
-                    <div class="card-body px-4 pb-4">
-                        <div class="form-check form-switch mb-3">
-                            <input asp-for="Input.IsDiscoverable" class="form-check-input" role="switch" id="profileDiscoverable" />
-                            <label class="form-check-label fw-medium" for="profileDiscoverable">
-                                Discoverable profile
-                            </label>
-                            <div class="form-text">Your profile appears in platform-wide player search (coming soon).</div>
-                        </div>
-                        <div class="form-check form-switch">
-                            <input asp-for="Input.PrivacyMobile" class="form-check-input" role="switch" id="profilePrivacyMobile" />
-                            <label class="form-check-label fw-medium" for="profilePrivacyMobile">
-                                Show mobile to other players
-                            </label>
-                            <div class="form-text">Off by default. Enable to let other players see your number.</div>
-                        </div>
-                    </div>
-                </div>
+        </div>
 
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-success btn-lg fw-semibold" id="profileSave">
-                        <i class="bi bi-check-circle me-2"></i>Save Profile
-                    </button>
-                    <a asp-page="/Customer/Dashboard" class="btn btn-outline-secondary">
-                        Cancel
-                    </a>
+        <!-- Right column: Privacy -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                    <h2 class="h6 fw-bold mb-0"><i class="bi bi-shield-check me-2 text-success"></i>Privacy</h2>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="form-check form-switch mb-3">
+                        <input asp-for="Input.IsDiscoverable" form="profileForm" class="form-check-input" role="switch" id="profileDiscoverable" />
+                        <label class="form-check-label fw-medium" for="profileDiscoverable">
+                            Discoverable profile
+                        </label>
+                        <div class="form-text">Appears in platform-wide player search (coming soon).</div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input asp-for="Input.PrivacyMobile" form="profileForm" class="form-check-input" role="switch" id="profilePrivacyMobile" />
+                        <label class="form-check-label fw-medium" for="profilePrivacyMobile">
+                            Show mobile to other players
+                        </label>
+                        <div class="form-text">Off by default.</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-    </form>
+    </div>
 </div>
 
 @section Scripts {
@@ -170,6 +224,41 @@
             const update = () => { bioCount.textContent = bio.value.length; };
             bio.addEventListener('input', update);
             update();
+        }
+
+        // Avatar file picker — show preview and reveal upload button
+        const fileInput = document.getElementById('avatarFileInput');
+        const uploadBtn = document.getElementById('avatarUploadBtn');
+        const preview   = document.getElementById('avatarPreview');
+        const placeholder = document.getElementById('avatarPlaceholder');
+        const fileName  = document.getElementById('avatarFileName');
+
+        if (fileInput) {
+            fileInput.addEventListener('change', function () {
+                const file = this.files[0];
+                if (!file) return;
+
+                // Client-side size hint (real check is server-side)
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('File is larger than 2 MB. Please choose a smaller image.');
+                    this.value = '';
+                    return;
+                }
+
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = e => {
+                    if (preview) {
+                        preview.src = e.target.result;
+                        preview.classList.remove('d-none');
+                    }
+                    if (placeholder) placeholder.classList.add('d-none');
+                };
+                reader.readAsDataURL(file);
+
+                if (fileName) fileName.textContent = file.name;
+                if (uploadBtn) uploadBtn.classList.remove('d-none');
+            });
         }
     </script>
 }

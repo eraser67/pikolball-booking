@@ -39,6 +39,13 @@ public interface ICourtImageStorage
     Task<string> UploadHeroImageAsync(int organizationId, IFormFile file, CancellationToken ct = default);
 
     /// <summary>
+    /// Validates and uploads a player avatar image to Supabase Storage.
+    /// Storage path is built server-side: players/{userId}/avatar/avatar.{ext}
+    /// Max size: 2 MB. Accepted types: JPEG, PNG, WEBP.
+    /// </summary>
+    Task<string> UploadAvatarAsync(string userId, IFormFile file, CancellationToken ct = default);
+
+    /// <summary>
     /// Deletes a stored court image using the server-side stored path.
     /// The caller must load the path from the database; the client cannot supply an arbitrary path.
     /// </summary>

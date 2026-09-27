@@ -174,6 +174,39 @@ public class SupabaseCourtImageStorage : ICourtImageStorage
         return storagePath;
     }
 
+    public async Task<string> UploadAvatarAsync(string userId, IFormFile file, CancellationToken ct = default)
+    {
+        const long maxAvatarSizeBytes = 2 * 1024 * 1024; // 2 MB
+
+        if (file.Length > maxAvatarSizeBytes)
+        {
+            throw new CourtImageValidationException(
+                $"Avatar image must be 2 MB or smaller. " +
+                $"The uploaded file is {file.Length / 1024.0 / 1024.0:0.##} MB.");
+        }
+
+        if (file.Length == 0)
+        {
+            throw new CourtImageValidationException("Avatar image file is empty.");
+        }
+
+        using var ms = new MemoryStream((int)file.Length);
+        await file.CopyToAsync(ms, ct);
+        var bytes = ms.ToArray();
+
+        var detectedMime = DetectMimeFromBytes(bytes)
+            ?? throw new CourtImageValidationException(
+                "Avatar must be a valid JPEG, PNG, or WEBP image.");
+
+        var extension   = AllowedMimeExtensions[detectedMime][0];  // e.g. ".jpg"
+        // Path is server-side only — client cannot influence it.
+        var storagePath = $"players/{userId}/avatar/avatar{extension}";
+
+        await UploadToSupabaseAsync(storagePath, bytes, detectedMime, ct);
+
+        return storagePath;
+    }
+
     public async Task DeleteAsync(string storagePath, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(storagePath)) return;

@@ -11,21 +11,25 @@ namespace PickleBallBooking.Pages.Customer;
 /// <summary>
 /// Phase 32: player profile edit page.
 ///
-/// Loads the existing profile (if any) and allows the authenticated customer
-/// to create or update their player profile. All fields are platform-global
-/// (no OrganizationId). Profile data migrates from Phase 31 claims on first save.
+/// Two handlers:
+///   OnPostAsync        — save profile fields (name, skill, bio, etc.)
+///   OnPostAvatarAsync  — upload a new profile photo (separate form, Ajax-friendly)
 /// </summary>
+[RequestFormLimits(MultipartBodyLengthLimit = 3_000_000)]
 public class ProfileModel : PageModel
 {
     private readonly UserManager<IdentityUser> _userManager;
     private readonly PlayerProfileService _profileService;
+    private readonly ICourtImageStorage _storage;
 
     public ProfileModel(
         UserManager<IdentityUser> userManager,
-        PlayerProfileService profileService)
+        PlayerProfileService profileService,
+        ICourtImageStorage storage)
     {
         _userManager    = userManager;
         _profileService = profileService;
+        _storage        = storage;
     }
 
     [BindProperty]
@@ -33,18 +37,24 @@ public class ProfileModel : PageModel
 
     public string? StatusMessage { get; set; }
     public bool IsNewProfile { get; set; }
+    public string? AvatarUrl { get; set; }
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(bool? saved = null)
     {
         var user = await _userManager.GetUserAsync(User);
         if (user is null) return RedirectToPage("/Account/Login");
 
         var profile = await _profileService.GetByUserIdAsync(user.Id);
         IsNewProfile = profile is null;
+        AvatarUrl    = _storage.GetPublicUrl(profile?.AvatarPath);
+
+        if (saved == true)
+        {
+            StatusMessage = "Profile saved successfully.";
+        }
 
         if (profile is not null)
         {
-            // Populate form from saved profile.
             Input.FirstName      = profile.FirstName;
             Input.LastName       = profile.LastName;
             Input.DisplayName    = profile.DisplayName;
@@ -58,46 +68,83 @@ public class ProfileModel : PageModel
         }
         else
         {
-            // Pre-fill from Phase 31 claims (name + mobile stored at registration).
-            var claims = await _userManager.GetClaimsAsync(user);
+            // Pre-fill from Phase 31 registration claims.
+            var claims   = await _userManager.GetClaimsAsync(user);
             var fullName = claims.FirstOrDefault(c => c.Type == "fullName")?.Value ?? string.Empty;
-            var nameParts = fullName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-            Input.FirstName = nameParts.Length > 0 ? nameParts[0] : string.Empty;
-            Input.LastName  = nameParts.Length > 1 ? nameParts[1] : string.Empty;
-            Input.Mobile    = claims.FirstOrDefault(c => c.Type == "mobile")?.Value ?? user.PhoneNumber ?? string.Empty;
+            var parts    = fullName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            Input.FirstName = parts.Length > 0 ? parts[0] : string.Empty;
+            Input.LastName  = parts.Length > 1 ? parts[1] : string.Empty;
+            Input.Mobile    = claims.FirstOrDefault(c => c.Type == "mobile")?.Value
+                              ?? user.PhoneNumber ?? string.Empty;
         }
 
         return Page();
     }
 
+    /// <summary>Save profile fields (name, bio, skill, etc.).</summary>
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!ModelState.IsValid) return Page();
+        if (!ModelState.IsValid)
+        {
+            var user2 = await _userManager.GetUserAsync(User);
+            var p2 = user2 is not null ? await _profileService.GetByUserIdAsync(user2.Id) : null;
+            AvatarUrl = _storage.GetPublicUrl(p2?.AvatarPath);
+            return Page();
+        }
 
         var user = await _userManager.GetUserAsync(User);
         if (user is null) return RedirectToPage("/Account/Login");
 
         await _profileService.UpsertAsync(
-            userId:        user.Id,
-            firstName:     Input.FirstName,
-            lastName:      Input.LastName,
-            displayName:   Input.DisplayName,
-            mobile:        Input.Mobile,
-            skillLevel:    Input.SkillLevel,
-            playingHand:   Input.PlayingHand,
-            bio:           Input.Bio,
-            location:      Input.Location,
+            userId:         user.Id,
+            firstName:      Input.FirstName,
+            lastName:       Input.LastName,
+            displayName:    Input.DisplayName,
+            mobile:         Input.Mobile,
+            skillLevel:     Input.SkillLevel,
+            playingHand:    Input.PlayingHand,
+            bio:            Input.Bio,
+            location:       Input.Location,
             isDiscoverable: Input.IsDiscoverable,
             privacyMobile:  Input.PrivacyMobile);
 
-        // Also sync the phone number back to the Identity user record.
-        if (user.PhoneNumber != Input.Mobile)
+        // Sync phone number back to Identity user.
+        if (!string.IsNullOrEmpty(Input.Mobile) && user.PhoneNumber != Input.Mobile)
         {
             await _userManager.SetPhoneNumberAsync(user, Input.Mobile);
         }
 
-        StatusMessage = "Profile saved successfully.";
         return RedirectToPage(new { saved = true });
+    }
+
+    /// <summary>Upload a new profile photo. Separate handler so it works independently.</summary>
+    public async Task<IActionResult> OnPostAvatarAsync(IFormFile avatarFile)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null) return RedirectToPage("/Account/Login");
+
+        if (avatarFile is null || avatarFile.Length == 0)
+        {
+            StatusMessage = "Please choose an image file to upload.";
+            return await OnGetAsync();
+        }
+
+        try
+        {
+            await _profileService.UploadAvatarAsync(user.Id, avatarFile);
+            StatusMessage = "Profile photo updated successfully.";
+        }
+        catch (CourtImageValidationException ex)
+        {
+            StatusMessage = $"Upload failed: {ex.Message}";
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Profile doesn't exist yet — prompt to save profile first.
+            StatusMessage = ex.Message;
+        }
+
+        return await OnGetAsync();
     }
 
     public class ProfileInput

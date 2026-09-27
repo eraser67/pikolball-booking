@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace PickleBallBooking.Models;
 
@@ -23,6 +23,16 @@ public class PlayerProfile
     [Required]
     [MaxLength(450)]
     public string UserId { get; set; } = string.Empty;
+
+    // ── Avatar ───────────────────────────────────────────────────────────
+    /// <summary>
+    /// Supabase Storage path for the player's avatar image.
+    /// Format: players/{userId}/avatar/avatar.{ext}
+    /// Null when no avatar has been uploaded.
+    /// The public URL is derived at display time via ICourtImageStorage.GetPublicUrl.
+    /// </summary>
+    [MaxLength(500)]
+    public string? AvatarPath { get; set; }
 
     // ── Name ─────────────────────────────────────────────────────────────
     [Required]

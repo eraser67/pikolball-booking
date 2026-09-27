@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -21,15 +21,18 @@ public class DashboardModel : PageModel
     private readonly UserManager<IdentityUser> _userManager;
     private readonly ApplicationDbContext _context;
     private readonly PlayerProfileService _profileService;
+    private readonly ICourtImageStorage _storage;
 
     public DashboardModel(
         UserManager<IdentityUser> userManager,
         ApplicationDbContext context,
-        PlayerProfileService profileService)
+        PlayerProfileService profileService,
+        ICourtImageStorage storage)
     {
         _userManager    = userManager;
         _context        = context;
         _profileService = profileService;
+        _storage        = storage;
     }
 
     public string DisplayName { get; private set; } = string.Empty;
@@ -37,6 +40,7 @@ public class DashboardModel : PageModel
     public string Mobile { get; private set; } = string.Empty;
     public string? Location { get; private set; }
     public string? SkillLevelLabel { get; private set; }
+    public string? AvatarUrl { get; private set; }
     public bool HasProfile { get; private set; }
 
     public IReadOnlyList<BookingSummary> RecentBookings { get; private set; } = [];
@@ -49,9 +53,9 @@ public class DashboardModel : PageModel
         Email  = user.Email ?? string.Empty;
         Mobile = user.PhoneNumber ?? string.Empty;
 
-        // Phase 32: prefer PlayerProfile data over raw claims.
         var profile = await _profileService.GetByUserIdAsync(user.Id);
-        HasProfile = profile is not null;
+        HasProfile  = profile is not null;
+        AvatarUrl   = _storage.GetPublicUrl(profile?.AvatarPath);
 
         if (profile is not null)
         {
@@ -68,12 +72,9 @@ public class DashboardModel : PageModel
         }
         else
         {
-            // Phase 31 fallback: claims stored at registration.
             DisplayName = User.FindFirstValue("fullName") ?? Email;
         }
 
-        // Fetch the 5 most recent bookings across all tenants by email.
-        // IgnoreQueryFilters bypasses the tenant (OrganizationId) global query filter.
         RecentBookings = await _context.Bookings
             .IgnoreQueryFilters()
             .Include(b => b.Court)
