@@ -6,388 +6,114 @@
     Layout = "/Pages/Shared/_Layout.cshtml";
 }
 
-@section Styles {
-<style>
-/* ── Page shell ─────────────────────────────────────────────── */
-.joinus-page {
-    min-height: calc(100vh - 70px);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-}
-@@media (max-width: 991px) {
-    .joinus-page { grid-template-columns: 1fr; }
-    .joinus-left  { display: none; }
-}
+<div class="container py-5" style="max-width:540px;">
 
-/* ── Left panel ─────────────────────────────────────────────── */
-.joinus-left {
-    background: linear-gradient(160deg,
-        var(--pb-green-900, #0f3d2e) 0%,
-        var(--pb-green-700, #146c43) 55%,
-        var(--pb-green-600, #198754) 100%);
-    padding: 4rem 3.5rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    position: sticky;
-    top: 70px;
-    height: calc(100vh - 70px);
-    overflow: hidden;
-}
-.joinus-left::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-    pointer-events: none;
-}
-.joinus-brand {
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: #fff;
-    letter-spacing: -.03em;
-    margin-bottom: 0.25rem;
-}
-.joinus-tagline {
-    color: rgba(255,255,255,.65);
-    font-size: 0.9rem;
-    margin-bottom: 3rem;
-}
-.joinus-feature {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 1.75rem;
-    position: relative;
-    z-index: 1;
-}
-.joinus-feature-icon {
-    width: 44px; height: 44px;
-    background: rgba(255,255,255,0.12);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.2rem;
-    color: #fff;
-    flex-shrink: 0;
-    border: 1px solid rgba(255,255,255,0.15);
-}
-.joinus-feature-title {
-    font-weight: 700;
-    color: #fff;
-    font-size: 0.95rem;
-    margin-bottom: 0.15rem;
-}
-.joinus-feature-desc {
-    color: rgba(255,255,255,.60);
-    font-size: 0.82rem;
-    line-height: 1.4;
-    margin: 0;
-}
-.joinus-left-footer {
-    margin-top: auto;
-    padding-top: 2rem;
-    border-top: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,.5);
-    font-size: 0.78rem;
-}
-
-/* ── Right panel (form) ──────────────────────────────────────── */
-.joinus-right {
-    background: var(--pb-surface-alt, #f4f8f6);
-    padding: 3rem 2.5rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    overflow-y: auto;
-}
-@@media (max-width: 991px) {
-    .joinus-right { padding: 2rem 1.25rem; }
-}
-
-.joinus-form-card {
-    background: #fff;
-    border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(15,61,46,0.09);
-    padding: 2.25rem 2.25rem 2rem;
-    width: 100%;
-    max-width: 500px;
-    margin: 0 auto;
-}
-
-/* Steps */
-.joinus-steps {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    margin-bottom: 1.75rem;
-}
-.joinus-step {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex: 1;
-}
-.joinus-step-num {
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    background: var(--pb-green-100, #d1f0e0);
-    color: var(--pb-green-700, #146c43);
-    font-size: 0.72rem;
-    font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-}
-.joinus-step-label {
-    font-size: 0.72rem;
-    color: var(--pb-muted, #5c6b66);
-    line-height: 1.2;
-}
-.joinus-step-divider {
-    flex: 0 0 16px;
-    height: 1px;
-    background: var(--pb-border, #e3ebe7);
-    margin: 0 0.35rem;
-}
-
-/* Section divider */
-.joinus-section-label {
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--pb-muted, #5c6b66);
-    margin: 1.25rem 0 0.75rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-.joinus-section-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--pb-border, #e3ebe7);
-}
-
-/* Subdomain preview */
-.subdomain-preview {
-    font-size: 0.78rem;
-    color: var(--pb-muted, #5c6b66);
-    margin-top: 0.35rem;
-    font-family: monospace;
-    min-height: 1.2em;
-}
-.subdomain-preview .preview-slug { color: var(--pb-green-700, #146c43); font-weight: 600; }
-
-/* CTA button */
-.joinus-cta {
-    background: linear-gradient(135deg, var(--pb-green-700, #146c43), var(--pb-green-600, #198754));
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    padding: 0.85rem;
-    font-size: 0.95rem;
-    font-weight: 700;
-    width: 100%;
-    letter-spacing: 0.01em;
-    transition: filter .2s, transform .15s;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(22,163,74,0.25);
-    display: block;
-    text-align: center;
-    text-decoration: none;
-}
-.joinus-cta:hover {
-    filter: brightness(1.08);
-    transform: translateY(-1px);
-    color: #fff;
-}
-
-/* Success card */
-.joinus-success { text-align: center; padding: 1rem 0; }
-.joinus-success-ring {
-    width: 80px; height: 80px;
-    border-radius: 50%;
-    background: var(--pb-green-100, #d1f0e0);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2.4rem;
-    color: var(--pb-green-600, #198754);
-    margin: 0 auto 1.25rem;
-    animation: popIn .4s cubic-bezier(.34,1.56,.64,1) both;
-}
-@@keyframes popIn {
-    from { transform: scale(0.5); opacity: 0; }
-    to   { transform: scale(1);   opacity: 1; }
-}
-.joinus-url-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: var(--pb-green-100, #d1f0e0);
-    color: var(--pb-green-900, #0f3d2e);
-    padding: 0.45rem 1rem;
-    border-radius: 20px;
-    font-size: 0.82rem;
-    font-family: monospace;
-    font-weight: 600;
-    margin: 0.75rem 0 1.5rem;
-}
-</style>
-}
-
-<div class="joinus-page">
-
-    @* ── LEFT: benefits panel ──────────────────────────── *@
-    <div class="joinus-left">
-        <div style="position:relative;z-index:1;">
-            <div class="joinus-brand"><i class="bi bi-award-fill me-2"></i>Punit Bola</div>
-            <p class="joinus-tagline">The platform for Philippine pickleball venues</p>
-
-            @foreach (var feat in new[]{
-                ("bi-calendar-check",   "Online Bookings 24/7",     "Players book courts anytime. No more phone calls."),
-                ("bi-grid-3x3-gap",     "Multi-Court Management",   "Manage all courts, time slots and pricing in one dashboard."),
-                ("bi-people",           "Player Community",         "Build your player base with open play, activities and leaderboards."),
-                ("bi-graph-up-arrow",   "Revenue Insights",         "Track bookings, payments and growth in real-time."),
-                ("bi-phone",            "Mobile-Ready",             "Your players book from any device — fast and easy.")
-            })
-            {
-                <div class="joinus-feature">
-                    <div class="joinus-feature-icon"><i class="bi @feat.Item1"></i></div>
-                    <div>
-                        <div class="joinus-feature-title">@feat.Item2</div>
-                        <p class="joinus-feature-desc">@feat.Item3</p>
-                    </div>
-                </div>
-            }
-
-            <div class="joinus-left-footer">
-                Already trusted by pickleball venues across the Philippines.
+    @if (Model.Success)
+    {
+        <!-- Success -->
+        <div class="text-center py-4">
+            <div class="mb-3" style="font-size:3rem;color:var(--pb-green-600,#198754);">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <h1 class="h4 fw-bold mb-2">You're registered! 🎉</h1>
+            <p class="text-muted mb-1">
+                We sent an activation email to <strong>@Model.Input.OwnerEmail</strong>.
+            </p>
+            <p class="text-muted mb-4">
+                Click the link to set your password and log in to your dashboard.
+            </p>
+            <div class="bg-light rounded-3 py-2 px-3 d-inline-block mb-4 small font-monospace text-success fw-semibold">
+                <i class="bi bi-link-45deg me-1"></i>@Model.Input.Subdomain.@Model.PlatformDomain
+            </div>
+            <div class="d-grid gap-2">
+                <a asp-page="/Account/Login" class="btn btn-success btn-lg">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Go to Login
+                </a>
+                <a asp-page="/Index" class="btn btn-outline-secondary">Back to Home</a>
             </div>
         </div>
-    </div>
-
-    @* ── RIGHT: form panel ────────────────────────────── *@
-    <div class="joinus-right">
-        <div class="joinus-form-card">
-
-            @if (Model.Success)
-            {
-                <div class="joinus-success">
-                    <div class="joinus-success-ring">
-                        <i class="bi bi-check-lg"></i>
-                    </div>
-                    <h2 class="h5 fw-bold mb-1">You're live! 🎉</h2>
-                    <p class="text-muted small mb-0">
-                        Activation email sent to <strong>@Model.Input.OwnerEmail</strong>
-                    </p>
-                    <div class="joinus-url-chip">
-                        <i class="bi bi-link-45deg"></i>
-                        @Model.Input.Subdomain.@Model.PlatformDomain
-                    </div>
-                    <p class="text-muted small mb-4">
-                        Click the link in your email to set your password and access your admin dashboard.
-                    </p>
-                    <div class="d-flex flex-column gap-2">
-                        <a asp-page="/Account/Login" class="joinus-cta">
-                            <i class="bi bi-box-arrow-in-right me-2"></i>Go to Login
-                        </a>
-                        <a asp-page="/Index" class="btn btn-outline-secondary btn-sm">Back to Home</a>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div class="mb-4">
-                    <h1 class="h5 fw-bold mb-0" style="letter-spacing:-.02em;">Register Your Venue</h1>
-                    <p class="text-muted small mb-0">Free to start. Live in under 2 minutes.</p>
-                </div>
-
-                <div class="joinus-steps">
-                    @{ var steps = new[]{ ("1","Venue info",false), ("2","Goes live",false), ("3","Activate email",true) }; }
-                    @foreach (var (num, label, last) in steps)
-                    {
-                        <div class="joinus-step">
-                            <span class="joinus-step-num">@num</span>
-                            <span class="joinus-step-label">@label</span>
-                        </div>
-                        if (!last) { <div class="joinus-step-divider"></div> }
-                    }
-                </div>
-
-                @if (!string.IsNullOrWhiteSpace(Model.RegistrationMessage))
-                {
-                    <div class="alert alert-success py-2 mb-3 small" role="alert">
-                        <i class="bi bi-info-circle me-1"></i>@Model.RegistrationMessage
-                    </div>
-                }
-
-                @if (!ViewData.ModelState.IsValid)
-                {
-                    <div class="alert alert-danger py-2 mb-3 small" role="alert">
-                        <i class="bi bi-exclamation-triangle me-1"></i>
-                        Please fix the errors below and try again.
-                    </div>
-                }
-
-                <form method="post" novalidate>
-
-                    <div class="joinus-section-label"><i class="bi bi-building"></i>Venue</div>
-
-                    <div class="mb-3">
-                        <label asp-for="Input.VenueName" class="form-label fw-semibold small mb-1"></label>
-                        <input asp-for="Input.VenueName" class="form-control"
-                               placeholder="e.g. Cebu Pickleball Club" autofocus />
-                        <span asp-validation-for="Input.VenueName" class="text-danger" style="font-size:.75rem;"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Input.Subdomain" class="form-label fw-semibold small mb-1"></label>
-                        <div class="input-group">
-                            <input asp-for="Input.Subdomain"
-                                   class="form-control"
-                                   placeholder="myvenue"
-                                   id="subdomainInput"
-                                   autocomplete="off"
-                                   style="font-family:monospace;"
-                                   oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9\-]/g,'');updatePreview()" />
-                            <span class="input-group-text text-muted small">.<strong>@Model.PlatformDomain</strong></span>
-                        </div>
-                        <div class="subdomain-preview mt-1" id="subdomainPreview">
-                            <i class="bi bi-link-45deg"></i>
-                            <span class="text-muted">your-venue</span>.<span class="text-muted">@Model.PlatformDomain</span>
-                        </div>
-                        <span asp-validation-for="Input.Subdomain" class="text-danger" style="font-size:.75rem;"></span>
-                    </div>
-
-                    <div class="joinus-section-label"><i class="bi bi-person-badge"></i>Administrator</div>
-
-                    <div class="row g-2 mb-3">
-                        <div class="col-12 col-sm-6">
-                            <label asp-for="Input.OwnerName" class="form-label fw-semibold small mb-1"></label>
-                            <input asp-for="Input.OwnerName" class="form-control" placeholder="Juan dela Cruz" />
-                            <span asp-validation-for="Input.OwnerName" class="text-danger" style="font-size:.75rem;"></span>
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <label asp-for="Input.OwnerEmail" class="form-label fw-semibold small mb-1"></label>
-                            <input asp-for="Input.OwnerEmail" class="form-control" type="email"
-                                   placeholder="juan@example.com" />
-                            <span asp-validation-for="Input.OwnerEmail" class="text-danger" style="font-size:.75rem;"></span>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="joinus-cta mt-1">
-                        <i class="bi bi-lightning-charge-fill me-2"></i>Register My Venue — It's Free
-                    </button>
-
-                    <p class="text-center text-muted mt-3 mb-0" style="font-size:.78rem;">
-                        Already have an account?
-                        <a asp-page="/Account/Login" class="fw-semibold">Sign in</a>
-                    </p>
-
-                </form>
-            }
-
+    }
+    else
+    {
+        <!-- Header -->
+        <div class="mb-4">
+            <h1 class="h3 fw-bold mb-1">Register Your Venue</h1>
+            <p class="text-muted mb-0">Free to start. Your venue goes live immediately after registration.</p>
         </div>
-    </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.RegistrationMessage))
+        {
+            <div class="alert alert-success" role="alert">
+                <i class="bi bi-info-circle me-2"></i>@Model.RegistrationMessage
+            </div>
+        }
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>Please fix the errors below.
+            </div>
+        }
+
+        <form method="post" novalidate>
+
+            <!-- Venue Name -->
+            <div class="mb-3">
+                <label asp-for="Input.VenueName" class="form-label fw-semibold"></label>
+                <input asp-for="Input.VenueName" class="form-control form-control-lg"
+                       placeholder="e.g. Cebu Pickleball Club" autofocus />
+                <span asp-validation-for="Input.VenueName" class="text-danger small"></span>
+            </div>
+
+            <!-- Subdomain -->
+            <div class="mb-3">
+                <label asp-for="Input.Subdomain" class="form-label fw-semibold"></label>
+                <div class="input-group input-group-lg">
+                    <input asp-for="Input.Subdomain"
+                           class="form-control"
+                           placeholder="myvenue"
+                           id="subdomainInput"
+                           autocomplete="off"
+                           style="font-family:monospace;"
+                           oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9\-]/g,'');updatePreview()" />
+                    <span class="input-group-text text-muted">.<strong>@Model.PlatformDomain</strong></span>
+                </div>
+                <div class="form-text font-monospace" id="subdomainPreview" style="color:var(--pb-green-700,#146c43);">
+                </div>
+                <span asp-validation-for="Input.Subdomain" class="text-danger small"></span>
+            </div>
+
+            <hr class="my-4" />
+
+            <!-- Owner Name -->
+            <div class="mb-3">
+                <label asp-for="Input.OwnerName" class="form-label fw-semibold"></label>
+                <input asp-for="Input.OwnerName" class="form-control form-control-lg"
+                       placeholder="Juan dela Cruz" />
+                <span asp-validation-for="Input.OwnerName" class="text-danger small"></span>
+            </div>
+
+            <!-- Owner Email -->
+            <div class="mb-4">
+                <label asp-for="Input.OwnerEmail" class="form-label fw-semibold"></label>
+                <input asp-for="Input.OwnerEmail" class="form-control form-control-lg"
+                       type="email" placeholder="juan@example.com" />
+                <div class="form-text">An activation link will be sent to this email.</div>
+                <span asp-validation-for="Input.OwnerEmail" class="text-danger small"></span>
+            </div>
+
+            <div class="d-grid mb-3">
+                <button type="submit" class="btn btn-success btn-lg fw-semibold">
+                    <i class="bi bi-lightning-charge-fill me-2"></i>Register My Venue
+                </button>
+            </div>
+
+            <p class="text-center text-muted small mb-0">
+                Already have an account? <a asp-page="/Account/Login" class="fw-semibold">Sign in</a>
+            </p>
+
+        </form>
+    }
 
 </div>
 
@@ -395,15 +121,11 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         function updatePreview() {
-            const slug = document.getElementById('subdomainInput').value.trim();
+            const slug = document.getElementById('subdomainInput')?.value.trim() ?? '';
             const preview = document.getElementById('subdomainPreview');
             if (!preview) return;
             const domain = '@Html.Raw(Model.PlatformDomain)';
-            if (slug) {
-                preview.innerHTML = `<i class="bi bi-link-45deg"></i> <span class="preview-slug">${slug}</span>.${domain}`;
-            } else {
-                preview.innerHTML = `<i class="bi bi-link-45deg"></i> <span class="text-muted">your-venue</span>.${domain}`;
-            }
+            preview.textContent = slug ? `Your URL: ${slug}.${domain}` : '';
         }
         updatePreview();
     </script>
