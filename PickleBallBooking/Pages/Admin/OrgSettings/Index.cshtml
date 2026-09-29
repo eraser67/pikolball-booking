@@ -140,6 +140,70 @@
 
     <hr class="my-4" />
 
+    <!-- ── BRANDING & HOMEPAGE ──────────────────────────────── -->
+    <h5 class="mb-1"><i class="bi bi-palette me-2 text-success"></i>Branding &amp; Custom Homepage</h5>
+    <p class="text-muted small mb-3">Personalise how your venue's homepage looks to players.</p>
+
+    <div class="mb-3">
+        <label asp-for="Input.Tagline" class="form-label fw-semibold"></label>
+        <input asp-for="Input.Tagline" class="form-control"
+               placeholder='e.g. "Manila''s Premier Pickleball Venue"' maxlength="200" />
+        <div class="form-text">Short line shown in the hero banner below your venue name.</div>
+        <span asp-validation-for="Input.Tagline" class="text-danger small"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.AboutText" class="form-label fw-semibold"></label>
+        <textarea asp-for="Input.AboutText" class="form-control" rows="3" maxlength="1000"
+                  placeholder="A short welcome paragraph about your venue…"></textarea>
+        <div class="form-text">Shown as an About section on your homepage.</div>
+        <span asp-validation-for="Input.AboutText" class="text-danger small"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.PrimaryColorHex" class="form-label fw-semibold"></label>
+        <div class="input-group" style="max-width:240px;">
+            <input asp-for="Input.PrimaryColorHex" class="form-control" type="text"
+                   id="primaryColorHex" placeholder="#16a34a" maxlength="7" />
+            <span class="input-group-text p-1">
+                <input type="color" id="primaryColorPicker" value="#16a34a"
+                       style="width:36px;height:32px;border:none;padding:2px;cursor:pointer;"
+                       title="Pick a colour" />
+            </span>
+        </div>
+        <div class="form-text">Overrides the default green theme for your venue. Enter a 6-digit hex, e.g. <code>#16a34a</code>. Leave blank to use the default.</div>
+        <span asp-validation-for="Input.PrimaryColorHex" class="text-danger small"></span>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Social Media Links</label>
+        <div class="input-group mb-2">
+            <span class="input-group-text"><i class="bi bi-facebook"></i></span>
+            <input asp-for="Input.FacebookUrl" class="form-control" placeholder="https://facebook.com/yourpage" />
+        </div>
+        <span asp-validation-for="Input.FacebookUrl" class="text-danger small d-block mb-1"></span>
+        <div class="input-group mb-2">
+            <span class="input-group-text"><i class="bi bi-instagram"></i></span>
+            <input asp-for="Input.InstagramUrl" class="form-control" placeholder="https://instagram.com/yourprofile" />
+        </div>
+        <span asp-validation-for="Input.InstagramUrl" class="text-danger small d-block mb-1"></span>
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-twitter-x"></i></span>
+            <input asp-for="Input.TwitterUrl" class="form-control" placeholder="https://x.com/yourprofile" />
+        </div>
+        <span asp-validation-for="Input.TwitterUrl" class="text-danger small d-block"></span>
+    </div>
+
+    <div class="mb-3 form-check form-switch">
+        <input asp-for="Input.ShowActivitiesOnHome" class="form-check-input" role="switch" id="showActivitiesSwitch" />
+        <label class="form-check-label fw-semibold" for="showActivitiesSwitch">
+            Show upcoming Activities on homepage
+        </label>
+        <div class="form-text">When enabled, players will see upcoming open activities directly on your landing page.</div>
+    </div>
+
+    <hr class="my-4" />
+
     <!-- ── LOCATION ────────────────────────────────────────────── -->
     <h5 class="mb-1">Location &amp; Map</h5>
     <p class="text-muted small mb-3">Shown in the <strong>Find Us</strong> section on your public homepage.</p>
@@ -365,6 +429,27 @@
                     this.value = '';
                 } else {
                     err.style.display = 'none';
+                }
+            });
+        })();
+
+        // Sync color picker ↔ hex input
+        (function () {
+            const hexInput    = document.getElementById('primaryColorHex');
+            const colorPicker = document.getElementById('primaryColorPicker');
+            if (!hexInput || !colorPicker) return;
+
+            // Initialise picker from existing value
+            if (/^#[0-9A-Fa-f]{6}$/.test(hexInput.value)) {
+                colorPicker.value = hexInput.value;
+            }
+
+            colorPicker.addEventListener('input', function () {
+                hexInput.value = this.value;
+            });
+            hexInput.addEventListener('input', function () {
+                if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
+                    colorPicker.value = this.value;
                 }
             });
         })();

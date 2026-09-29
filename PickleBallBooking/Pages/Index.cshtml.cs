@@ -17,19 +17,22 @@ namespace PickleBallBooking.Pages
         private readonly ITimeSlotService _timeSlotService;
         private readonly ICourtImageStorage _imageStorage;
         private readonly IOrganizationService _organizationService;
+        private readonly ActivityService _activityService;
 
         public IndexModel(
             ICourtService courtService,
             IBookingService bookingService,
             ITimeSlotService timeSlotService,
             ICourtImageStorage imageStorage,
-            IOrganizationService organizationService)
+            IOrganizationService organizationService,
+            ActivityService activityService)
         {
             _courtService        = courtService;
             _bookingService      = bookingService;
             _timeSlotService     = timeSlotService;
             _imageStorage        = imageStorage;
             _organizationService = organizationService;
+            _activityService     = activityService;
         }
 
         /// <summary>Active courts loaded dynamically from the database.</summary>
@@ -45,11 +48,12 @@ namespace PickleBallBooking.Pages
         public double OrgLongitude { get; set; } = 124.020279;
         public bool HasMapCoordinates => OrgAddress is not null || (OrgLatitude != 0 && OrgLongitude != 0);
 
-        /// <summary>
-        /// Public URL of the tenant's custom hero image, or null to use the default static image.
-        /// Rendered in the hero section of the landing page.
-        /// </summary>
+        // ── Tenant Branding ──
         public string? HeroImageUrl { get; set; }
+        public string? Tagline { get; set; }
+        public string? AboutText { get; set; }
+        public bool ShowActivitiesOnHome { get; set; }
+        public List<Activity> UpcomingActivities { get; set; } = new();
 
         public async Task OnGetAsync()
         {
@@ -66,6 +70,21 @@ namespace PickleBallBooking.Pages
 
                 // Use custom hero image if the org has uploaded one.
                 HeroImageUrl = _imageStorage.GetPublicUrl(org.HeroImagePath);
+
+                // Branding
+                Tagline              = org.Tagline;
+                AboutText            = org.AboutText;
+                ShowActivitiesOnHome = org.ShowActivitiesOnHome;
+
+                // Load upcoming activities if the tenant has opted in.
+                if (org.ShowActivitiesOnHome)
+                {
+                    UpcomingActivities = (await _activityService.GetPublishedAsync())
+                        .Where(a => a.Date >= AppClock.TodayLocal)
+                        .OrderBy(a => a.Date).ThenBy(a => a.StartTime)
+                        .Take(3)
+                        .ToList();
+                }
             }
 
             var courts = await _courtService.GetActiveAsync();

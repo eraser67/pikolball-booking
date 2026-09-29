@@ -39,7 +39,7 @@
                 Premium Pickleball Club
             </span>
             <h1>PLAY MORE.<br /><span class="pb-hero-accent">BOOK EASIER.</span></h1>
-            <p class="pb-hero-tagline mb-1">Your court. Your time. Your game.</p>
+            <p class="pb-hero-tagline mb-1">@(Model.Tagline ?? "Your court. Your time. Your game.")</p>
             <p class="pb-hero-lead mb-4">
                 Reserve your pickleball court in just a few clicks. Real-time availability,
                 flexible time slots, and instant confirmation &mdash; no fuss.
@@ -168,6 +168,75 @@
         </div>
     }
 </section>
+
+@* ── ABOUT SECTION (shown when admin set an AboutText) ────────────── *@
+@if (!string.IsNullOrWhiteSpace(Model.AboutText))
+{
+    <section class="pb-section pb-section-alt" id="about" aria-labelledby="about-heading">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center pb-reveal">
+                <span class="pb-section-label" aria-hidden="true">
+                    <i class="bi bi-building"></i> About Us
+                </span>
+                <h2 class="pb-section-title" id="about-heading">ABOUT @Model.OrgName.ToUpperInvariant()</h2>
+                <p class="pb-section-subtitle mx-auto" style="max-width:680px;">@Model.AboutText</p>
+                <a asp-page="/Booking/Index" class="btn btn-primary mt-3" id="about-book-btn">
+                    <i class="bi bi-lightning-charge-fill me-1"></i>Book a Court
+                </a>
+            </div>
+        </div>
+    </section>
+}
+
+@* ── UPCOMING ACTIVITIES (shown when tenant enables it) ────────────── *@
+@if (Model.ShowActivitiesOnHome && Model.UpcomingActivities.Any())
+{
+    <section class="pb-section" id="home-activities" aria-labelledby="home-act-heading">
+        <div class="text-center mb-4">
+            <span class="pb-section-label" aria-hidden="true">
+                <i class="bi bi-calendar-event"></i> Activities
+            </span>
+            <h2 class="pb-section-title" id="home-act-heading">UPCOMING ACTIVITIES</h2>
+            <p class="pb-section-subtitle mx-auto">Join a session and play with the community.</p>
+        </div>
+        <div class="row g-4">
+            @foreach (var act in Model.UpcomingActivities)
+            {
+                <div class="col-md-6 col-lg-4 pb-reveal">
+                    <article class="pb-court-card h-100">
+                        <div class="pb-court-card-body">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-success">@act.Format</span>
+                                <span class="badge bg-secondary">@act.SkillLevel</span>
+                            </div>
+                            <h3 class="pb-court-name">@act.Name</h3>
+                            <ul class="list-unstyled small text-muted mb-3">
+                                <li><i class="bi bi-calendar3 me-2"></i>@act.Date.ToString("MMM d, yyyy (ddd)")</li>
+                                <li><i class="bi bi-clock me-2"></i>@PickleBallBooking.Services.AppClock.To12HourRange(act.StartTime, act.EndTime)</li>
+                                @if (act.MaxCapacity > 0)
+                                {
+                                    <li><i class="bi bi-people me-2"></i>Up to @act.MaxCapacity players</li>
+                                }
+                                <li>
+                                    <i class="bi bi-cash me-2"></i>
+                                    @(act.PricePerPlayer == 0 ? "Free" : $"₱{act.PricePerPlayer:N0} / player")
+                                </li>
+                            </ul>
+                            <a asp-page="/Activities/Index" class="btn btn-outline-primary w-100" id="home-act-@act.Id">
+                                <i class="bi bi-arrow-right me-1"></i>View Details
+                            </a>
+                        </div>
+                    </article>
+                </div>
+            }
+        </div>
+        <div class="text-center mt-4">
+            <a asp-page="/Activities/Index" class="btn btn-ghost" id="home-all-activities-btn">
+                <i class="bi bi-calendar-event me-1"></i>See All Activities
+            </a>
+        </div>
+    </section>
+}
 
 <!-- ===================== WHY PUNIT BOLA ===================== -->
 <section class="pb-section" id="why-punit-bola" aria-labelledby="why-heading">

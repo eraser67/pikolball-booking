@@ -124,6 +124,19 @@ public interface IOrganizationService
     /// </summary>
     Task<bool> UpdateHeroImageForOrgAsync(int organizationId, string? heroImagePath, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Updates all custom homepage branding fields for the CURRENT tenant organization.
+    /// </summary>
+    Task<bool> UpdateBrandingAsync(
+        string? tagline,
+        string? aboutText,
+        string? primaryColorHex,
+        string? facebookUrl,
+        string? instagramUrl,
+        string? twitterUrl,
+        bool showActivitiesOnHome,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Members of the CURRENT tenant organization (with their Identity info).</summary>
     Task<List<OrganizationMemberView>> GetCurrentMembersAsync(CancellationToken cancellationToken = default);
 
@@ -628,6 +641,41 @@ public sealed class OrganizationService : IOrganizationService
 
         organization.HeroImagePath = string.IsNullOrWhiteSpace(heroImagePath) ? null : heroImagePath.Trim();
         organization.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> UpdateBrandingAsync(
+        string? tagline,
+        string? aboutText,
+        string? primaryColorHex,
+        string? facebookUrl,
+        string? instagramUrl,
+        string? twitterUrl,
+        bool showActivitiesOnHome,
+        CancellationToken cancellationToken = default)
+    {
+        var id = _tenantContext.OrganizationId;
+        if (id is null) return false;
+
+        var organization = await _context.Organizations
+            .FirstOrDefaultAsync(o => o.Id == id.Value, cancellationToken);
+        if (organization is null) return false;
+
+        // Sanitize color: must be #RRGGBB or null.
+        var color = primaryColorHex?.Trim();
+        if (!string.IsNullOrEmpty(color) && !System.Text.RegularExpressions.Regex.IsMatch(color, @"^#[0-9A-Fa-f]{6}$"))
+            color = null;
+
+        organization.Tagline              = string.IsNullOrWhiteSpace(tagline)      ? null : tagline.Trim();
+        organization.AboutText            = string.IsNullOrWhiteSpace(aboutText)    ? null : aboutText.Trim();
+        organization.PrimaryColorHex      = color;
+        organization.FacebookUrl          = string.IsNullOrWhiteSpace(facebookUrl)  ? null : facebookUrl.Trim();
+        organization.InstagramUrl         = string.IsNullOrWhiteSpace(instagramUrl) ? null : instagramUrl.Trim();
+        organization.TwitterUrl           = string.IsNullOrWhiteSpace(twitterUrl)   ? null : twitterUrl.Trim();
+        organization.ShowActivitiesOnHome = showActivitiesOnHome;
+        organization.UpdatedAt            = DateTime.UtcNow;
+
         await _context.SaveChangesAsync(cancellationToken);
         return true;
     }

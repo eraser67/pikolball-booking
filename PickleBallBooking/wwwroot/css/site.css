@@ -1535,6 +1535,26 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   margin: 2rem 0 1rem;
 }
 
+/* -------- Social media links in footer -------- */
+.pb-social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.75);
+  font-size: 1rem;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+.pb-social-link:hover {
+  background: var(--pb-primary, #16a34a);
+  color: #fff;
+  transform: scale(1.15);
+}
+
 /* -------- Clickable / responsive map embed -------- */
 .pb-map-wrap {
   position: relative;

@@ -69,6 +69,15 @@ public class IndexModel : PageModel
         Input.NotificationEmail = organization.NotificationEmail;
         Input.TelegramChatId    = organization.TelegramChatId;
 
+        // Branding
+        Input.Tagline             = organization.Tagline;
+        Input.AboutText           = organization.AboutText;
+        Input.PrimaryColorHex     = organization.PrimaryColorHex;
+        Input.FacebookUrl         = organization.FacebookUrl;
+        Input.InstagramUrl        = organization.InstagramUrl;
+        Input.TwitterUrl          = organization.TwitterUrl;
+        Input.ShowActivitiesOnHome = organization.ShowActivitiesOnHome;
+
         CurrentLogoUrl      = _imageStorage.GetPublicUrl(organization.LogoPath);
         CurrentHeroImageUrl = _imageStorage.GetPublicUrl(organization.HeroImagePath);
 
@@ -226,6 +235,16 @@ public class IndexModel : PageModel
             return Page();
         }
 
+        // Save branding settings.
+        await _organizationService.UpdateBrandingAsync(
+            Input.Tagline,
+            Input.AboutText,
+            Input.PrimaryColorHex,
+            Input.FacebookUrl,
+            Input.InstagramUrl,
+            Input.TwitterUrl,
+            Input.ShowActivitiesOnHome);
+
         StatusMessage = "Settings saved successfully.";
         return RedirectToPage();
 
@@ -301,6 +320,38 @@ public class IndexModel : PageModel
         public string? TelegramChatId { get; set; }
 
         // Branding
+        [MaxLength(200)]
+        [Display(Name = "Tagline")]
+        public string? Tagline { get; set; }
+
+        [MaxLength(1000)]
+        [Display(Name = "About / Welcome Text")]
+        public string? AboutText { get; set; }
+
+        [MaxLength(7)]
+        [RegularExpression(@"^(#[0-9A-Fa-f]{6})?$", ErrorMessage = "Enter a 6-digit hex color, e.g. #16a34a, or leave blank.")]
+        [Display(Name = "Primary Brand Color (hex)")]
+        public string? PrimaryColorHex { get; set; }
+
+        [MaxLength(300)]
+        [Url(ErrorMessage = "Enter a valid URL.")]
+        [Display(Name = "Facebook URL")]
+        public string? FacebookUrl { get; set; }
+
+        [MaxLength(300)]
+        [Url(ErrorMessage = "Enter a valid URL.")]
+        [Display(Name = "Instagram URL")]
+        public string? InstagramUrl { get; set; }
+
+        [MaxLength(300)]
+        [Url(ErrorMessage = "Enter a valid URL.")]
+        [Display(Name = "X / Twitter URL")]
+        public string? TwitterUrl { get; set; }
+
+        [Display(Name = "Show upcoming Activities on homepage")]
+        public bool ShowActivitiesOnHome { get; set; } = false;
+
+        // Branding images
         [Display(Name = "Brand Logo")]
         public IFormFile? LogoImage { get; set; }
 
