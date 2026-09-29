@@ -1,0 +1,194 @@
+@page
+@model PickleBallBooking.Pages.JoinUsModel
+@{
+    ViewData["Title"] = "Register Your Venue – Pikolball";
+    ViewData["MetaDescription"] = "Register your pickleball venue on Pikolball. Start accepting bookings in minutes.";
+    Layout = "/Pages/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <style>
+        .join-hero {
+            background: linear-gradient(135deg, var(--pb-green-900, #0f3d2e) 0%, var(--pb-green-700, #146c43) 60%, var(--pb-green-600, #198754) 100%);
+            padding: 4rem 1rem 5rem;
+            text-align: center;
+            color: #fff;
+        }
+        .join-hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; letter-spacing: -.02em; }
+        .join-hero p  { opacity: .85; max-width: 520px; margin: .75rem auto 0; font-size: 1.05rem; }
+
+        .join-card {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 12px 48px rgba(15,61,46,0.14);
+            padding: 2.5rem;
+            margin-top: -3rem;
+            position: relative;
+        }
+
+        .join-step-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px; height: 28px;
+            background: var(--pb-green-100, #d1f0e0);
+            color: var(--pb-green-700, #146c43);
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: .8rem;
+            flex-shrink: 0;
+        }
+
+        .join-success-icon { font-size: 3.5rem; color: var(--pb-green-600, #198754); }
+    </style>
+}
+
+<div class="join-hero">
+    <div class="container">
+        <span class="badge bg-success bg-opacity-25 text-success-emphasis fw-semibold px-3 py-2 mb-3" style="border-radius:20px;">
+            <i class="bi bi-building-add me-1"></i>Court Owner Registration
+        </span>
+        <h1>Register Your Venue</h1>
+        <p>Join Pikolball and start accepting online bookings, manage your courts, and grow your player community — all in one place.</p>
+    </div>
+</div>
+
+<div class="container py-5" style="max-width: 680px;">
+
+    @if (Model.Success)
+    {
+        <!-- ── Success state ── -->
+        <div class="join-card text-center">
+            <div class="join-success-icon mb-3">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <h2 class="h4 fw-bold mb-2">You're registered! 🎉</h2>
+            <p class="text-muted mb-4">
+                Your venue is now live on Pikolball. We've sent an activation email to
+                <strong>@Model.Input.OwnerEmail</strong> — click the link to set your password
+                and log in to your admin dashboard.
+            </p>
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <a asp-page="/Account/Login" class="btn btn-success px-4">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Go to Login
+                </a>
+                <a asp-page="/Index" class="btn btn-outline-secondary px-4">Back to Home</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- ── How it works strip ── -->
+        <div class="d-flex flex-wrap gap-3 mb-4">
+            @foreach (var (num, label) in new[]{ ("1","Fill in your details"), ("2","Your venue goes live instantly"), ("3","Activate via email & log in") })
+            {
+                <div class="d-flex align-items-center gap-2 small text-muted">
+                    <span class="join-step-badge">@num</span>
+                    @label
+                </div>
+                if (num != "3")
+                {
+                    <i class="bi bi-chevron-right text-muted small align-self-center"></i>
+                }
+            }
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.RegistrationMessage))
+        {
+            <div class="alert alert-success mb-4" role="alert">
+                <i class="bi bi-info-circle me-2"></i>@Model.RegistrationMessage
+            </div>
+        }
+
+        <div class="join-card">
+            <h2 class="h5 fw-bold mb-4">
+                <i class="bi bi-building me-2 text-success"></i>Venue Details
+            </h2>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger mb-4" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Please fix the errors below.
+                    <ul class="mb-0 mt-1 small">
+                        @foreach (var state in ViewData.ModelState.Values)
+                        {
+                            foreach (var err in state.Errors)
+                            {
+                                <li>@err.ErrorMessage</li>
+                            }
+                        }
+                    </ul>
+                </div>
+            }
+
+            <form method="post" novalidate>
+                <div class="row g-3">
+
+                    <!-- Venue Name -->
+                    <div class="col-12">
+                        <label asp-for="Input.VenueName" class="form-label fw-semibold"></label>
+                        <input asp-for="Input.VenueName" class="form-control form-control-lg"
+                               placeholder="e.g. Cebu Pickleball Club" autofocus />
+                        <span asp-validation-for="Input.VenueName" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Subdomain -->
+                    <div class="col-12">
+                        <label asp-for="Input.Subdomain" class="form-label fw-semibold"></label>
+                        <div class="input-group">
+                            <input asp-for="Input.Subdomain" class="form-control form-control-lg"
+                                   placeholder="myvenue"
+                                   style="font-family:monospace;"
+                                   id="subdomainInput"
+                                   oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9\-]/g,'')" />
+                            <span class="input-group-text text-muted">.pikolball.com</span>
+                        </div>
+                        <div class="form-text">Your unique URL. Letters, numbers, hyphens only.</div>
+                        <span asp-validation-for="Input.Subdomain" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-1" />
+
+                    <h6 class="fw-bold text-muted text-uppercase small mb-0">
+                        <i class="bi bi-person-badge me-1"></i>Owner / Administrator
+                    </h6>
+
+                    <!-- Owner Name -->
+                    <div class="col-sm-6">
+                        <label asp-for="Input.OwnerName" class="form-label fw-semibold"></label>
+                        <input asp-for="Input.OwnerName" class="form-control" placeholder="Juan dela Cruz" />
+                        <span asp-validation-for="Input.OwnerName" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Owner Email -->
+                    <div class="col-sm-6">
+                        <label asp-for="Input.OwnerEmail" class="form-label fw-semibold"></label>
+                        <input asp-for="Input.OwnerEmail" class="form-control" type="email"
+                               placeholder="juan@example.com" />
+                        <span asp-validation-for="Input.OwnerEmail" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 mt-2">
+                        <button type="submit" class="btn btn-success btn-lg w-100 fw-semibold"
+                                style="border-radius:.75rem;">
+                            <i class="bi bi-lightning-charge-fill me-2"></i>Register My Venue
+                        </button>
+                    </div>
+
+                    <div class="col-12 text-center">
+                        <p class="text-muted small mb-0">
+                            Already have an account?
+                            <a asp-page="/Account/Login" class="fw-semibold">Sign in</a>
+                        </p>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

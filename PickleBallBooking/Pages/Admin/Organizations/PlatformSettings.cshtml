@@ -1,0 +1,69 @@
+@page
+@model PickleBallBooking.Pages.Admin.Organizations.PlatformSettingsModel
+@{
+    ViewData["Title"] = "Platform Settings";
+    Layout = "/Pages/Shared/_Layout.cshtml";
+}
+
+<div class="container py-5" style="max-width:720px;">
+    <div class="mb-4">
+        <a asp-page="./Index" class="text-muted small">
+            <i class="bi bi-arrow-left me-1"></i>Back to Organizations
+        </a>
+        <h1 class="h3 mt-2 fw-bold">
+            <i class="bi bi-sliders me-2 text-success"></i>Platform Settings
+        </h1>
+        <p class="text-muted">Control platform-level features available to all tenants.</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <form method="post">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white fw-semibold py-3">
+                <i class="bi bi-building-add me-2 text-success"></i>Court Owner / Tenant Registration
+            </div>
+            <div class="card-body">
+                <div class="form-check form-switch mb-3">
+                    <input asp-for="Input.AllowTenantRegistration" class="form-check-input" role="switch"
+                           id="allowRegSwitch" style="width:2.5em; height:1.4em;" />
+                    <label class="form-check-label fw-semibold ms-2" for="allowRegSwitch">
+                        Allow public Court Owner registration
+                    </label>
+                    <div class="form-text mt-1">
+                        When <strong>ON</strong>, a "Register Your Venue" button appears on the platform
+                        homepage and the public <code>/JoinUs</code> page is accessible.
+                        New registrations go <strong>live immediately</strong> (auto-approved).
+                        You can deactivate any organisation at any time from the
+                        <a asp-page="./Index">Organizations list</a>.
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Input.RegistrationMessage" class="form-label fw-semibold"></label>
+                    <textarea asp-for="Input.RegistrationMessage" class="form-control" rows="3"
+                              placeholder="e.g. Welcome! Fill in your venue details and you'll be live within minutes."></textarea>
+                    <div class="form-text">Shown at the top of the public registration form. Leave blank to show nothing.</div>
+                    <span asp-validation-for="Input.RegistrationMessage" class="text-danger small"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success px-4">
+                <i class="bi bi-floppy me-2"></i>Save Settings
+            </button>
+            <a asp-page="./Index" class="btn btn-outline-secondary px-4">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -88,6 +88,9 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<Activity> Activities => Set<Activity>();
     public DbSet<ActivityCourt> ActivityCourts => Set<ActivityCourt>();
 
+    // Platform-level settings (global — single row, no tenant filter).
+    public DbSet<PlatformSettings> PlatformSettings => Set<PlatformSettings>();
+
     /// <summary>
     /// The set of tenant-owned entity CLR types. Used by the write guard below so a
     /// single implementation covers every tenant-owned entity.
