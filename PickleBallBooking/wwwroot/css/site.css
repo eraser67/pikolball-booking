@@ -1555,6 +1555,120 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   transform: scale(1.15);
 }
 
+/* -------- Home Activity Cards -------- */
+.pb-activity-card {
+  background: #fff;
+  border: 1px solid var(--pb-border, #e3ebe7);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(15,61,46,0.07);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  display: flex;
+  flex-direction: column;
+}
+.pb-activity-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(15,61,46,0.13);
+}
+.pb-activity-card-accent {
+  height: 5px;
+  background: linear-gradient(90deg, var(--pb-green-600, #198754), var(--pb-green-500, #22a06b));
+  flex-shrink: 0;
+}
+.pb-activity-card-body {
+  padding: 1.25rem 1.3rem 1.3rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.pb-activity-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--pb-ink, #1c2b26);
+  margin: 0 0 0.75rem;
+  line-height: 1.3;
+}
+.pb-activity-meta {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.pb-activity-meta li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.875rem;
+  color: var(--pb-muted, #5c6b66);
+}
+.pb-activity-meta li i {
+  color: var(--pb-green-600, #198754);
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+.pb-activity-badge-format {
+  background-color: var(--pb-green-600, #198754);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.3em 0.65em;
+  border-radius: 6px;
+}
+.pb-activity-badge-skill {
+  background-color: var(--pb-green-100, #d1f0e0);
+  color: var(--pb-green-900, #0f3d2e);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.3em 0.65em;
+  border-radius: 6px;
+}
+.pb-activity-free-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--pb-green-700, #146c43);
+  background: var(--pb-green-100, #d1f0e0);
+  border-radius: 20px;
+  padding: 0.25em 0.7em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pb-activity-price-badge {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--pb-green-700, #146c43);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pb-activity-price-badge small {
+  font-weight: 500;
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+.pb-activity-cta {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: var(--pb-green-600, #198754);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.18s ease, transform 0.15s ease;
+  margin-top: auto;
+}
+.pb-activity-cta:hover {
+  background: var(--pb-green-700, #146c43);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
 /* -------- Venue Amenity Cards -------- */
 .pb-amenity-card {
   background: #fff;

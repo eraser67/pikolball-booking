@@ -191,48 +191,68 @@
 @* ── UPCOMING ACTIVITIES (shown when tenant enables it) ────────────── *@
 @if (Model.ShowActivitiesOnHome && Model.UpcomingActivities.Any())
 {
-    <section class="pb-section" id="home-activities" aria-labelledby="home-act-heading">
-        <div class="text-center mb-4">
+    <section class="pb-section pb-section-alt" id="home-activities" aria-labelledby="home-act-heading">
+        <div class="text-center mb-5">
             <span class="pb-section-label" aria-hidden="true">
                 <i class="bi bi-calendar-event"></i> Activities
             </span>
             <h2 class="pb-section-title" id="home-act-heading">UPCOMING ACTIVITIES</h2>
             <p class="pb-section-subtitle mx-auto">Join a session and play with the community.</p>
         </div>
-        <div class="row g-4">
+        <div class="row g-4 justify-content-center">
             @foreach (var act in Model.UpcomingActivities)
             {
-                <div class="col-md-6 col-lg-4 pb-reveal">
-                    <article class="pb-court-card h-100">
-                        <div class="pb-court-card-body">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="badge bg-success">@act.Format</span>
-                                <span class="badge bg-secondary">@act.SkillLevel</span>
+                <div class="col-sm-10 col-md-6 col-lg-4 pb-reveal">
+                    <article class="pb-activity-card h-100" aria-label="@act.Name activity">
+                        <div class="pb-activity-card-accent"></div>
+                        <div class="pb-activity-card-body">
+                            <div class="d-flex align-items-start justify-content-between mb-3">
+                                <div class="d-flex flex-wrap gap-1">
+                                    <span class="badge pb-activity-badge-format">@act.Format</span>
+                                    <span class="badge pb-activity-badge-skill">@act.SkillLevel</span>
+                                </div>
+                                @if (act.PricePerPlayer == 0)
+                                {
+                                    <span class="pb-activity-free-badge">FREE</span>
+                                }
+                                else
+                                {
+                                    <span class="pb-activity-price-badge">₱@act.PricePerPlayer.ToString("N0")<small>/player</small></span>
+                                }
                             </div>
-                            <h3 class="pb-court-name">@act.Name</h3>
-                            <ul class="list-unstyled small text-muted mb-3">
-                                <li><i class="bi bi-calendar3 me-2"></i>@act.Date.ToString("MMM d, yyyy (ddd)")</li>
-                                <li><i class="bi bi-clock me-2"></i>@PickleBallBooking.Services.AppClock.To12HourRange(act.StartTime, act.EndTime)</li>
+
+                            <h3 class="pb-activity-name">@act.Name</h3>
+
+                            <ul class="pb-activity-meta">
+                                <li>
+                                    <i class="bi bi-calendar3" aria-hidden="true"></i>
+                                    <span>@act.Date.ToString("MMM d, yyyy") <span class="text-muted">(@act.Date.ToString("ddd"))</span></span>
+                                </li>
+                                <li>
+                                    <i class="bi bi-clock" aria-hidden="true"></i>
+                                    <span>@PickleBallBooking.Services.AppClock.To12HourRange(act.StartTime, act.EndTime)</span>
+                                </li>
                                 @if (act.MaxCapacity > 0)
                                 {
-                                    <li><i class="bi bi-people me-2"></i>Up to @act.MaxCapacity players</li>
+                                    <li>
+                                        <i class="bi bi-people" aria-hidden="true"></i>
+                                        <span>Up to @act.MaxCapacity players</span>
+                                    </li>
                                 }
-                                <li>
-                                    <i class="bi bi-cash me-2"></i>
-                                    @(act.PricePerPlayer == 0 ? "Free" : $"₱{act.PricePerPlayer:N0} / player")
-                                </li>
                             </ul>
-                            <a asp-page="/Activities/Index" class="btn btn-outline-primary w-100" id="home-act-@act.Id">
-                                <i class="bi bi-arrow-right me-1"></i>View Details
+
+                            <a asp-page="/Activities/Index" class="pb-activity-cta" id="home-act-@act.Id">
+                                View Details <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
                             </a>
                         </div>
                     </article>
                 </div>
             }
         </div>
-        <div class="text-center mt-4">
-            <a asp-page="/Activities/Index" class="btn btn-ghost" id="home-all-activities-btn">
-                <i class="bi bi-calendar-event me-1"></i>See All Activities
+        <div class="text-center mt-5">
+            <a asp-page="/Activities/Index" class="btn btn-outline-primary px-4" id="home-all-activities-btn"
+               style="border-radius:.75rem;">
+                <i class="bi bi-calendar-event me-2" aria-hidden="true"></i>See All Activities
             </a>
         </div>
     </section>
