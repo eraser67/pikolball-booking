@@ -66,7 +66,8 @@
             <p class="text-muted mb-4">
                 Your venue is now live on Pikolball. We've sent an activation email to
                 <strong>@Model.Input.OwnerEmail</strong> — click the link to set your password
-                and log in to your admin dashboard.
+                and log in to your admin dashboard.<br />
+                <span class="small text-muted">Your venue URL will be: <code>@Model.Input.Subdomain.@Model.PlatformDomain</code></span>
             </p>
             <div class="d-flex flex-wrap gap-2 justify-content-center">
                 <a asp-page="/Account/Login" class="btn btn-success px-4">
@@ -142,7 +143,7 @@
                                    style="font-family:monospace;"
                                    id="subdomainInput"
                                    oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9\-]/g,'')" />
-                            <span class="input-group-text text-muted">.pikolball.com</span>
+                            <span class="input-group-text text-muted">.<strong>@Model.PlatformDomain</strong></span>
                         </div>
                         <div class="form-text">Your unique URL. Letters, numbers, hyphens only.</div>
                         <span asp-validation-for="Input.Subdomain" class="text-danger small"></span>

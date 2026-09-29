@@ -22,17 +22,21 @@ public class JoinUsModel : PageModel
     private readonly PlatformSettingsService _platformSettings;
     private readonly IOrganizationService    _orgService;
     private readonly IEmailService           _emailService;
+    private readonly IConfiguration          _config;
 
     public JoinUsModel(
         PlatformSettingsService platformSettings,
         IOrganizationService    orgService,
-        IEmailService           emailService)
+        IEmailService           emailService,
+        IConfiguration          config)
     {
         _platformSettings = platformSettings;
         _orgService       = orgService;
         _emailService     = emailService;
+        _config           = config;
     }
 
+    public string PlatformDomain { get; private set; } = "punitbola.tech";
     public string? RegistrationMessage { get; set; }
 
     [BindProperty]
@@ -47,6 +51,7 @@ public class JoinUsModel : PageModel
         if (!settings.AllowTenantRegistration)
             return NotFound();
 
+        PlatformDomain      = _config["Tenant:BaseDomain"] ?? "punitbola.tech";
         RegistrationMessage = settings.RegistrationMessage;
         return Page();
     }
@@ -58,6 +63,7 @@ public class JoinUsModel : PageModel
         if (!settings.AllowTenantRegistration)
             return NotFound();
 
+        PlatformDomain      = _config["Tenant:BaseDomain"] ?? "punitbola.tech";
         RegistrationMessage = settings.RegistrationMessage;
 
         if (!ModelState.IsValid)
