@@ -45,7 +45,19 @@
     <link rel="stylesheet" href="~/PickleBallBooking.styles.css" asp-append-version="true" />
     @if (!string.IsNullOrEmpty(primaryColor))
     {
-        <style>:root { --pb-primary: @primaryColor; --pb-primary-dark: color-mix(in srgb, @primaryColor 80%, #000); }</style>
+        <style>
+        :root {
+            /* Tenant brand color overrides all green scale variables */
+            --pb-green-600: @primaryColor;
+            --pb-green-700: color-mix(in srgb, @primaryColor 80%, #000);
+            --pb-green-900: color-mix(in srgb, @primaryColor 55%, #000);
+            --pb-green-500: color-mix(in srgb, @primaryColor 85%, #fff);
+            --pb-green-100: color-mix(in srgb, @primaryColor 18%, #fff);
+            /* Keep pb-primary aliases for our own components */
+            --pb-primary:      @primaryColor;
+            --pb-primary-dark: color-mix(in srgb, @primaryColor 80%, #000);
+        }
+        </style>
     }
     @await RenderSectionAsync("Styles", required: false)
 </head>

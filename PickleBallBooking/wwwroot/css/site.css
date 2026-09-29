@@ -1557,17 +1557,18 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
 
 /* -------- Venue Amenity Cards -------- */
 .pb-amenity-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: #fff;
+  border: 1px solid var(--pb-border, #e3ebe7);
   border-radius: 12px;
   padding: 1.1rem 0.5rem 0.9rem;
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   height: 100%;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 .pb-amenity-card:hover {
   transform: translateY(-4px);
-  border-color: var(--pb-primary, #16a34a);
-  background: rgba(22,163,74,0.08);
+  border-color: var(--pb-green-600, #198754);
+  box-shadow: 0 6px 20px rgba(25,135,84,0.12);
 }
 .pb-amenity-icon {
   font-size: 2rem;
@@ -1580,7 +1581,7 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   font-weight: 600;
   letter-spacing: 0.03em;
   margin: 0;
-  color: var(--pb-text, #e2e8f0);
+  color: var(--pb-ink, #1c2b26);
 }
 
 /* -------- Announcement Banner -------- */
