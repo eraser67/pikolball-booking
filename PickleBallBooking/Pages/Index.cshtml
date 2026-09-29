@@ -238,6 +238,9 @@
     </section>
 }
 
+@* ── WHY PUNIT BOLA (toggleable) ─────────────────────────── *@
+@if (Model.ShowWhyUsSection)
+{
 <!-- ===================== WHY PUNIT BOLA ===================== -->
 <section class="pb-section" id="why-punit-bola" aria-labelledby="why-heading">
     <div class="text-center mb-2">
@@ -286,7 +289,11 @@
         </div>
     </div>
 </section>
+}
 
+@* ── HOW IT WORKS (toggleable) ────────────────────────────── *@
+@if (Model.ShowHowItWorksSection)
+{
 <!-- ===================== HOW IT WORKS ===================== -->
 <section class="pb-section pb-section-alt" id="how-it-works" aria-labelledby="hiw-heading">
     <div class="text-center mb-4">
@@ -325,7 +332,36 @@
         </a>
     </div>
 </section>
+}
 
+@* ── AMENITIES (shown only when enabled and amenities are set) ─ *@
+@if (Model.ShowAmenitiesSection && Model.Amenities.Any())
+{
+    <section class="pb-section pb-section-alt" id="amenities" aria-labelledby="amenities-heading">
+        <div class="text-center mb-4">
+            <span class="pb-section-label" aria-hidden="true">
+                <i class="bi bi-stars"></i> Venue Amenities
+            </span>
+            <h2 class="pb-section-title" id="amenities-heading">WHAT WE OFFER</h2>
+            <p class="pb-section-subtitle mx-auto">Everything you need for a great game.</p>
+        </div>
+        <div class="row g-3 justify-content-center">
+            @foreach (var amenity in Model.Amenities)
+            {
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2 text-center pb-reveal">
+                    <div class="pb-amenity-card">
+                        <i class="bi @amenity.Icon pb-amenity-icon"></i>
+                        <p class="pb-amenity-label">@amenity.Label</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@* ── PLAY YOUR WAY / WHY US (toggleable) ──────────────────── *@
+@if (Model.ShowWhyUsSection)
+{
 <!-- ===================== PLAY YOUR WAY ===================== -->
 <section class="pb-section" id="why-us" aria-labelledby="features-heading">
     <div class="text-center mb-2">
@@ -374,7 +410,11 @@
         </div>
     </div>
 </section>
+}
 
+@* ── LOCATION (toggleable) ─────────────────────────────────── *@
+@if (Model.ShowLocationSection)
+{
 <!-- ===================== LOCATION ===================== -->
 <section class="pb-section pb-section-alt" id="location" aria-labelledby="location-heading">
     <div class="row g-4 g-lg-5 align-items-center">
@@ -405,7 +445,14 @@
                 }
                 <li>
                     <i class="bi bi-clock" aria-hidden="true"></i>
-                    Open daily &mdash; book any available time slot
+                    @if (!string.IsNullOrWhiteSpace(Model.OpeningHours))
+                    {
+                        @Model.OpeningHours
+                    }
+                    else
+                    {
+                        <span>Open daily &mdash; book any available time slot</span>
+                    }
                 </li>
                 <li>
                     <i class="bi bi-info-circle" aria-hidden="true"></i>
@@ -440,7 +487,11 @@
         </div>
     </div>
 </section>
+}
 
+@* ── FAQ (toggleable) ──────────────────────────────────────── *@
+@if (Model.ShowFaqSection)
+{
 <!-- ===================== FAQ ===================== -->
 <section class="pb-section" id="faq" aria-labelledby="faq-heading">
     <div class="text-center mb-2">
@@ -537,6 +588,7 @@
         </div>
     </div>
 </section>
+}
 
 <!-- ===================== FINAL CTA ===================== -->
 <section class="pb-cta-band pb-reveal" aria-labelledby="cta-heading">

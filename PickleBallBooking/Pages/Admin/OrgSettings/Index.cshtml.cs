@@ -78,6 +78,23 @@ public class IndexModel : PageModel
         Input.TwitterUrl          = organization.TwitterUrl;
         Input.ShowActivitiesOnHome = organization.ShowActivitiesOnHome;
 
+        // Section toggles
+        Input.ShowHowItWorksSection = organization.ShowHowItWorksSection;
+        Input.ShowWhyUsSection      = organization.ShowWhyUsSection;
+        Input.ShowFaqSection        = organization.ShowFaqSection;
+        Input.ShowLocationSection   = organization.ShowLocationSection;
+
+        // Amenities
+        Input.ShowAmenitiesSection = organization.ShowAmenitiesSection;
+        Input.SelectedAmenities    = organization.AmenitiesKeys
+            ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList() ?? new();
+
+        // Opening hours + announcement
+        Input.OpeningHours           = organization.OpeningHours;
+        Input.AnnouncementText       = organization.AnnouncementText;
+        Input.ShowAnnouncementBanner = organization.ShowAnnouncementBanner;
+
         CurrentLogoUrl      = _imageStorage.GetPublicUrl(organization.LogoPath);
         CurrentHeroImageUrl = _imageStorage.GetPublicUrl(organization.HeroImagePath);
 
@@ -243,7 +260,16 @@ public class IndexModel : PageModel
             Input.FacebookUrl,
             Input.InstagramUrl,
             Input.TwitterUrl,
-            Input.ShowActivitiesOnHome);
+            Input.ShowActivitiesOnHome,
+            Input.ShowHowItWorksSection,
+            Input.ShowWhyUsSection,
+            Input.ShowFaqSection,
+            Input.ShowLocationSection,
+            Input.SelectedAmenities,
+            Input.ShowAmenitiesSection,
+            Input.OpeningHours,
+            Input.AnnouncementText,
+            Input.ShowAnnouncementBanner);
 
         StatusMessage = "Settings saved successfully.";
         return RedirectToPage();
@@ -350,6 +376,38 @@ public class IndexModel : PageModel
 
         [Display(Name = "Show upcoming Activities on homepage")]
         public bool ShowActivitiesOnHome { get; set; } = false;
+
+        // Section Visibility
+        [Display(Name = "Show \"How It Works\" section")]
+        public bool ShowHowItWorksSection { get; set; } = true;
+
+        [Display(Name = "Show \"Why Us\" section")]
+        public bool ShowWhyUsSection { get; set; } = true;
+
+        [Display(Name = "Show FAQ section")]
+        public bool ShowFaqSection { get; set; } = true;
+
+        [Display(Name = "Show Location & Map section")]
+        public bool ShowLocationSection { get; set; } = true;
+
+        // Amenities
+        [Display(Name = "Show Amenities section on homepage")]
+        public bool ShowAmenitiesSection { get; set; } = false;
+
+        public List<string> SelectedAmenities { get; set; } = new();
+
+        // Opening Hours
+        [MaxLength(200)]
+        [Display(Name = "Opening Hours")]
+        public string? OpeningHours { get; set; }
+
+        // Announcement Banner
+        [MaxLength(300)]
+        [Display(Name = "Announcement Text")]
+        public string? AnnouncementText { get; set; }
+
+        [Display(Name = "Show announcement banner")]
+        public bool ShowAnnouncementBanner { get; set; } = false;
 
         // Branding images
         [Display(Name = "Brand Logo")]

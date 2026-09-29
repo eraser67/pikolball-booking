@@ -88,6 +88,51 @@ public class Organization
     /// </summary>
     public bool ShowActivitiesOnHome { get; set; } = false;
 
+    // ── Section Visibility Toggles ─────────────────────────────────────────
+
+    /// <summary>Show the "How It Works" 3-step section on the homepage.</summary>
+    public bool ShowHowItWorksSection { get; set; } = true;
+
+    /// <summary>Show the "Why Us / Play Your Way" feature grid section on the homepage.</summary>
+    public bool ShowWhyUsSection { get; set; } = true;
+
+    /// <summary>Show the FAQ accordion section on the homepage.</summary>
+    public bool ShowFaqSection { get; set; } = true;
+
+    /// <summary>Show the Location / Google Map section on the homepage.</summary>
+    public bool ShowLocationSection { get; set; } = true;
+
+    // ── Amenities ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Comma-separated list of amenity keys the tenant offers.
+    /// Keys map to predefined icons+labels in VenueAmenity.All.
+    /// Example: "Parking,Restrooms,WiFi,EquipmentRental"
+    /// </summary>
+    [MaxLength(500)]
+    public string? AmenitiesKeys { get; set; }
+
+    /// <summary>When true, the Amenities section is shown on the homepage.</summary>
+    public bool ShowAmenitiesSection { get; set; } = false;
+
+    // ── Opening Hours ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Free-text operating hours shown in Find Us and footer.
+    /// e.g. "Mon–Sun: 6:00 AM – 10:00 PM"
+    /// </summary>
+    [MaxLength(200)]
+    public string? OpeningHours { get; set; }
+
+    // ── Announcement Banner ────────────────────────────────────────────────
+
+    /// <summary>Short announcement shown in a dismissible banner at the top of every page.</summary>
+    [MaxLength(300)]
+    public string? AnnouncementText { get; set; }
+
+    /// <summary>When true, the announcement banner is displayed to all visitors.</summary>
+    public bool ShowAnnouncementBanner { get; set; } = false;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

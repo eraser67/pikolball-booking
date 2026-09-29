@@ -204,6 +204,103 @@
 
     <hr class="my-4" />
 
+    <!-- ── SECTION VISIBILITY ────────────────────────────────── -->
+    <h5 class="mb-1"><i class="bi bi-layout-text-sidebar-reverse me-2 text-success"></i>Section Visibility</h5>
+    <p class="text-muted small mb-3">Toggle which sections appear on your public homepage.</p>
+
+    <div class="row g-2 mb-3">
+        <div class="col-sm-6">
+            <div class="form-check form-switch">
+                <input asp-for="Input.ShowHowItWorksSection" class="form-check-input" role="switch" id="showHowItWorks" />
+                <label class="form-check-label" for="showHowItWorks">How It Works</label>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="form-check form-switch">
+                <input asp-for="Input.ShowWhyUsSection" class="form-check-input" role="switch" id="showWhyUs" />
+                <label class="form-check-label" for="showWhyUs">Why Choose Us</label>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="form-check form-switch">
+                <input asp-for="Input.ShowFaqSection" class="form-check-input" role="switch" id="showFaq" />
+                <label class="form-check-label" for="showFaq">FAQ</label>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="form-check form-switch">
+                <input asp-for="Input.ShowLocationSection" class="form-check-input" role="switch" id="showLocation" />
+                <label class="form-check-label" for="showLocation">Location &amp; Map</label>
+            </div>
+        </div>
+    </div>
+
+    <hr class="my-4" />
+
+    <!-- ── AMENITIES ─────────────────────────────────────────── -->
+    <h5 class="mb-1"><i class="bi bi-stars me-2 text-success"></i>Venue Amenities</h5>
+    <p class="text-muted small mb-2">Tick what your venue offers. These appear as an icon grid on your homepage.</p>
+
+    <div class="mb-2 form-check form-switch">
+        <input asp-for="Input.ShowAmenitiesSection" class="form-check-input" role="switch" id="showAmenitiesSwitch" />
+        <label class="form-check-label fw-semibold" for="showAmenitiesSwitch">Show Amenities section on homepage</label>
+    </div>
+
+    @foreach (var group in PickleBallBooking.Models.VenueAmenities.Grouped)
+    {
+        <p class="text-muted small mb-1 mt-2 fw-semibold">@group.Key</p>
+        <div class="row g-1 mb-1">
+            @foreach (var amenity in group)
+            {
+                var isChecked = Model.Input.SelectedAmenities.Contains(amenity.Key);
+                <div class="col-6 col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox"
+                               name="Input.SelectedAmenities" value="@amenity.Key"
+                               id="am-@amenity.Key" @(isChecked ? "checked" : "") />
+                        <label class="form-check-label small" for="am-@amenity.Key">
+                            <i class="bi @amenity.Icon me-1"></i>@amenity.Label
+                        </label>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <hr class="my-4" />
+
+    <!-- ── OPENING HOURS ─────────────────────────────────────── -->
+    <h5 class="mb-1"><i class="bi bi-clock me-2 text-success"></i>Opening Hours</h5>
+    <p class="text-muted small mb-3">Shown in the Find Us section and footer.</p>
+
+    <div class="mb-3">
+        <label asp-for="Input.OpeningHours" class="form-label fw-semibold"></label>
+        <input asp-for="Input.OpeningHours" class="form-control"
+               placeholder="e.g. Mon–Sun: 6:00 AM – 10:00 PM" maxlength="200" />
+        <div class="form-text">Leave blank to hide operating hours.</div>
+        <span asp-validation-for="Input.OpeningHours" class="text-danger small"></span>
+    </div>
+
+    <hr class="my-4" />
+
+    <!-- ── ANNOUNCEMENT BANNER ───────────────────────────────── -->
+    <h5 class="mb-1"><i class="bi bi-megaphone me-2 text-success"></i>Announcement Banner</h5>
+    <p class="text-muted small mb-3">Shows a dismissible banner at the top of every page — great for promotions, maintenance notices, or special events.</p>
+
+    <div class="mb-3">
+        <label asp-for="Input.AnnouncementText" class="form-label fw-semibold"></label>
+        <input asp-for="Input.AnnouncementText" class="form-control"
+               placeholder="e.g. 🎉 Court 3 now open! Book now to celebrate." maxlength="300" />
+        <span asp-validation-for="Input.AnnouncementText" class="text-danger small"></span>
+    </div>
+
+    <div class="mb-3 form-check form-switch">
+        <input asp-for="Input.ShowAnnouncementBanner" class="form-check-input" role="switch" id="showBannerSwitch" />
+        <label class="form-check-label fw-semibold" for="showBannerSwitch">Show banner to all visitors</label>
+    </div>
+
+    <hr class="my-4" />
+
     <!-- ── LOCATION ────────────────────────────────────────────── -->
     <h5 class="mb-1">Location &amp; Map</h5>
     <p class="text-muted small mb-3">Shown in the <strong>Find Us</strong> section on your public homepage.</p>

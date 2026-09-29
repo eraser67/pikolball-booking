@@ -1555,6 +1555,48 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   transform: scale(1.15);
 }
 
+/* -------- Venue Amenity Cards -------- */
+.pb-amenity-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 1.1rem 0.5rem 0.9rem;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  height: 100%;
+}
+.pb-amenity-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--pb-primary, #16a34a);
+  background: rgba(22,163,74,0.08);
+}
+.pb-amenity-icon {
+  font-size: 2rem;
+  color: var(--pb-primary, #16a34a);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.pb-amenity-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  margin: 0;
+  color: var(--pb-text, #e2e8f0);
+}
+
+/* -------- Announcement Banner -------- */
+.pb-announcement-banner {
+  background: linear-gradient(90deg, var(--pb-primary-dark, #15803d), var(--pb-primary, #16a34a));
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  z-index: 1030;
+  position: relative;
+}
+.pb-announcement-banner .btn-close {
+  filter: invert(1) grayscale(1) brightness(2);
+}
+
 /* -------- Clickable / responsive map embed -------- */
 .pb-map-wrap {
   position: relative;

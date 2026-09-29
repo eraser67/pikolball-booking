@@ -51,6 +51,17 @@
 </head>
 <body>
     <a class="pb-skip-link" href="#main-content">Skip to main content</a>
+
+    @* ── Tenant Announcement Banner ───────────────────────────────── *@
+    @if (tenantOrg?.ShowAnnouncementBanner == true && !string.IsNullOrWhiteSpace(tenantOrg?.AnnouncementText))
+    {
+        <div class="pb-announcement-banner alert alert-success alert-dismissible mb-0 rounded-0 border-0 text-center py-2" role="alert" id="pb-announcement">
+            <i class="bi bi-megaphone-fill me-2" aria-hidden="true"></i>
+            @tenantOrg!.AnnouncementText
+            <button type="button" class="btn-close ms-3" data-bs-dismiss="alert" aria-label="Dismiss announcement"></button>
+        </div>
+    }
+
     <header>
         <nav class="navbar navbar-expand-lg pb-navbar sticky-top" aria-label="Main navigation">
             <div class="container">

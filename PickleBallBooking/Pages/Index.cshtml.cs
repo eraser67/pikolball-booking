@@ -55,6 +55,23 @@ namespace PickleBallBooking.Pages
         public bool ShowActivitiesOnHome { get; set; }
         public List<Activity> UpcomingActivities { get; set; } = new();
 
+        // ── Section Visibility (defaults match model defaults = all visible) ──
+        public bool ShowHowItWorksSection { get; set; } = true;
+        public bool ShowWhyUsSection      { get; set; } = true;
+        public bool ShowFaqSection        { get; set; } = true;
+        public bool ShowLocationSection   { get; set; } = true;
+
+        // ── Amenities ──
+        public bool ShowAmenitiesSection  { get; set; } = false;
+        public IReadOnlyList<VenueAmenity> Amenities { get; set; } = Array.Empty<VenueAmenity>();
+
+        // ── Opening Hours ──
+        public string? OpeningHours { get; set; }
+
+        // ── Announcement Banner ──
+        public string? AnnouncementText       { get; set; }
+        public bool    ShowAnnouncementBanner  { get; set; }
+
         public async Task OnGetAsync()
         {
             PreviewDate = AppClock.TodayLocal;
@@ -75,6 +92,21 @@ namespace PickleBallBooking.Pages
                 Tagline              = org.Tagline;
                 AboutText            = org.AboutText;
                 ShowActivitiesOnHome = org.ShowActivitiesOnHome;
+
+                // Section toggles
+                ShowHowItWorksSection = org.ShowHowItWorksSection;
+                ShowWhyUsSection      = org.ShowWhyUsSection;
+                ShowFaqSection        = org.ShowFaqSection;
+                ShowLocationSection   = org.ShowLocationSection;
+
+                // Amenities
+                ShowAmenitiesSection = org.ShowAmenitiesSection;
+                Amenities            = VenueAmenities.Parse(org.AmenitiesKeys);
+
+                // Opening hours + announcement
+                OpeningHours           = org.OpeningHours;
+                AnnouncementText       = org.AnnouncementText;
+                ShowAnnouncementBanner = org.ShowAnnouncementBanner;
 
                 // Load upcoming activities if the tenant has opted in.
                 if (org.ShowActivitiesOnHome)

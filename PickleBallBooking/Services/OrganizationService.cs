@@ -135,6 +135,15 @@ public interface IOrganizationService
         string? instagramUrl,
         string? twitterUrl,
         bool showActivitiesOnHome,
+        bool showHowItWorksSection,
+        bool showWhyUsSection,
+        bool showFaqSection,
+        bool showLocationSection,
+        IEnumerable<string>? amenityKeys,
+        bool showAmenitiesSection,
+        string? openingHours,
+        string? announcementText,
+        bool showAnnouncementBanner,
         CancellationToken cancellationToken = default);
 
     /// <summary>Members of the CURRENT tenant organization (with their Identity info).</summary>
@@ -653,6 +662,15 @@ public sealed class OrganizationService : IOrganizationService
         string? instagramUrl,
         string? twitterUrl,
         bool showActivitiesOnHome,
+        bool showHowItWorksSection,
+        bool showWhyUsSection,
+        bool showFaqSection,
+        bool showLocationSection,
+        IEnumerable<string>? amenityKeys,
+        bool showAmenitiesSection,
+        string? openingHours,
+        string? announcementText,
+        bool showAnnouncementBanner,
         CancellationToken cancellationToken = default)
     {
         var id = _tenantContext.OrganizationId;
@@ -667,14 +685,23 @@ public sealed class OrganizationService : IOrganizationService
         if (!string.IsNullOrEmpty(color) && !System.Text.RegularExpressions.Regex.IsMatch(color, @"^#[0-9A-Fa-f]{6}$"))
             color = null;
 
-        organization.Tagline              = string.IsNullOrWhiteSpace(tagline)      ? null : tagline.Trim();
-        organization.AboutText            = string.IsNullOrWhiteSpace(aboutText)    ? null : aboutText.Trim();
-        organization.PrimaryColorHex      = color;
-        organization.FacebookUrl          = string.IsNullOrWhiteSpace(facebookUrl)  ? null : facebookUrl.Trim();
-        organization.InstagramUrl         = string.IsNullOrWhiteSpace(instagramUrl) ? null : instagramUrl.Trim();
-        organization.TwitterUrl           = string.IsNullOrWhiteSpace(twitterUrl)   ? null : twitterUrl.Trim();
-        organization.ShowActivitiesOnHome = showActivitiesOnHome;
-        organization.UpdatedAt            = DateTime.UtcNow;
+        organization.Tagline                = string.IsNullOrWhiteSpace(tagline)         ? null : tagline.Trim();
+        organization.AboutText              = string.IsNullOrWhiteSpace(aboutText)       ? null : aboutText.Trim();
+        organization.PrimaryColorHex        = color;
+        organization.FacebookUrl            = string.IsNullOrWhiteSpace(facebookUrl)     ? null : facebookUrl.Trim();
+        organization.InstagramUrl           = string.IsNullOrWhiteSpace(instagramUrl)    ? null : instagramUrl.Trim();
+        organization.TwitterUrl             = string.IsNullOrWhiteSpace(twitterUrl)      ? null : twitterUrl.Trim();
+        organization.ShowActivitiesOnHome   = showActivitiesOnHome;
+        organization.ShowHowItWorksSection  = showHowItWorksSection;
+        organization.ShowWhyUsSection       = showWhyUsSection;
+        organization.ShowFaqSection         = showFaqSection;
+        organization.ShowLocationSection    = showLocationSection;
+        organization.AmenitiesKeys          = Models.VenueAmenities.Serialize(amenityKeys);
+        organization.ShowAmenitiesSection   = showAmenitiesSection;
+        organization.OpeningHours           = string.IsNullOrWhiteSpace(openingHours)    ? null : openingHours.Trim();
+        organization.AnnouncementText       = string.IsNullOrWhiteSpace(announcementText)? null : announcementText.Trim();
+        organization.ShowAnnouncementBanner = showAnnouncementBanner;
+        organization.UpdatedAt              = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
         return true;
