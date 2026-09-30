@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -54,7 +54,8 @@ public class CreateModel : PageModel
         await _activityService.CreateAsync(
             Input.Name, Input.Description, Input.Format, date, start, end,
             Input.SkillLevel, Input.MaxCapacity, Input.PricePerPlayer,
-            Input.RegistrationOpensAt, Input.RegistrationClosesAt, courtIds);
+            Input.RegistrationOpensAt, Input.RegistrationClosesAt, courtIds,
+            Input.Status);
 
         return RedirectToPage("Index");
     }
@@ -78,6 +79,9 @@ public class CreateModel : PageModel
 
         [Display(Name = "Format")]
         public ActivityFormat Format { get; set; } = ActivityFormat.OpenPlay;
+
+        [Display(Name = "Status")]
+        public ActivityStatus Status { get; set; } = ActivityStatus.Published;
 
         [Required][Display(Name = "Date")]
         public string DateStr { get; set; } = string.Empty;

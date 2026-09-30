@@ -12,12 +12,6 @@
         ActivityStatus.RegistrationClosed => "bg-secondary",
         _                                 => "bg-light text-dark"
     };
-    static string SkillColor(ActivitySkillLevel sk) => sk switch {
-        ActivitySkillLevel.Beginner     => "text-success",
-        ActivitySkillLevel.Intermediate => "text-warning",
-        ActivitySkillLevel.Advanced     => "text-danger",
-        _                               => "text-primary"
-    };
     static string SkillIcon(ActivitySkillLevel sk) => sk switch {
         ActivitySkillLevel.Beginner     => "🟢",
         ActivitySkillLevel.Intermediate => "🟡",
@@ -28,12 +22,28 @@
 
 <div class="container py-4">
 
+    <!-- Flash Messages -->
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="row mb-4">
         <div class="col">
             <h1 class="h4 fw-bold mb-0">
                 <i class="bi bi-calendar-event text-success me-2"></i>Upcoming Activities
             </h1>
-            <p class="text-muted small mt-1">Browse and join organised pickleball activities at this venue.</p>
+            <p class="text-muted small mt-1">Browse, join organised pickleball activities, and view waitlist status.</p>
         </div>
     </div>
 
@@ -51,13 +61,22 @@
         <div class="row g-4">
             @foreach (var a in Model.Activities)
             {
+                var hasUserRsvp = Model.UserRsvps.TryGetValue(a.Id, out var userRsvp);
+                Model.RsvpCounts.TryGetValue(a.Id, out var counts);
+                var isFull = a.MaxCapacity > 0 && counts.Confirmed >= a.MaxCapacity;
+                var effectiveStatus = a.GetEffectiveStatus();
+                var isRegOpen = a.IsRegistrationOpen();
+                var isPending = a.IsRegistrationPending();
+                var isClosed = a.IsRegistrationClosed();
+                var isOrgAdmin = Model.AdminActivityIds.Contains(a.Id);
+
                 <div class="col-md-6 col-lg-4">
                     <div class="card h-100 border-0 shadow-sm activity-card">
-                        <div class="card-body p-4">
+                        <div class="card-body p-4 d-flex flex-column">
                             <!-- Header -->
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div>
-                                    <span class="badge @StatusBadge(a.Status) rounded-pill small mb-2">@a.Status.ToString().Replace("Registration", "Reg. ")</span>
+                                    <span class="badge @StatusBadge(effectiveStatus) rounded-pill small mb-2">@effectiveStatus.ToString().Replace("Registration", "Reg. ")</span>
                                     <h2 class="h6 fw-bold mb-0">@a.Name</h2>
                                     <div class="small text-muted mt-1">@a.Format</div>
                                 </div>
@@ -97,52 +116,131 @@
                                 </li>
                                 <li>
                                     <i class="bi bi-people text-muted me-2"></i>
-                                    @(a.MaxCapacity == 0 ? "Unlimited spots" : $"{a.MaxCapacity} max players")
+                                    @if (a.MaxCapacity == 0)
+                                    {
+                                        <span>Unlimited spots (@counts.Confirmed joined)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="@(isFull ? "text-danger fw-semibold" : "")">
+                                            @counts.Confirmed / @a.MaxCapacity spots filled
+                                        </span>
+                                        @if (counts.Waitlist > 0)
+                                        {
+                                            <span class="text-muted ms-1">(@counts.Waitlist on waitlist)</span>
+                                        }
+                                    }
                                 </li>
                             </ul>
 
                             @if (!string.IsNullOrEmpty(a.Description))
                             {
-                                <p class="small text-muted mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                                <p class="small text-muted mb-3 flex-grow-1" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
                                     @a.Description
                                 </p>
                             }
-
-                            <!-- CTA -->
-                            @if (a.Status == ActivityStatus.RegistrationOpen)
+                            else
                             {
-                                <div class="d-grid">
-                                    @if (User.Identity?.IsAuthenticated == true)
+                                <div class="flex-grow-1"></div>
+                            }
+
+                            <!-- RSVP Actions -->
+                            <div class="mt-auto pt-2">
+                                @if (hasUserRsvp && userRsvp != null)
+                                {
+                                    @if (userRsvp.Status == RsvpStatus.Confirmed)
                                     {
-                                        <button class="btn btn-success fw-semibold" disabled title="RSVP coming in Phase 34">
-                                            <i class="bi bi-check-circle me-2"></i>Join Activity
-                                            <span class="badge bg-white text-success ms-2 small">Phase 34</span>
-                                        </button>
+                                        <div class="alert alert-success py-2 px-3 mb-2 small d-flex align-items-center justify-content-between">
+                                            <span><i class="bi bi-check-circle-fill me-1"></i>You're Confirmed!</span>
+                                            <span class="badge bg-success-subtle text-success">Spot Secured</span>
+                                        </div>
+                                        <form method="post" asp-page-handler="Cancel" onsubmit="return confirm('Are you sure you want to cancel your spot? If you cancel, your spot will be given to the next player on the waitlist.');">
+                                            <input type="hidden" name="activityId" value="@a.Id" />
+                                            <button type="submit" class="btn btn-outline-danger btn-sm w-100 fw-medium">
+                                                <i class="bi bi-x-circle me-1"></i>Cancel RSVP
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (userRsvp.Status == RsvpStatus.Waitlisted)
+                                    {
+                                        <div class="alert alert-warning py-2 px-3 mb-2 small d-flex align-items-center justify-content-between">
+                                            <span><i class="bi bi-hourglass-split me-1"></i>On Waitlist</span>
+                                            <span class="badge bg-warning-subtle text-warning-emphasis">Position #@userRsvp.WaitlistPosition</span>
+                                        </div>
+                                        <form method="post" asp-page-handler="Cancel" onsubmit="return confirm('Are you sure you want to leave the waitlist?');">
+                                            <input type="hidden" name="activityId" value="@a.Id" />
+                                            <button type="submit" class="btn btn-outline-secondary btn-sm w-100 fw-medium">
+                                                <i class="bi bi-dash-circle me-1"></i>Leave Waitlist
+                                            </button>
+                                        </form>
+                                    }
+                                }
+                                else
+                                {
+                                    @if (User.Identity?.IsAuthenticated != true)
+                                    {
+                                        <div class="d-grid">
+                                            <a asp-page="/Account/Login" asp-route-returnUrl="/Activities" class="btn btn-success fw-semibold">
+                                                <i class="bi bi-person-check me-2"></i>Sign In to Join
+                                            </a>
+                                        </div>
+                                    }
+                                    else if (isOrgAdmin)
+                                    {
+                                        <div class="d-grid">
+                                            <button class="btn btn-outline-secondary fw-semibold" disabled title="The admin for the current organization cannot join their own activities.">
+                                                <i class="bi bi-shield-lock me-1"></i>Admin (Cannot Join)
+                                            </button>
+                                        </div>
+                                    }
+                                    else if (isRegOpen && !isFull)
+                                    {
+                                        <form method="post" asp-page-handler="Join">
+                                            <input type="hidden" name="activityId" value="@a.Id" />
+                                            <div class="d-grid">
+                                                <button type="submit" class="btn btn-success fw-semibold">
+                                                    <i class="bi bi-check-circle me-1"></i>Join Activity
+                                                </button>
+                                            </div>
+                                        </form>
+                                    }
+                                    else if (isRegOpen && isFull)
+                                    {
+                                        <form method="post" asp-page-handler="Join">
+                                            <input type="hidden" name="activityId" value="@a.Id" />
+                                            <div class="d-grid">
+                                                <button type="submit" class="btn btn-warning text-dark fw-semibold">
+                                                    <i class="bi bi-hourglass-split me-1"></i>Join Waitlist
+                                                </button>
+                                            </div>
+                                        </form>
+                                    }
+                                    else if (isPending)
+                                    {
+                                        <div class="d-grid">
+                                            <button class="btn btn-outline-info fw-semibold" disabled>
+                                                <i class="bi bi-clock me-1"></i>Registration Opens Soon
+                                            </button>
+                                        </div>
+                                    }
+                                    else if (isClosed)
+                                    {
+                                        <div class="d-grid">
+                                            <button class="btn btn-outline-secondary fw-semibold" disabled>
+                                                Registration Closed
+                                            </button>
+                                        </div>
                                     }
                                     else
                                     {
-                                        <a asp-page="/Account/Login" class="btn btn-success fw-semibold">
-                                            <i class="bi bi-person-check me-2"></i>Sign In to Join
-                                        </a>
+                                        <div class="d-grid">
+                                            <button class="btn btn-outline-secondary fw-semibold" disabled>
+                                                @effectiveStatus
+                                            </button>
+                                        </div>
                                     }
-                                </div>
-                            }
-                            else if (a.Status == ActivityStatus.Full)
-                            {
-                                <div class="d-grid">
-                                    <button class="btn btn-outline-warning fw-semibold" disabled>
-                                        <i class="bi bi-hourglass me-2"></i>Activity Full — Waitlist (Phase 34)
-                                    </button>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="d-grid">
-                                    <button class="btn btn-outline-secondary fw-semibold" disabled>
-                                        @a.Status
-                                    </button>
-                                </div>
-                            }
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -157,5 +255,6 @@
 .activity-card { transition: transform .15s, box-shadow .15s; }
 .activity-card:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.12) !important; }
 .bg-success-subtle { background-color: rgba(25,135,84,.12); }
+.bg-warning-subtle { background-color: rgba(255,193,7,.18); }
 </style>
 }

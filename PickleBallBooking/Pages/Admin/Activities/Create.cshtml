@@ -1,4 +1,4 @@
-﻿@page "/Admin/Activities/Create"
+@page "/Admin/Activities/Create"
 @model PickleBallBooking.Pages.Admin.Activities.CreateModel
 @{
     ViewData["Title"] = "New Activity";
@@ -24,15 +24,20 @@
                         <input asp-for="Input.Name" class="form-control" placeholder="e.g. Saturday Open Play" />
                         <span asp-validation-for="Input.Name" class="text-danger small"></span>
                     </div>
-                    <div class="col-sm-6">
+                    <div class="col-sm-4">
                         <label asp-for="Input.Format" class="form-label fw-medium"></label>
                         <select asp-for="Input.Format" class="form-select"
                                 asp-items="Html.GetEnumSelectList<PickleBallBooking.Models.ActivityFormat>()"></select>
                     </div>
-                    <div class="col-sm-6">
+                    <div class="col-sm-4">
                         <label asp-for="Input.SkillLevel" class="form-label fw-medium"></label>
                         <select asp-for="Input.SkillLevel" class="form-select"
                                 asp-items="Html.GetEnumSelectList<PickleBallBooking.Models.ActivitySkillLevel>()"></select>
+                    </div>
+                    <div class="col-sm-4">
+                        <label asp-for="Input.Status" class="form-label fw-medium"></label>
+                        <select asp-for="Input.Status" class="form-select"
+                                asp-items="Html.GetEnumSelectList<PickleBallBooking.Models.ActivityStatus>()"></select>
                     </div>
                     <div class="col-12">
                         <label asp-for="Input.Description" class="form-label fw-medium"></label>

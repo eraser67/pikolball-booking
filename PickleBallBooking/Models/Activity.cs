@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PickleBallBooking.Models;
@@ -69,4 +69,90 @@ public class Activity
     // ── Navigation ────────────────────────────────────────────────────────
     /// <summary>Courts assigned to this activity via the ActivityCourt join table.</summary>
     public ICollection<ActivityCourt> ActivityCourts { get; set; } = new List<ActivityCourt>();
+
+    /// <summary>Phase 34: RSVPs and waitlist registrations for this activity.</summary>
+    public ICollection<ActivityRsvp> Rsvps { get; set; } = new List<ActivityRsvp>();
+
+    // ── Registration State Helpers ─────────────────────────────────────────
+
+    /// <summary>
+    /// Returns true if registration has passed its closing window or was manually closed.
+    /// </summary>
+    public bool IsRegistrationClosed(DateTime? nowUtc = null)
+    {
+        var now = nowUtc ?? DateTime.UtcNow;
+        if (Status is ActivityStatus.RegistrationClosed or ActivityStatus.Completed or ActivityStatus.Cancelled)
+            return true;
+
+        if (RegistrationClosesAt.HasValue && now > RegistrationClosesAt.Value)
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true if registration is open for joiners or waitlist.
+    /// Evaluates explicit status and automated time window.
+    /// </summary>
+    public bool IsRegistrationOpen(DateTime? nowUtc = null)
+    {
+        if (IsRegistrationClosed(nowUtc))
+            return false;
+
+        if (Status is ActivityStatus.Draft)
+            return false;
+
+        if (Status is ActivityStatus.RegistrationOpen or ActivityStatus.Full)
+            return true;
+
+        if (Status is ActivityStatus.Published)
+        {
+            var now = nowUtc ?? DateTime.UtcNow;
+            if (RegistrationOpensAt.HasValue && now >= RegistrationOpensAt.Value)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true if the activity is published but registration has not opened yet.
+    /// </summary>
+    public bool IsRegistrationPending(DateTime? nowUtc = null)
+    {
+        if (IsRegistrationClosed(nowUtc))
+            return false;
+
+        if (Status == ActivityStatus.Published)
+        {
+            var now = nowUtc ?? DateTime.UtcNow;
+            if (!RegistrationOpensAt.HasValue || now < RegistrationOpensAt.Value)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Derives the effective activity status accounting for automated opening/closing windows.
+    /// </summary>
+    public ActivityStatus GetEffectiveStatus(DateTime? nowUtc = null)
+    {
+        if (Status is ActivityStatus.Draft or ActivityStatus.InProgress or ActivityStatus.Completed or ActivityStatus.Cancelled)
+            return Status;
+
+        if (IsRegistrationClosed(nowUtc))
+            return ActivityStatus.RegistrationClosed;
+
+        if (Status == ActivityStatus.Full)
+            return ActivityStatus.Full;
+
+        if (IsRegistrationOpen(nowUtc))
+            return ActivityStatus.RegistrationOpen;
+
+        if (IsRegistrationPending(nowUtc))
+            return ActivityStatus.Published;
+
+        return Status;
+    }
 }

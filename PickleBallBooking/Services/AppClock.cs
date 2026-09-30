@@ -52,6 +52,24 @@ public static class AppClock
     }
 
     /// <summary>
+    /// Converts a local Philippines DateTime (e.g. from an HTML datetime-local input) to UTC.
+    /// </summary>
+    public static DateTime ToUtcFromPhilippineTime(DateTime localDateTime)
+    {
+        if (localDateTime.Kind == DateTimeKind.Utc) return localDateTime;
+        var unspecified = DateTime.SpecifyKind(localDateTime, DateTimeKind.Unspecified);
+        return TimeZoneInfo.ConvertTimeToUtc(unspecified, LocalTimeZone);
+    }
+
+    /// <summary>
+    /// Converts a nullable local Philippines DateTime to UTC.
+    /// </summary>
+    public static DateTime? ToUtcFromPhilippineTime(DateTime? localDateTime)
+    {
+        return localDateTime.HasValue ? ToUtcFromPhilippineTime(localDateTime.Value) : null;
+    }
+
+    /// <summary>
     /// Format a <see cref="TimeSpan"/> as a 12-hour clock label, e.g. "6:00 PM".
     /// Times of 24:00 (end-of-day) are rendered as "12:00 AM" of the next day's
     /// midnight boundary to keep overnight ranges readable.

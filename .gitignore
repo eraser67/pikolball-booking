@@ -431,3 +431,6 @@ FodyWeavers.xsd
 # AI agent skill files (added by IDE tooling, not part of the project)
 .github/skills/
 .agents/
+
+# Graphify output (local tool output, not part of the project)
+graphify-out/

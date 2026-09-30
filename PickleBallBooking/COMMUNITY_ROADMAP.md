@@ -1,10 +1,10 @@
-﻿# Punit Bola -- Community & Competitive Feature Roadmap
+# Punit Bola -- Community & Competitive Feature Roadmap
 
-**Status:** PLANNED / FUTURE -- No features in this document have been implemented.
+**Status:** Phases 31–34 COMPLETE (Release 1: Community Foundation in progress)
 
-**Roadmap Continues From:** Phase 30 (Production VPS Deployment -- Complete)
+**Roadmap Continues From:** Phase 34 (RSVP & Waitlist -- Complete)
 
-**Next Available Phase:** Phase 31
+**Next Available Phase:** Phase 35 (Recurring Activities)
 
 > **Note on Phase Numbering:** Phases 1-30 are documented in `DEVELOPMENT_PLAN.md` and are complete.
 > Phases 26-30 in the existing plan cover Subscription Management, Platform Administration, Security Audit,
@@ -78,7 +78,7 @@ Phase descriptions capture **requirements, goals, dependencies, constraints, and
 
 ## Phase 31 -- Customer Account Registration & Authentication
 
-**Status:** PLANNED / FUTURE
+**Status:** COMPLETE (Implemented)
 
 ### Goal
 
@@ -187,7 +187,7 @@ Customer/Player accounts must not have access to any admin pages or management f
 
 ## Phase 32 -- Player Account & Profile Foundation
 
-**Status:** PLANNED / FUTURE
+**Status:** COMPLETE (Implemented)
 
 ### Goal
 
@@ -260,7 +260,7 @@ is discoverable across tenants.
 
 ## Phase 33 -- Open Play / Activities
 
-**Status:** PLANNED / FUTURE
+**Status:** COMPLETE (Implemented)
 
 ### Goal
 
@@ -329,7 +329,7 @@ booking engine.
 
 ## Phase 34 -- RSVP & Waitlist
 
-**Status:** PLANNED / FUTURE
+**Status:** COMPLETE (Implemented)
 
 ### Goal
 

@@ -19,14 +19,10 @@ public sealed class ActivityService
     // ── Helpers ───────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Ensures a DateTime has DateTimeKind.Utc before being written to PostgreSQL.
-    /// The datetime-local HTML input produces Kind=Unspecified; this treats
-    /// such values as UTC (the server timezone is UTC in production).
+    /// Converts a local Philippines DateTime (e.g. from an HTML datetime-local input) to UTC for storage.
     /// </summary>
     private static DateTime? ToUtc(DateTime? dt)
-        => dt is null ? null
-         : dt.Value.Kind == DateTimeKind.Utc ? dt
-         : DateTime.SpecifyKind(dt.Value, DateTimeKind.Utc);
+        => AppClock.ToUtcFromPhilippineTime(dt);
 
     // ── Admin ─────────────────────────────────────────────────────────────
 
@@ -56,7 +52,8 @@ public sealed class ActivityService
         decimal pricePerPlayer,
         DateTime? registrationOpensAt,
         DateTime? registrationClosesAt,
-        IEnumerable<int> courtIds)
+        IEnumerable<int> courtIds,
+        ActivityStatus status = ActivityStatus.Draft)
     {
         var activity = new Activity
         {
@@ -71,7 +68,7 @@ public sealed class ActivityService
             PricePerPlayer        = pricePerPlayer,
             RegistrationOpensAt   = ToUtc(registrationOpensAt),
             RegistrationClosesAt  = ToUtc(registrationClosesAt),
-            Status                = ActivityStatus.Draft,
+            Status                = status,
             CreatedAt             = DateTime.UtcNow,
             UpdatedAt             = DateTime.UtcNow,
         };
@@ -83,7 +80,7 @@ public sealed class ActivityService
         return activity;
     }
 
-    /// <summary>Updates activity fields and replaces its court assignments.</summary>
+    /// <summary>Updates activity fields, optional status, and replaces its court assignments.</summary>
     public async Task<Activity?> UpdateAsync(
         int id,
         string name,
@@ -97,7 +94,8 @@ public sealed class ActivityService
         decimal pricePerPlayer,
         DateTime? registrationOpensAt,
         DateTime? registrationClosesAt,
-        IEnumerable<int> courtIds)
+        IEnumerable<int> courtIds,
+        ActivityStatus? status = null)
     {
         var activity = await _context.Activities.FirstOrDefaultAsync(a => a.Id == id);
         if (activity is null) return null;
@@ -113,6 +111,10 @@ public sealed class ActivityService
         activity.PricePerPlayer       = pricePerPlayer;
         activity.RegistrationOpensAt  = ToUtc(registrationOpensAt);
         activity.RegistrationClosesAt = ToUtc(registrationClosesAt);
+        if (status.HasValue)
+        {
+            activity.Status = status.Value;
+        }
         activity.UpdatedAt            = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

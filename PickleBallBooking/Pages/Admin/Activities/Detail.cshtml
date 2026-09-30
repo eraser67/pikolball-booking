@@ -3,6 +3,7 @@
 @using PickleBallBooking.Models
 @{
     var a = Model.Activity!;
+    var roster = Model.Roster;
     ViewData["Title"] = a.Name;
 }
 @functions {
@@ -16,6 +17,13 @@
         ActivityStatus.Completed          => "bg-dark",
         ActivityStatus.Cancelled          => "bg-danger",
         _                                 => "bg-light text-dark"
+    };
+
+    static string SkillIcon(PlayerSkillLevel? sk) => sk switch {
+        PlayerSkillLevel.Beginner     => "🟢",
+        PlayerSkillLevel.Intermediate => "🟡",
+        PlayerSkillLevel.Advanced     => "🔴",
+        _                             => "⚪"
     };
 }
 
@@ -40,9 +48,24 @@
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <div class="row g-4">
     <div class="col-lg-8">
-        <!-- Details -->
+        <!-- Activity Info -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body px-4 py-4">
                 <dl class="row mb-0">
@@ -53,22 +76,244 @@
                     <dt class="col-sm-4 text-muted small">Courts</dt>
                     <dd class="col-sm-8">
                         @if (a.ActivityCourts.Any())
-                            { @string.Join(", ", a.ActivityCourts.Select(ac => ac.Court?.Name ?? "?")) }
-                        else { <span class="text-muted">None assigned</span> }
+                        {
+                            @string.Join(", ", a.ActivityCourts.Select(ac => ac.Court?.Name ?? "?"))
+                        }
+                        else
+                        {
+                            <span class="text-muted">None assigned</span>
+                        }
                     </dd>
-                    <dt class="col-sm-4 text-muted small">Capacity</dt>
-                    <dd class="col-sm-8">@(a.MaxCapacity == 0 ? "Unlimited" : a.MaxCapacity.ToString() + " players")</dd>
+                    <dt class="col-sm-4 text-muted small">Capacity & Fill</dt>
+                    <dd class="col-sm-8">
+                        @(a.MaxCapacity == 0 ? "Unlimited" : $"{roster?.ConfirmedCount ?? 0} / {a.MaxCapacity} players")
+                        @if ((roster?.WaitlistCount ?? 0) > 0)
+                        {
+                            <span class="badge bg-warning-subtle text-warning-emphasis ms-2">@roster!.WaitlistCount on waitlist</span>
+                        }
+                    </dd>
                     <dt class="col-sm-4 text-muted small">Price</dt>
                     <dd class="col-sm-8">@(a.PricePerPlayer == 0 ? "Free" : "₱" + a.PricePerPlayer.ToString("N2"))</dd>
-                    <dt class="col-sm-4 text-muted small">Registration Opens</dt>
-                    <dd class="col-sm-8">@(a.RegistrationOpensAt?.ToString("MMM d, yyyy h:mm tt") ?? "Manual")</dd>
-                    <dt class="col-sm-4 text-muted small">Registration Closes</dt>
-                    <dd class="col-sm-8">@(a.RegistrationClosesAt?.ToString("MMM d, yyyy h:mm tt") ?? "Manual")</dd>
+                    <dt class="col-sm-4 text-muted small">Registration Window</dt>
+                    <dd class="col-sm-8">
+                        @if (a.RegistrationOpensAt.HasValue || a.RegistrationClosesAt.HasValue)
+                        {
+                            <span>@(a.RegistrationOpensAt?.ToString("MMM d, h:mm tt") ?? "Now") – @(a.RegistrationClosesAt?.ToString("MMM d, h:mm tt") ?? "Open")</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Managed manually</span>
+                        }
+                    </dd>
                 </dl>
                 @if (!string.IsNullOrEmpty(a.Description))
                 {
                     <hr />
-                    <p class="mb-0">@a.Description</p>
+                    <p class="mb-0 text-muted small">@a.Description</p>
+                }
+            </div>
+        </div>
+
+        <!-- Confirmed Players Roster -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-0 pt-4 pb-2 px-4 d-flex justify-content-between align-items-center">
+                <h2 class="h6 fw-bold mb-0">
+                    <i class="bi bi-people-fill text-success me-2"></i>Confirmed Players
+                    <span class="badge bg-success-subtle text-success ms-2">@(roster?.ConfirmedCount ?? 0)</span>
+                </h2>
+                <div class="small text-muted">
+                    @(a.MaxCapacity == 0 ? "Unlimited capacity" : $"{a.MaxCapacity - (roster?.ConfirmedCount ?? 0)} spots left")
+                </div>
+            </div>
+            <div class="card-body px-4 pb-4">
+                @if (roster is null || !roster.ConfirmedPlayers.Any())
+                {
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-person-x" style="font-size:2rem;"></i>
+                        <p class="small mt-2 mb-0">No confirmed players yet.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Player</th>
+                                    <th>Skill</th>
+                                    <th>Contact</th>
+                                    <th>RSVP Time</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < roster.ConfirmedPlayers.Count; i++)
+                                {
+                                    var p = roster.ConfirmedPlayers[i];
+                                    <tr>
+                                        <td class="text-muted small">@(i + 1)</td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                @if (!string.IsNullOrEmpty(p.AvatarUrl))
+                                                {
+                                                    <img src="@p.AvatarUrl" alt="" class="rounded-circle" style="width:28px;height:28px;object-fit:cover;" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle bg-secondary bg-opacity-25 d-flex align-items-center justify-content-center text-secondary small fw-bold" style="width:28px;height:28px;">
+                                                        @p.PlayerName.Substring(0, 1).ToUpper()
+                                                    </div>
+                                                }
+                                                <span class="fw-semibold">@p.PlayerName</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="small">@SkillIcon(p.SkillLevel) @(p.SkillLevel?.ToString() ?? "—")</span>
+                                        </td>
+                                        <td class="small">
+                                            <div>@p.Email</div>
+                                            @if (!string.IsNullOrEmpty(p.Mobile))
+                                            {
+                                                <div class="text-muted" style="font-size:0.75rem;">@p.Mobile</div>
+                                            }
+                                        </td>
+                                        <td class="small text-muted">@p.CreatedAt.ToString("MMM d, h:mm tt")</td>
+                                        <td class="text-end">
+                                            <form method="post" asp-page-handler="RemoveRsvp" onsubmit="return confirm('Remove @p.PlayerName from confirmed list? If there is a waitlist, the next player will be automatically promoted.');" class="d-inline">
+                                                <input type="hidden" name="id" value="@a.Id" />
+                                                <input type="hidden" name="userId" value="@p.UserId" />
+                                                <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Remove player">
+                                                    <i class="bi bi-x"></i> Remove
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Waitlist Section -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-0 pt-4 pb-2 px-4 d-flex justify-content-between align-items-center">
+                <h2 class="h6 fw-bold mb-0">
+                    <i class="bi bi-hourglass-split text-warning me-2"></i>Waitlist
+                    <span class="badge bg-warning-subtle text-warning-emphasis ms-2">@(roster?.WaitlistCount ?? 0)</span>
+                </h2>
+                <div class="small text-muted">Ordered by position</div>
+            </div>
+            <div class="card-body px-4 pb-4">
+                @if (roster is null || !roster.WaitlistedPlayers.Any())
+                {
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-check2-circle text-success" style="font-size:2rem;"></i>
+                        <p class="small mt-2 mb-0">Waitlist is empty.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th>Pos</th>
+                                    <th>Player</th>
+                                    <th>Skill</th>
+                                    <th>Contact</th>
+                                    <th>Waitlisted At</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < roster.WaitlistedPlayers.Count; i++)
+                                {
+                                    var w = roster.WaitlistedPlayers[i];
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-dark rounded-pill">#@(w.WaitlistPosition ?? (i + 1))</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                @if (!string.IsNullOrEmpty(w.AvatarUrl))
+                                                {
+                                                    <img src="@w.AvatarUrl" alt="" class="rounded-circle" style="width:28px;height:28px;object-fit:cover;" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle bg-secondary bg-opacity-25 d-flex align-items-center justify-content-center text-secondary small fw-bold" style="width:28px;height:28px;">
+                                                        @w.PlayerName.Substring(0, 1).ToUpper()
+                                                    </div>
+                                                }
+                                                <span class="fw-semibold">@w.PlayerName</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="small">@SkillIcon(w.SkillLevel) @(w.SkillLevel?.ToString() ?? "—")</span>
+                                        </td>
+                                        <td class="small">
+                                            <div>@w.Email</div>
+                                            @if (!string.IsNullOrEmpty(w.Mobile))
+                                            {
+                                                <div class="text-muted" style="font-size:0.75rem;">@w.Mobile</div>
+                                            }
+                                        </td>
+                                        <td class="small text-muted">@w.CreatedAt.ToString("MMM d, h:mm tt")</td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                <!-- Promote Button -->
+                                                <form method="post" asp-page-handler="Promote" class="d-inline" onsubmit="return confirm('Promote @w.PlayerName to Confirmed spot?');">
+                                                    <input type="hidden" name="id" value="@a.Id" />
+                                                    <input type="hidden" name="rsvpId" value="@w.RsvpId" />
+                                                    <button type="submit" class="btn btn-success btn-sm py-0 px-2" title="Manually promote to confirmed">
+                                                        <i class="bi bi-arrow-up-circle me-1"></i>Promote
+                                                    </button>
+                                                </form>
+
+                                                <!-- Move Up -->
+                                                @if (i > 0)
+                                                {
+                                                    <form method="post" asp-page-handler="MoveWaitlist" class="d-inline ms-1">
+                                                        <input type="hidden" name="id" value="@a.Id" />
+                                                        <input type="hidden" name="rsvpId" value="@w.RsvpId" />
+                                                        <input type="hidden" name="moveUp" value="true" />
+                                                        <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Move Up">
+                                                            <i class="bi bi-arrow-up"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+
+                                                <!-- Move Down -->
+                                                @if (i < roster.WaitlistedPlayers.Count - 1)
+                                                {
+                                                    <form method="post" asp-page-handler="MoveWaitlist" class="d-inline ms-1">
+                                                        <input type="hidden" name="id" value="@a.Id" />
+                                                        <input type="hidden" name="rsvpId" value="@w.RsvpId" />
+                                                        <input type="hidden" name="moveUp" value="false" />
+                                                        <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Move Down">
+                                                            <i class="bi bi-arrow-down"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+
+                                                <!-- Remove -->
+                                                <form method="post" asp-page-handler="RemoveRsvp" class="d-inline ms-1" onsubmit="return confirm('Remove @w.PlayerName from the waitlist?');">
+                                                    <input type="hidden" name="id" value="@a.Id" />
+                                                    <input type="hidden" name="userId" value="@w.UserId" />
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Remove from waitlist">
+                                                        <i class="bi bi-x"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 }
             </div>
         </div>
@@ -102,7 +347,7 @@
             </div>
             <div class="card-body px-4 pb-4">
                 <form method="post" asp-page-handler="Delete"
-                      onsubmit="return confirm('Delete this activity? This cannot be undone.')">
+                      onsubmit="return confirm('Delete this activity and all its RSVP registrations? This cannot be undone.')">
                     <input type="hidden" name="id" value="@a.Id" />
                     <button type="submit" class="btn btn-danger btn-sm w-100">
                         <i class="bi bi-trash me-1"></i>Delete Activity
@@ -112,3 +357,10 @@
         </div>
     </div>
 </div>
+
+@section Styles {
+<style>
+.bg-success-subtle { background-color: rgba(25,135,84,.12); }
+.bg-warning-subtle { background-color: rgba(255,193,7,.18); }
+</style>
+}

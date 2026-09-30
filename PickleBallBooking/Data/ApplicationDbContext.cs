@@ -88,6 +88,9 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<Activity> Activities => Set<Activity>();
     public DbSet<ActivityCourt> ActivityCourts => Set<ActivityCourt>();
 
+    // Phase 34: activity RSVPs and waitlist (tenant-owned).
+    public DbSet<ActivityRsvp> ActivityRsvps => Set<ActivityRsvp>();
+
     // Platform-level settings (global — single row, no tenant filter).
     public DbSet<PlatformSettings> PlatformSettings => Set<PlatformSettings>();
 
@@ -107,6 +110,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         // Phase 33
         typeof(Activity),
         typeof(ActivityCourt),
+        // Phase 34
+        typeof(ActivityRsvp),
     };
 
     public override int SaveChanges()
@@ -571,6 +576,45 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasQueryFilter(ac => CurrentOrganizationId != null && ac.OrganizationId == CurrentOrganizationId);
+        });
+
+        // Phase 34: ActivityRsvp — tenant-owned.
+        modelBuilder.Entity<ActivityRsvp>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+
+            entity.Property(r => r.UserId).IsRequired().HasMaxLength(450);
+            entity.Property(r => r.Notes).HasMaxLength(500);
+
+            // One RSVP entry per user per activity per tenant
+            entity.HasIndex(r => new { r.OrganizationId, r.ActivityId, r.UserId })
+                .IsUnique()
+                .HasDatabaseName("IX_ActivityRsvp_Org_Activity_User");
+
+            // Index for querying waitlist by order
+            entity.HasIndex(r => new { r.ActivityId, r.Status, r.WaitlistPosition })
+                .HasDatabaseName("IX_ActivityRsvp_Activity_Status_WaitlistPosition");
+
+            // Index for customer dashboard queries
+            entity.HasIndex(r => new { r.UserId, r.Status })
+                .HasDatabaseName("IX_ActivityRsvp_UserId_Status");
+
+            entity.HasOne(r => r.Activity)
+                .WithMany(a => a.Rsvps)
+                .HasForeignKey(r => r.ActivityId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(r => r.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(r => CurrentOrganizationId != null && r.OrganizationId == CurrentOrganizationId);
         });
     }
 }

@@ -175,6 +175,9 @@ builder.Services.AddScoped<PlayerProfileService>();
 // Phase 33: activity management.
 builder.Services.AddScoped<ActivityService>();
 
+// Phase 34: activity RSVP & waitlist management.
+builder.Services.AddScoped<ActivityRsvpService>();
+
 // Platform-level settings (AllowTenantRegistration toggle etc.)
 builder.Services.AddScoped<PlatformSettingsService>();
 

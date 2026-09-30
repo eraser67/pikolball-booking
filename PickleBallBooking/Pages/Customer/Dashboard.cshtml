@@ -1,125 +1,233 @@
-@page "/Customer/Dashboard"
+@page
 @model PickleBallBooking.Pages.Customer.DashboardModel
 @using PickleBallBooking.Models
 @{
-    ViewData["Title"] = "My Dashboard";
+    ViewData["Title"] = "Player Dashboard";
+}
 
-    string StatusBadgeClass(BookingStatus status) => status switch
+@functions {
+    static string StatusBadgeClass(BookingStatus status) => status switch
     {
-        BookingStatus.Confirmed  => "bg-success",
-        BookingStatus.Pending    => "bg-warning text-dark",
-        BookingStatus.Cancelled  => "bg-danger",
-        BookingStatus.Completed  => "bg-secondary",
-        _                        => "bg-light text-dark"
+        BookingStatus.Confirmed => "bg-success",
+        BookingStatus.Pending   => "bg-warning text-dark",
+        BookingStatus.Cancelled => "bg-secondary",
+        _                       => "bg-light text-dark"
     };
-    string StatusIcon(BookingStatus status) => status switch
+
+    static string StatusIcon(BookingStatus status) => status switch
     {
-        BookingStatus.Confirmed  => "bi-check-circle-fill",
-        BookingStatus.Pending    => "bi-hourglass-split",
-        BookingStatus.Cancelled  => "bi-x-circle-fill",
-        BookingStatus.Completed  => "bi-archive-fill",
-        _                        => "bi-question-circle"
+        BookingStatus.Confirmed => "bi-check-circle-fill",
+        BookingStatus.Pending   => "bi-clock-fill",
+        BookingStatus.Cancelled => "bi-x-circle-fill",
+        _                       => "bi-question-circle"
+    };
+
+    static string RsvpBadge(RsvpStatus s) => s switch
+    {
+        RsvpStatus.Confirmed  => "bg-success",
+        RsvpStatus.Waitlisted => "bg-warning text-dark",
+        RsvpStatus.Cancelled  => "bg-secondary",
+        _                     => "bg-info text-dark"
     };
 }
 
 <div class="container py-4">
 
-    <!-- Profile completion nudge -->
-    @if (!Model.HasProfile)
+    <!-- Flash Messages -->
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
     {
-        <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center gap-3 mb-4">
-            <i class="bi bi-person-exclamation" style="font-size:1.5rem;flex-shrink:0;"></i>
-            <div class="flex-grow-1">
-                <div class="fw-semibold">Complete your player profile</div>
-                <div class="small text-muted">Add your skill level, location, and bio so other players can find you.</div>
-            </div>
-            <a asp-page="/Customer/Profile" class="btn btn-warning btn-sm fw-semibold flex-shrink-0">
-                Set up profile
-            </a>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
-    <!-- Welcome Header -->
-    <div class="row mb-4">
-        <div class="col">
-            <div class="d-flex align-items-center gap-3">
-                <!-- Avatar or fallback icon -->
-                <div class="flex-shrink-0">
+    <!-- Welcome Hero -->
+    <div class="card border-0 shadow-sm mb-4 dashboard-hero">
+        <div class="card-body p-4 p-md-5">
+            <div class="row align-items-center g-3">
+                <div class="col-auto">
                     @if (!string.IsNullOrEmpty(Model.AvatarUrl))
                     {
                         <img src="@Model.AvatarUrl"
-                             class="rounded-circle border border-2 border-success shadow-sm"
-                             style="width:60px;height:60px;object-fit:cover;"
-                             alt="Profile photo" />
+                             alt="@Model.DisplayName"
+                             class="rounded-circle shadow-sm"
+                             style="width:72px;height:72px;object-fit:cover;border:3px solid #fff;" />
                     }
                     else
                     {
-                        <div class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
-                             style="width:60px;height:60px;">
-                            <i class="bi bi-person-fill text-success" style="font-size:1.8rem;"></i>
+                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center shadow-sm"
+                             style="width:72px;height:72px;font-size:1.75rem;font-weight:700;">
+                            @(string.IsNullOrWhiteSpace(Model.DisplayName) ? "P" : Model.DisplayName[..1].ToUpperInvariant())
                         </div>
                     }
                 </div>
-                <div>
-                    <h1 class="h4 fw-bold mb-0">Welcome back, @Model.DisplayName</h1>
-                    <p class="text-muted mb-0 small">
-                        <i class="bi bi-envelope me-1"></i>@Model.Email
+                <div class="col">
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                        <h1 class="h3 fw-bold mb-0">Welcome back, @Model.DisplayName!</h1>
+                        @if (!string.IsNullOrEmpty(Model.SkillLevelLabel))
+                        {
+                            <span class="badge bg-white text-dark shadow-sm border small">@Model.SkillLevelLabel</span>
+                        }
+                    </div>
+                    <div class="text-muted small d-flex flex-wrap gap-3">
+                        <span><i class="bi bi-envelope me-1"></i>@Model.Email</span>
                         @if (!string.IsNullOrEmpty(Model.Mobile))
                         {
-                            <span class="ms-3"><i class="bi bi-phone me-1"></i>@Model.Mobile</span>
+                            <span><i class="bi bi-phone me-1"></i>@Model.Mobile</span>
                         }
                         @if (!string.IsNullOrEmpty(Model.Location))
                         {
-                            <span class="ms-3"><i class="bi bi-geo-alt me-1"></i>@Model.Location</span>
+                            <span><i class="bi bi-geo-alt me-1"></i>@Model.Location</span>
                         }
-                        @if (!string.IsNullOrEmpty(Model.SkillLevelLabel))
-                        {
-                            <span class="ms-3">@Model.SkillLevelLabel</span>
-                        }
-                    </p>
+                    </div>
+                </div>
+                <div class="col-12 col-md-auto mt-2 mt-md-0">
+                    <a asp-page="/Customer/Profile" class="btn btn-outline-success btn-sm">
+                        <i class="bi bi-pencil-square me-1"></i>Edit Profile
+                    </a>
                 </div>
             </div>
         </div>
-        <div class="col-auto">
-            <a asp-page="/Customer/Profile" class="btn btn-outline-success btn-sm">
-                <i class="bi bi-pencil me-1"></i>Edit Profile
-            </a>
-        </div>
     </div>
 
-    <!-- Quick Actions -->
+    <!-- Quick Action Cards -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">
-            <a asp-page="/Booking/Index" class="card text-decoration-none h-100 border-0 shadow-sm pb-action-card">
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-lightning-charge-fill text-success mb-2" style="font-size:1.8rem;"></i>
+            <a asp-page="/Booking/Index" class="card border-0 shadow-sm text-decoration-none text-dark h-100 p-3 dashboard-card">
+                <div class="card-body p-0 text-center">
+                    <div class="icon-circle bg-success-subtle text-success mx-auto mb-2">
+                        <i class="bi bi-calendar-plus" style="font-size:1.25rem;"></i>
+                    </div>
                     <div class="fw-semibold small">Book a Court</div>
                 </div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-page="/Activities/Index" class="card text-decoration-none h-100 border-0 shadow-sm pb-action-card">
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-calendar-event text-success mb-2" style="font-size:1.8rem;"></i>
-                    <div class="fw-semibold small">Activities</div>
+            <a asp-page="/Activities" class="card border-0 shadow-sm text-decoration-none text-dark h-100 p-3 dashboard-card">
+                <div class="card-body p-0 text-center">
+                    <div class="icon-circle bg-success-subtle text-success mx-auto mb-2">
+                        <i class="bi bi-calendar-event" style="font-size:1.25rem;"></i>
+                    </div>
+                    <div class="fw-semibold small">Join Activities</div>
                 </div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-page="/Booking/Lookup" class="card text-decoration-none h-100 border-0 shadow-sm pb-action-card">
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-search text-warning mb-2" style="font-size:1.8rem;"></i>
+            <a asp-page="/Booking/Lookup" class="card border-0 shadow-sm text-decoration-none text-dark h-100 p-3 dashboard-card">
+                <div class="card-body p-0 text-center">
+                    <div class="icon-circle bg-primary-subtle text-primary mx-auto mb-2">
+                        <i class="bi bi-search" style="font-size:1.25rem;"></i>
+                    </div>
                     <div class="fw-semibold small">Look Up Booking</div>
                 </div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-page="/Customer/Profile" class="card text-decoration-none h-100 border-0 shadow-sm pb-action-card">
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-person-badge text-info mb-2" style="font-size:1.8rem;"></i>
+            <a asp-page="/Customer/Profile" class="card border-0 shadow-sm text-decoration-none text-dark h-100 p-3 dashboard-card">
+                <div class="card-body p-0 text-center">
+                    <div class="icon-circle bg-info-subtle text-info mx-auto mb-2">
+                        <i class="bi bi-person-gear" style="font-size:1.25rem;"></i>
+                    </div>
                     <div class="fw-semibold small">My Profile</div>
                 </div>
             </a>
+        </div>
+    </div>
+
+    <!-- My Activities / RSVPs (Phase 34) -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <h2 class="h6 fw-bold mb-0">
+                    <i class="bi bi-calendar-check text-success me-2"></i>My Activities & RSVPs
+                </h2>
+                <a asp-page="/Activities" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-plus-circle me-1"></i>Find Activities
+                </a>
+            </div>
+        </div>
+        <div class="card-body px-4">
+            @if (!Model.UserActivities.Any())
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-calendar-plus text-muted" style="font-size:2.5rem;"></i>
+                    <p class="text-muted mt-3 mb-2">You haven't joined any activities or open plays yet.</p>
+                    <a asp-page="/Activities" class="btn btn-success btn-sm">
+                        <i class="bi bi-search me-1"></i>Browse Available Activities
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="fw-semibold small text-muted">Activity</th>
+                                <th class="fw-semibold small text-muted">Venue</th>
+                                <th class="fw-semibold small text-muted">Date & Time</th>
+                                <th class="fw-semibold small text-muted">Courts</th>
+                                <th class="fw-semibold small text-muted">Status</th>
+                                <th class="fw-semibold small text-muted text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var act in Model.UserActivities)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@act.ActivityName</div>
+                                        <div class="small text-muted">@act.Format &bull; @act.SkillLevel</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">@act.OrganizationName</span>
+                                    </td>
+                                    <td class="small">
+                                        <div><strong>@act.Date.ToString("ddd, MMM d, yyyy")</strong></div>
+                                        <div class="text-muted">@PickleBallBooking.Services.AppClock.To12HourRange(act.StartTime, act.EndTime)</div>
+                                    </td>
+                                    <td class="small text-muted">@act.CourtNames</td>
+                                    <td>
+                                        @if (act.Status == RsvpStatus.Confirmed)
+                                        {
+                                            <span class="badge bg-success rounded-pill">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Confirmed
+                                            </span>
+                                        }
+                                        else if (act.Status == RsvpStatus.Waitlisted)
+                                        {
+                                            <span class="badge bg-warning text-dark rounded-pill">
+                                                <i class="bi bi-hourglass-split me-1"></i>Waitlist #@act.WaitlistPosition
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary rounded-pill">@act.Status</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <form method="post" asp-page-handler="CancelRsvp"
+                                              onsubmit="return confirm('Cancel your registration for @act.ActivityName? If confirmed, your spot will be given to the next waitlisted player.');">
+                                            <input type="hidden" name="activityId" value="@act.ActivityId" />
+                                            <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" title="Cancel RSVP">
+                                                <i class="bi bi-x-circle me-1"></i>Cancel
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
         </div>
     </div>
 
@@ -185,16 +293,32 @@
         </div>
     </div>
 
-    <!-- Upcoming Features -->
-    <div class="alert alert-info border-0 shadow-sm mt-4 d-flex align-items-start gap-3">
-        <i class="bi bi-stars text-info mt-1" style="font-size:1.4rem;flex-shrink:0;"></i>
-        <div>
-            <div class="fw-semibold mb-1">More features coming soon</div>
-            <div class="small text-muted">
-                Open Play activities, RSVP, match history, tournaments, and league registration
-                are being built. Your profile is ready to grow with these features.
-            </div>
-        </div>
-    </div>
-
 </div>
+
+@section Styles {
+<style>
+.dashboard-hero {
+    background: linear-gradient(135deg, rgba(22,163,74,0.06) 0%, rgba(22,163,74,0.01) 100%);
+    border-left: 4px solid #16a34a !important;
+}
+.icon-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.dashboard-card {
+    transition: transform .15s, box-shadow .15s;
+}
+.dashboard-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.08) !important;
+}
+.bg-success-subtle { background-color: rgba(22,163,74,0.12); }
+.bg-primary-subtle { background-color: rgba(13,110,253,0.12); }
+.bg-info-subtle    { background-color: rgba(13,202,240,0.12); }
+.bg-warning-subtle { background-color: rgba(255,193,7,0.18); }
+</style>
+}

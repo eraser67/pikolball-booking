@@ -137,6 +137,64 @@ public sealed class BookingEmailService
             replyTo: sender.ReplyTo));
     }
 
+    // ─── Phase 34: Activity RSVP & Waitlist notifications ────────────────────
+
+    /// <summary>RSVP confirmed — sent immediately after player's spot is secured.</summary>
+    public void SendActivityRsvpConfirmedAsync(Activity activity, Organization org, string userEmail, string userName)
+    {
+        var sender = GetSenderForOrg(org);
+        Fire(_email.SendAsync(
+            userEmail,
+            userName,
+            $"🏓 Spot Confirmed — {activity.Name}",
+            BuildActivityRsvpConfirmedHtml(activity, org, userName),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: sender.ReplyTo));
+    }
+
+    /// <summary>Waitlist joined — sent when activity is full and player is waitlisted.</summary>
+    public void SendActivityWaitlistJoinedAsync(Activity activity, Organization org, string userEmail, string userName, int position)
+    {
+        var sender = GetSenderForOrg(org);
+        Fire(_email.SendAsync(
+            userEmail,
+            userName,
+            $"⏳ Waitlist Confirmed (Position #{position}) — {activity.Name}",
+            BuildActivityWaitlistJoinedHtml(activity, org, userName, position),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: sender.ReplyTo));
+    }
+
+    /// <summary>Waitlist promoted — sent when a spot opens up and player is promoted.</summary>
+    public void SendActivityWaitlistPromotedAsync(Activity activity, Organization org, string userEmail, string userName)
+    {
+        var sender = GetSenderForOrg(org);
+        Fire(_email.SendAsync(
+            userEmail,
+            userName,
+            $"🎉 You're In! Spot Available — {activity.Name}",
+            BuildActivityWaitlistPromotedHtml(activity, org, userName),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: sender.ReplyTo));
+    }
+
+    /// <summary>RSVP cancelled — sent when player or admin cancels an RSVP.</summary>
+    public void SendActivityRsvpCancelledAsync(Activity activity, Organization org, string userEmail, string userName)
+    {
+        var sender = GetSenderForOrg(org);
+        Fire(_email.SendAsync(
+            userEmail,
+            userName,
+            $"RSVP Cancelled — {activity.Name}",
+            BuildActivityRsvpCancelledHtml(activity, org, userName),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: sender.ReplyTo));
+    }
+
     // ─── Organization notifications ──────────────────────────────────────────
 
     /// <summary>New booking alert — sent to org notification email after a booking is created.</summary>
@@ -365,6 +423,87 @@ public sealed class BookingEmailService
             })}
 
             <p style="color:{GrayText};font-size:13px;">The time slot has been released and is now available for new bookings.</p>
+        """);
+    }
+
+    private static string BuildActivityRsvpConfirmedHtml(Activity activity, Organization org, string userName)
+    {
+        var dateStr = activity.Date.ToString("dddd, MMMM d, yyyy");
+        var timeStr = FormatTimeRange(activity.StartTime, activity.EndTime);
+        var priceStr = activity.PricePerPlayer > 0 ? $"₱{activity.PricePerPlayer:N2}" : "Free";
+
+        return Wrap(org.Name, $"""
+            <h2 style="color:{Green};margin-bottom:8px;">You're Confirmed!</h2>
+            <p>Hi <strong>{userName}</strong>,</p>
+            <p>Your spot for <strong>{activity.Name}</strong> has been secured.</p>
+
+            {DetailBox(new[] {
+                ("Activity",    activity.Name),
+                ("Date",        dateStr),
+                ("Time",        timeStr),
+                ("Format",      activity.Format.ToString()),
+                ("Skill Level", activity.SkillLevel.ToString()),
+                ("Fee",         priceStr),
+            })}
+
+            <p style="color:{GrayText};font-size:13px;">Please arrive 10 minutes early. If you can no longer attend, please cancel your RSVP early so another player can join.</p>
+        """);
+    }
+
+    private static string BuildActivityWaitlistJoinedHtml(Activity activity, Organization org, string userName, int position)
+    {
+        var dateStr = activity.Date.ToString("dddd, MMMM d, yyyy");
+        var timeStr = FormatTimeRange(activity.StartTime, activity.EndTime);
+
+        return Wrap(org.Name, $"""
+            <h2 style="color:#d97706;margin-bottom:8px;">Added to Waitlist</h2>
+            <p>Hi <strong>{userName}</strong>,</p>
+            <p><strong>{activity.Name}</strong> has reached capacity, and you have been added to the waitlist.</p>
+
+            {DetailBox(new[] {
+                ("Activity",          activity.Name),
+                ("Date",              dateStr),
+                ("Time",              timeStr),
+                ("Waitlist Position", $"#{position}"),
+            })}
+
+            <p style="color:{GrayText};font-size:13px;">If a confirmed player cancels, you will automatically be promoted to a confirmed spot and notified via email.</p>
+        """);
+    }
+
+    private static string BuildActivityWaitlistPromotedHtml(Activity activity, Organization org, string userName)
+    {
+        var dateStr = activity.Date.ToString("dddd, MMMM d, yyyy");
+        var timeStr = FormatTimeRange(activity.StartTime, activity.EndTime);
+        var priceStr = activity.PricePerPlayer > 0 ? $"₱{activity.PricePerPlayer:N2}" : "Free";
+
+        return Wrap(org.Name, $"""
+            <h2 style="color:{Green};margin-bottom:8px;">You've Been Promoted! 🎉</h2>
+            <p>Hi <strong>{userName}</strong>,</p>
+            <p>Great news! A spot opened up for <strong>{activity.Name}</strong>, and you have been promoted from the waitlist to <strong>Confirmed</strong>.</p>
+
+            {DetailBox(new[] {
+                ("Activity",    activity.Name),
+                ("Date",        dateStr),
+                ("Time",        timeStr),
+                ("Format",      activity.Format.ToString()),
+                ("Fee",         priceStr),
+            })}
+
+            <p style="color:{GrayText};font-size:13px;">Your spot is secured. We look forward to seeing you on court!</p>
+        """);
+    }
+
+    private static string BuildActivityRsvpCancelledHtml(Activity activity, Organization org, string userName)
+    {
+        var dateStr = activity.Date.ToString("dddd, MMMM d, yyyy");
+        var timeStr = FormatTimeRange(activity.StartTime, activity.EndTime);
+
+        return Wrap(org.Name, $"""
+            <h2 style="margin-bottom:8px;">RSVP Cancelled</h2>
+            <p>Hi <strong>{userName}</strong>,</p>
+            <p>Your registration for <strong>{activity.Name}</strong> on {dateStr} ({timeStr}) has been cancelled.</p>
+            <p style="color:{GrayText};font-size:13px;">We hope to see you at another activity soon.</p>
         """);
     }
 

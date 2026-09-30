@@ -118,16 +118,18 @@
 - [x] **Philippine Peso (`₱`) Currency Standardization:**
   - Standardize all currency rendering across frontend, admin pages, and transactional email templates to use the Philippine Peso (`₱`) symbol with `en-PH` formatting.
 
-## Future Phases (31–61) — PLANNED
+## Completed Community Foundation Phases (31–34)
+
+- [x] **Phase 31 — Customer Account Registration & Authentication:** Self-registration, Name/Email/Password/Mobile, Customer role, platform-level identity.
+- [x] **Phase 32 — Player Account & Profile Foundation:** PlayerProfile model, Avatar upload, Skill Level, Player Dashboard, Privacy Settings.
+- [x] **Phase 33 — Open Play / Activities:** Admin-created events, Activity States, Court allocations, Public Activities browse directory.
+- [x] **Phase 34 — RSVP & Waitlist:** ActivityRsvp model, RSVP states (Confirmed/Waitlisted/Cancelled), Waitlist ordering, Automatic promotion upon cancellation, Admin manual promote & reorder, Player dashboard activities table, Transactional email notifications.
+
+## Future Phases (35–61) — PLANNED
 
 The long-term community and competitive feature roadmap is documented in [`COMMUNITY_ROADMAP.md`](COMMUNITY_ROADMAP.md).
 
-All items below are **PLANNED / FUTURE**. No features have been implemented.
-
-- [ ] **Phase 31 — Customer Account Registration & Authentication** *(Self-registration, Name/Email/Password/Mobile, Customer/Player role, platform-level identity)*
-- [ ] **Phase 32 — Player Account & Profile Foundation** *(Player Profile, Skill Level, Player Dashboard, Privacy Settings)*
-- [ ] **Phase 33 — Open Play / Activities** *(Admin-created events, Activity States, RSVP integration)*
-- [ ] **Phase 34 — RSVP & Waitlist** *(RSVP States, Waitlist ordering, Automatic promotion, Payment integration future)*
+All items below are **PLANNED / FUTURE**:
 - [ ] **Phase 35 — Recurring Activities** *(Weekly/Monthly recurrence, Series management, Cancel/Pause/Modify)*
 - [ ] **Phase 36 — Notifications** *(Email + In-App notifications for community events, Admin/Player triggers)*
 - [ ] **Phase 37 — Calendar Integration** *(ICS, Google Calendar, Apple Calendar, Outlook)*

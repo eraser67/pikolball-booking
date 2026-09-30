@@ -10,28 +10,28 @@ using PickleBallBooking.Services;
 namespace PickleBallBooking.Pages.Customer;
 
 /// <summary>
-/// Phase 32: customer / player dashboard (updated).
-///
-/// Now uses PlayerProfile as the primary data source for display name, skill level,
-/// and location. Falls back to Phase 31 claims if the profile has not yet been
-/// completed.
+/// Phase 34: customer / player dashboard.
+/// Displays player profile, recent court reservations, and registered activities (RSVPs and waitlists).
 /// </summary>
 public class DashboardModel : PageModel
 {
     private readonly UserManager<IdentityUser> _userManager;
     private readonly ApplicationDbContext _context;
     private readonly PlayerProfileService _profileService;
+    private readonly ActivityRsvpService _rsvpService;
     private readonly ICourtImageStorage _storage;
 
     public DashboardModel(
         UserManager<IdentityUser> userManager,
         ApplicationDbContext context,
         PlayerProfileService profileService,
+        ActivityRsvpService rsvpService,
         ICourtImageStorage storage)
     {
         _userManager    = userManager;
         _context        = context;
         _profileService = profileService;
+        _rsvpService    = rsvpService;
         _storage        = storage;
     }
 
@@ -44,6 +44,13 @@ public class DashboardModel : PageModel
     public bool HasProfile { get; private set; }
 
     public IReadOnlyList<BookingSummary> RecentBookings { get; private set; } = [];
+    public IReadOnlyList<UserActivityItem> UserActivities { get; private set; } = [];
+
+    [TempData]
+    public string? StatusMessage { get; set; }
+
+    [TempData]
+    public string? ErrorMessage { get; set; }
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -95,7 +102,27 @@ public class DashboardModel : PageModel
             })
             .ToListAsync();
 
+        UserActivities = await _rsvpService.GetUserActivitiesAsync(user.Id);
+
         return Page();
+    }
+
+    public async Task<IActionResult> OnPostCancelRsvpAsync(int activityId)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null) return RedirectToPage("/Account/Login");
+
+        var result = await _rsvpService.CancelRsvpAsync(activityId, user.Id);
+        if (result.Success)
+        {
+            StatusMessage = result.Message;
+        }
+        else
+        {
+            ErrorMessage = result.Message;
+        }
+
+        return RedirectToPage();
     }
 
     public record BookingSummary
