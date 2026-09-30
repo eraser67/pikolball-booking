@@ -82,35 +82,68 @@ public class JoinUsModel : PageModel
             return Page();
         }
 
-        // Send activation email if the owner account was freshly created.
+        // Always send an email — new accounts get an activation link,
+        // existing confirmed accounts get a "venue linked" notification.
+        string emailSubject;
+        string emailHtml;
+        var venueName = System.Net.WebUtility.HtmlEncode(Input.VenueName);
+        var baseDomain = _config["Tenant:BaseDomain"] ?? PlatformDomain;
+        var portPart   = Request.Host.Port.HasValue && Request.Host.Port.Value != 80 && Request.Host.Port.Value != 443
+                         ? $":{Request.Host.Port.Value}" : string.Empty;
+        var loginUrl   = $"{Request.Scheme}://{Input.Subdomain.Trim().ToLowerInvariant()}.{baseDomain}{portPart}/Account/Login";
+
         if (result.OwnerAccountCreated && result.OwnerActivationToken is not null)
         {
+            // Brand-new Identity user — must confirm email + set password first.
             var activationUrl = Url.Page(
-                "/Account/Activate",
-                null,
+                "/Account/Activate", null,
                 new { userId = result.OwnerUserId, token = result.OwnerActivationToken },
                 Request.Scheme)!;
 
-            var htmlBody = $"""
-                <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;">
-                  <h2 style="color:#146c43;">Welcome to Pikolball! 🎉</h2>
-                  <p>Your venue <strong>{System.Net.WebUtility.HtmlEncode(Input.VenueName)}</strong> has been registered successfully.</p>
-                  <p>Click the button below to activate your account and set your password:</p>
-                  <a href="{activationUrl}" style="display:inline-block;background:#198754;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">
-                      Activate My Account
+            emailSubject = $"Activate your Punit Bola account — {Input.VenueName}";
+            emailHtml = $"""
+                <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+                  <h2 style="color:#146c43;margin-bottom:4px;">Welcome to Punit Bola! 🎉</h2>
+                  <p style="color:#555;">Your venue <strong>{venueName}</strong> has been registered successfully.</p>
+                  <p style="color:#555;">Click the button below to activate your account and set your password:</p>
+                  <a href="{activationUrl}"
+                     style="display:inline-block;background:#198754;color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:1rem;margin:8px 0;">
+                    Activate My Account
                   </a>
-                  <p style="color:#888;margin-top:24px;font-size:0.875rem;">
-                      If you didn't register on Pikolball, you can safely ignore this email.
+                  <p style="color:#888;margin-top:24px;font-size:0.85rem;">
+                    If you didn't register on Punit Bola, you can safely ignore this email.
                   </p>
                 </div>
                 """;
-
-            await _emailService.SendAsync(
-                toAddress: Input.OwnerEmail,
-                toName:    Input.OwnerName,
-                subject:   $"Activate your Pikolball account — {Input.VenueName}",
-                htmlBody:  htmlBody);
         }
+        else
+        {
+            // Existing confirmed account — venue linked, send login link directly.
+            emailSubject = $"Your new venue is ready — {Input.VenueName}";
+            emailHtml = $"""
+                <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+                  <h2 style="color:#146c43;margin-bottom:4px;">Your venue is live! 🎉</h2>
+                  <p style="color:#555;">
+                    Your venue <strong>{venueName}</strong> has been registered on Punit Bola
+                    and linked to your existing account (<strong>{System.Net.WebUtility.HtmlEncode(Input.OwnerEmail)}</strong>).
+                  </p>
+                  <p style="color:#555;">Click the button below to log in and start setting up your venue:</p>
+                  <a href="{loginUrl}"
+                     style="display:inline-block;background:#198754;color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:1rem;margin:8px 0;">
+                    Go to My Venue Dashboard
+                  </a>
+                  <p style="color:#888;margin-top:24px;font-size:0.85rem;">
+                    Your venue URL: <a href="{loginUrl}" style="color:#146c43;">{Input.Subdomain.Trim().ToLowerInvariant()}.{baseDomain}</a>
+                  </p>
+                </div>
+                """;
+        }
+
+        await _emailService.SendAsync(
+            toAddress: Input.OwnerEmail,
+            toName:    Input.OwnerName,
+            subject:   emailSubject,
+            htmlBody:  emailHtml);
 
         Success = true;
         return Page();
