@@ -427,3 +427,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# AI agent skill files (added by IDE tooling, not part of the project)
+.github/skills/
