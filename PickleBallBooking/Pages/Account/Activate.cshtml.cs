@@ -159,7 +159,8 @@ public class ActivateModel : PageModel
             var portPart = Request.Host.Port.HasValue && Request.Host.Port.Value != 80 && Request.Host.Port.Value != 443
                 ? $":{Request.Host.Port.Value}"
                 : string.Empty;
-            LoginUrl = $"{Request.Scheme}://{membership}.{_tenantOptions.BaseDomain}{portPart}/Account/Login";
+            // Send newly activated owners straight to the onboarding wizard on their subdomain.
+            LoginUrl = $"{Request.Scheme}://{membership}.{_tenantOptions.BaseDomain}{portPart}/Admin/Onboarding";
         }
         else
         {

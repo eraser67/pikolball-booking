@@ -20,10 +20,25 @@
                 We sent an activation email to <strong>@Model.Input.OwnerEmail</strong>.
             </p>
             <p class="text-muted mb-4">
-                Click the link to set your password and log in to your dashboard.
+                Click the link in that email to set your password and access your dashboard.
             </p>
-            <div class="bg-light rounded-3 py-2 px-3 d-inline-block mb-4 small font-monospace text-success fw-semibold">
-                <i class="bi bi-link-45deg me-1"></i>@Model.Input.Subdomain.@Model.PlatformDomain
+
+            <!-- Venue link copy chip -->
+            <div class="mb-4">
+                <p class="text-muted small fw-semibold mb-1">
+                    <i class="bi bi-globe me-1"></i>Your Venue Link (share this with your players)
+                </p>
+                <button type="button"
+                        id="copyVenueLink"
+                        class="btn btn-outline-success font-monospace fw-semibold"
+                        onclick="copyVenueUrl()"
+                        title="Click to copy">
+                    <i class="bi bi-link-45deg me-1"></i>@Model.Input.Subdomain.@Model.PlatformDomain
+                    <i class="bi bi-clipboard ms-2" id="copyIcon"></i>
+                </button>
+                <div id="copyToast" class="text-success small mt-1" style="display:none;">
+                    <i class="bi bi-check-circle me-1"></i>Copied to clipboard!
+                </div>
             </div>
             <div class="d-grid gap-2">
                 <a asp-page="/Account/Login" class="btn btn-success btn-lg">
@@ -128,5 +143,23 @@
             preview.textContent = slug ? `Your URL: ${slug}.${domain}` : '';
         }
         updatePreview();
+
+        function copyVenueUrl() {
+            const btn = document.getElementById('copyVenueLink');
+            const icon = document.getElementById('copyIcon');
+            const toast = document.getElementById('copyToast');
+            if (!btn) return;
+            const url = btn.textContent.trim().replace(/\s+/g, '').replace('', '');
+            // grab just the domain text from the button
+            const venueUrl = '@(Model.Success ? Model.Input.Subdomain + "." + Model.PlatformDomain : "")';
+            navigator.clipboard.writeText(venueUrl).then(() => {
+                if (icon) { icon.className = 'bi bi-clipboard-check ms-2 text-success'; }
+                if (toast) { toast.style.display = 'block'; }
+                setTimeout(() => {
+                    if (icon) { icon.className = 'bi bi-clipboard ms-2'; }
+                    if (toast) { toast.style.display = 'none'; }
+                }, 2500);
+            });
+        }
     </script>
 }

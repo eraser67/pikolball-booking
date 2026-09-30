@@ -1,0 +1,162 @@
+@page
+@model PickleBallBooking.Pages.Admin.OnboardingModel
+@{
+    ViewData["Title"] = "Setup Your Venue";
+    Layout = "/Pages/Shared/_Layout.cshtml";
+}
+
+<style>
+.ob-hero {
+    background: linear-gradient(135deg, var(--pb-green-900,#0f3d2e), var(--pb-green-700,#146c43));
+    color: #fff;
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    margin-bottom: 2rem;
+}
+.ob-step-card {
+    border: 2px solid var(--pb-border,#e3ebe7);
+    border-radius: 14px;
+    padding: 1.5rem;
+    transition: border-color .2s, box-shadow .2s;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+.ob-step-card:hover {
+    border-color: var(--pb-green-500,#20c059);
+    box-shadow: 0 4px 20px rgba(22,163,74,.12);
+    color: inherit;
+    text-decoration: none;
+}
+.ob-step-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--pb-green-100,#d1f0e0);
+    color: var(--pb-green-700,#146c43);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    font-size: .9rem;
+    flex-shrink: 0;
+}
+.ob-step-icon {
+    font-size: 2rem;
+    color: var(--pb-green-600,#198754);
+    margin-bottom: .75rem;
+}
+.ob-step-title { font-weight: 700; font-size: 1rem; margin-bottom: .25rem; }
+.ob-step-desc  { color: var(--pb-muted,#5c6b66); font-size: .85rem; line-height: 1.45; margin: 0; }
+.ob-skip { color: var(--pb-muted,#5c6b66); font-size: .82rem; }
+</style>
+
+<div class="container py-4" style="max-width:860px;">
+
+    <!-- Hero welcome -->
+    <div class="ob-hero">
+        <div class="d-flex align-items-center gap-3 mb-2">
+            <div style="font-size:2.4rem;">🎉</div>
+            <div>
+                <h1 class="h4 fw-bold mb-0">Welcome to Punit Bola, @Model.OrgName!</h1>
+                <p class="mb-0 opacity-75 small">Let's get your venue set up so players can start booking courts.</p>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-muted small mb-4">
+        Follow these steps in order to go live. You can always come back to any step from your Admin dashboard.
+    </p>
+
+    <!-- Steps grid -->
+    <div class="row g-3 mb-4">
+
+        <!-- Step 1: Org Settings / Branding -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <a asp-page="/Admin/OrgSettings/Index" class="ob-step-card">
+                <div class="ob-step-icon"><i class="bi bi-palette2"></i></div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="ob-step-num">1</div>
+                    <div class="ob-step-title">Brand Your Venue</div>
+                </div>
+                <p class="ob-step-desc">Upload your logo, set colours, write your venue tagline, and add contact info.</p>
+                <div class="mt-2">
+                    <span class="badge bg-success bg-opacity-15 text-success fw-semibold small">Start here</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Step 2: Add Courts -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <a asp-page="/Admin/Courts/Index" class="ob-step-card">
+                <div class="ob-step-icon"><i class="bi bi-grid-3x3-gap-fill"></i></div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="ob-step-num">2</div>
+                    <div class="ob-step-title">Add Your Courts</div>
+                </div>
+                <p class="ob-step-desc">Create each court with a name and optional photo. Players will see these when booking.</p>
+            </a>
+        </div>
+
+        <!-- Step 3: Time Slots -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <a asp-page="/Admin/TimeSlots/Index" class="ob-step-card">
+                <div class="ob-step-icon"><i class="bi bi-clock-history"></i></div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="ob-step-num">3</div>
+                    <div class="ob-step-title">Set Time Slots</div>
+                </div>
+                <p class="ob-step-desc">Choose which hours each court is open for booking. Enable per-hour slots across all courts.</p>
+            </a>
+        </div>
+
+        <!-- Step 4: Pricing -->
+        <div class="col-12 col-sm-6 col-lg-3">
+            <a asp-page="/Admin/Pricing/Index" class="ob-step-card">
+                <div class="ob-step-icon"><i class="bi bi-tags-fill"></i></div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="ob-step-num">4</div>
+                    <div class="ob-step-title">Set Pricing</div>
+                </div>
+                <p class="ob-step-desc">Define rates by time of day, day of week, or court type. Supports peak & off-peak pricing.</p>
+                <div class="mt-2">
+                    <span class="badge bg-warning bg-opacity-20 text-warning-emphasis fw-semibold small">Required to go live</span>
+                </div>
+            </a>
+        </div>
+
+    </div>
+
+    <!-- What's next -->
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:12px;">
+        <div class="card-body">
+            <h2 class="h6 fw-bold mb-3"><i class="bi bi-rocket-takeoff text-success me-2"></i>After setup, you can also:</h2>
+            <div class="row g-2">
+                @foreach (var (icon, label, href) in new[]{
+                    ("bi-journal-text",    "Manage Bookings",          "/Admin/Bookings/Index"),
+                    ("bi-credit-card",     "Review Payments",          "/Admin/Payments/Index"),
+                    ("bi-people",          "Manage Users & Staff",     "/Admin/Users/Index"),
+                    ("bi-calendar-event",  "Create Open Play / Activities", "/Admin/Activities/Index"),
+                    ("bi-gear",            "Full Organization Settings","/Admin/OrgSettings/Index"),
+                })
+                {
+                    <div class="col-12 col-sm-6 col-md-4">
+                        <a asp-page="@href" class="d-flex align-items-center gap-2 text-decoration-none text-body p-2 rounded">
+                            <i class="bi @icon text-success"></i>
+                            <span class="small">@label</span>
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Go to dashboard -->
+    <div class="d-flex align-items-center gap-3">
+        <a asp-page="/Admin/Index" class="btn btn-success px-4">
+            <i class="bi bi-speedometer2 me-2"></i>Go to Dashboard
+        </a>
+        <span class="ob-skip">
+            You can return to this guide anytime from the dashboard.
+        </span>
+    </div>
+
+</div>
