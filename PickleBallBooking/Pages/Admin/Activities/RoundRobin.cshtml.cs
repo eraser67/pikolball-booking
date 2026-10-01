@@ -137,4 +137,15 @@ public class RoundRobinModel : PageModel
 
         return RedirectToPage(new { id });
     }
+
+    public async Task<IActionResult> OnPostUpdateRoundTimeAsync(int id, int roundNumber, TimeSpan startTime, TimeSpan endTime)
+    {
+        var adminUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "admin";
+        var result = await _roundRobinService.UpdateRoundTimeAsync(id, roundNumber, startTime, endTime, adminUserId);
+
+        if (result.Success) StatusMessage = result.Message;
+        else ErrorMessage = result.Message;
+
+        return RedirectToPage(new { id });
+    }
 }

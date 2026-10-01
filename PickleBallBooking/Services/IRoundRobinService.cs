@@ -135,5 +135,7 @@ public interface IRoundRobinService
 
     Task<RoundRobinResult> UpdateMatchCourtAsync(int matchId, int newCourtId, string adminUserId);
 
+    Task<RoundRobinResult> UpdateRoundTimeAsync(int activityId, int roundNumber, TimeSpan newStartTime, TimeSpan newEndTime, string adminUserId);
+
     Task<PlayerScheduleDto?> GetPlayerScheduleAsync(int activityId, string userId);
 }

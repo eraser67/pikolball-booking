@@ -701,6 +701,29 @@ public class RoundRobinService : IRoundRobinService
         return new RoundRobinResult(true, $"Match moved to {court.Name}.");
     }
 
+    public async Task<RoundRobinResult> UpdateRoundTimeAsync(int activityId, int roundNumber, TimeSpan newStartTime, TimeSpan newEndTime, string adminUserId)
+    {
+        var orgId = _tenantContext.OrganizationId;
+        var rrEvent = await _context.RoundRobinEvents
+            .Include(e => e.Matches)
+            .FirstOrDefaultAsync(e => e.ActivityId == activityId && e.OrganizationId == orgId);
+
+        if (rrEvent == null) return new RoundRobinResult(false, "Round robin event not found.");
+        if (rrEvent.IsLocked) return new RoundRobinResult(false, "Schedule is locked.");
+
+        var roundMatches = rrEvent.Matches.Where(m => m.RoundNumber == roundNumber).ToList();
+        if (roundMatches.Count == 0) return new RoundRobinResult(false, "No matches found for this round.");
+
+        foreach (var m in roundMatches)
+        {
+            m.EstimatedStartTime = newStartTime;
+            m.EstimatedEndTime = newEndTime;
+        }
+
+        await _context.SaveChangesAsync();
+        return new RoundRobinResult(true, $"Round {roundNumber} times updated to {AppClock.To12HourRange(newStartTime, newEndTime)}.");
+    }
+
     public async Task<PlayerScheduleDto?> GetPlayerScheduleAsync(int activityId, string userId)
     {
         var orgId = _tenantContext.OrganizationId;
