@@ -656,7 +656,7 @@ records for round robin matches.
 
 ## Phase 41 -- Match Scoring
 
-**Status:** PLANNED / FUTURE
+**Status:** COMPLETE
 
 ### Goal
 

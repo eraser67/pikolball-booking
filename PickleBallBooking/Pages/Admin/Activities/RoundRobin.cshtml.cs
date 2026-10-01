@@ -11,10 +11,12 @@ namespace PickleBallBooking.Pages.Admin.Activities;
 public class RoundRobinModel : PageModel
 {
     private readonly IRoundRobinService _roundRobinService;
+    private readonly IMatchScoringService _scoringService;
 
-    public RoundRobinModel(IRoundRobinService roundRobinService)
+    public RoundRobinModel(IRoundRobinService roundRobinService, IMatchScoringService scoringService)
     {
         _roundRobinService = roundRobinService;
+        _scoringService = scoringService;
     }
 
     public RoundRobinEventOverviewDto Overview { get; private set; } = null!;
@@ -142,6 +144,52 @@ public class RoundRobinModel : PageModel
     {
         var adminUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "admin";
         var result = await _roundRobinService.UpdateRoundTimeAsync(id, roundNumber, startTime, endTime, adminUserId);
+
+        if (result.Success) StatusMessage = result.Message;
+        else ErrorMessage = result.Message;
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostStartMatchAsync(int id, int matchId)
+    {
+        var adminUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "admin";
+        var result = await _scoringService.StartMatchAsync(matchId, adminUserId);
+
+        if (result.Success) StatusMessage = result.Message;
+        else ErrorMessage = result.Message;
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostRecordScoreAsync(int id, int matchId, int team1Score, int team2Score, bool isLiveUpdate, string? notes)
+    {
+        var adminUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "admin";
+        var dto = new SubmitScoreDto(team1Score, team2Score, null, isLiveUpdate, notes);
+        var result = await _scoringService.RecordScoreAsync(matchId, dto, adminUserId, isPlayerSubmission: false);
+
+        if (result.Success) StatusMessage = result.Message;
+        else ErrorMessage = result.Message;
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostFinalizeMatchAsync(int id, int matchId)
+    {
+        var adminUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "admin";
+        var result = await _scoringService.FinalizeMatchAsync(matchId, adminUserId);
+
+        if (result.Success) StatusMessage = result.Message;
+        else ErrorMessage = result.Message;
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostCorrectScoreAsync(int id, int matchId, int team1Score, int team2Score, string reason)
+    {
+        var adminUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "admin";
+        var dto = new CorrectScoreDto(team1Score, team2Score, reason);
+        var result = await _scoringService.CorrectFinalizedScoreAsync(matchId, dto, adminUserId);
 
         if (result.Success) StatusMessage = result.Message;
         else ErrorMessage = result.Message;

@@ -65,10 +65,16 @@ public class RoundRobinMatch
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
 
+    public bool IsFinalized { get; set; } = false;
+    public DateTime? FinalizedAt { get; set; }
+    [MaxLength(450)]
+    public string? FinalizedByUserId { get; set; }
+
     [MaxLength(500)]
     public string? Notes { get; set; }
 
     // Navigation
     public RoundRobinEvent? RoundRobinEvent { get; set; }
     public Court? Court { get; set; }
+    public List<MatchScoreAudit> ScoreAudits { get; set; } = [];
 }

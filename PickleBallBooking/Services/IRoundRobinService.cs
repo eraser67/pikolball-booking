@@ -36,7 +36,11 @@ public record RoundRobinMatchDto(
     string? Team2Player2UserId,
     int? Team1Score,
     int? Team2Score,
-    string? WinningSide
+    string? WinningSide,
+    bool IsFinalized = false,
+    DateTime? FinalizedAt = null,
+    int AuditCount = 0,
+    IReadOnlyList<MatchScoreAuditDto>? Audits = null
 );
 
 public record RoundRobinByeDto(

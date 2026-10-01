@@ -47,5 +47,13 @@ public enum AppNotificationType
 
     /// <summary>Round Robin match schedule was generated/published for an activity.</summary>
     ActivityRoundRobinScheduled = 11,
+
+    // ── Phase 41 Match Scoring ────────────────────────────────────────────────
+
+    /// <summary>A match score was recorded or updated.</summary>
+    MatchScoreRecorded = 12,
+
+    /// <summary>A match score was officially finalized by an administrator.</summary>
+    MatchScoreFinalized = 13
 }
 

@@ -32,6 +32,7 @@ public class RoundRobinService : IRoundRobinService
 
         var rrEvent = await _context.RoundRobinEvents
             .Include(e => e.Matches)
+                .ThenInclude(m => m.ScoreAudits)
             .Include(e => e.Byes)
             .FirstOrDefaultAsync(e => e.ActivityId == activityId && e.OrganizationId == orgId);
 
@@ -134,7 +135,22 @@ public class RoundRobinService : IRoundRobinService
                 m.Team2Player2UserId,
                 m.Team1Score,
                 m.Team2Score,
-                m.WinningSide
+                m.WinningSide,
+                m.IsFinalized,
+                m.FinalizedAt,
+                m.ScoreAudits?.Count ?? 0,
+                m.ScoreAudits?.OrderByDescending(a => a.ChangedAt).Select(a => new MatchScoreAuditDto(
+                    a.Id,
+                    a.PreviousTeam1Score,
+                    a.PreviousTeam2Score,
+                    a.PreviousWinningSide,
+                    a.NewTeam1Score,
+                    a.NewTeam2Score,
+                    a.NewWinningSide,
+                    a.Reason,
+                    a.ChangedByUserName,
+                    a.ChangedAt
+                )).ToList()
             ));
         }
 

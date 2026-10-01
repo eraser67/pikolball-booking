@@ -105,6 +105,9 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     public DbSet<RoundRobinMatch> RoundRobinMatches => Set<RoundRobinMatch>();
     public DbSet<RoundRobinBye> RoundRobinByes => Set<RoundRobinBye>();
 
+    // Phase 41: match score audit logs (tenant-owned).
+    public DbSet<MatchScoreAudit> MatchScoreAudits => Set<MatchScoreAudit>();
+
     // Platform-level settings (global — single row, no tenant filter).
     public DbSet<PlatformSettings> PlatformSettings => Set<PlatformSettings>();
 
@@ -134,6 +137,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         typeof(RoundRobinEvent),
         typeof(RoundRobinMatch),
         typeof(RoundRobinBye),
+        // Phase 41
+        typeof(MatchScoreAudit),
     };
 
     public override int SaveChanges()
@@ -800,6 +805,27 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasQueryFilter(b => CurrentOrganizationId != null && b.OrganizationId == CurrentOrganizationId);
+        });
+
+        // Phase 41: MatchScoreAudit — tenant-owned.
+        modelBuilder.Entity<MatchScoreAudit>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+
+            entity.HasIndex(a => new { a.OrganizationId, a.RoundRobinMatchId })
+                .HasDatabaseName("IX_MatchScoreAudit_Org_Match");
+
+            entity.HasOne(a => a.Match)
+                .WithMany(m => m.ScoreAudits)
+                .HasForeignKey(a => a.RoundRobinMatchId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(a => a.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(a => CurrentOrganizationId != null && a.OrganizationId == CurrentOrganizationId);
         });
     }
 }

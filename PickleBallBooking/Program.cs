@@ -195,6 +195,9 @@ builder.Services.AddScoped<ICourtAssignmentService, CourtAssignmentService>();
 // Phase 40: round robin match schedule generation and management.
 builder.Services.AddScoped<IRoundRobinService, RoundRobinService>();
 
+// Phase 41: match score recording, live scoring, validation, and finalization.
+builder.Services.AddScoped<IMatchScoringService, MatchScoringService>();
+
 // Platform-level settings (AllowTenantRegistration toggle etc.)
 builder.Services.AddScoped<PlatformSettingsService>();
 
