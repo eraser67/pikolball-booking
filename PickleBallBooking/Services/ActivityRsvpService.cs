@@ -16,19 +16,25 @@ public sealed class ActivityRsvpService
 {
     private readonly ApplicationDbContext _context;
     private readonly BookingEmailService _email;
+    private readonly BookingTelegramService _telegram;
+    private readonly AppNotificationService _notifications;
     private readonly ICourtImageStorage _storage;
     private readonly ILogger<ActivityRsvpService> _logger;
 
     public ActivityRsvpService(
         ApplicationDbContext context,
         BookingEmailService email,
+        BookingTelegramService telegram,
+        AppNotificationService notifications,
         ICourtImageStorage storage,
         ILogger<ActivityRsvpService> logger)
     {
-        _context = context;
-        _email = email;
-        _storage = storage;
-        _logger = logger;
+        _context       = context;
+        _email         = email;
+        _telegram      = telegram;
+        _notifications = notifications;
+        _storage       = storage;
+        _logger        = logger;
     }
 
     // ── Player Operations ──────────────────────────────────────────────────
@@ -127,8 +133,18 @@ public sealed class ActivityRsvpService
 
             await _context.SaveChangesAsync();
 
-            // Send notification
+            // Email
             await SendWaitlistEmailAsync(activity, userId, waitlistPos);
+            // In-app notification
+            await _notifications.CreateAsync(
+                userId,
+                AppNotificationType.ActivityWaitlisted,
+                $"Waitlisted — {activity.Name}",
+                $"The activity is full. You are at waitlist position #{waitlistPos}. You will be notified if a spot opens up.",
+                actionUrl: $"/Customer/Dashboard");
+
+            // Admin alert
+            await SendAdminNewRegistrationAlertAsync(activity, userId);
 
             return new RsvpResult(true, $"Activity is full. You have been added to the waitlist at position #{waitlistPos}.", rsvp, true);
         }
@@ -164,8 +180,17 @@ public sealed class ActivityRsvpService
 
             await _context.SaveChangesAsync();
 
-            // Send confirmation email
+            // Email
             await SendConfirmationEmailAsync(activity, userId);
+            // In-app notification
+            await _notifications.CreateAsync(
+                userId,
+                AppNotificationType.ActivityRsvpConfirmed,
+                $"Spot Confirmed — {activity.Name}",
+                $"Your registration for {activity.Name} on {activity.Date:MMMM d, yyyy} is confirmed.",
+                actionUrl: $"/Customer/Dashboard");
+            // Admin alert
+            await SendAdminNewRegistrationAlertAsync(activity, userId);
 
             return new RsvpResult(true, "Your spot has been confirmed!", rsvp, false);
         }
@@ -249,14 +274,34 @@ public sealed class ActivityRsvpService
 
         await _context.SaveChangesAsync();
 
-        // Fire emails
         if (activity is not null)
         {
+            // Email cancellation
             await SendCancellationEmailAsync(activity, userId);
+            // In-app: cancellation
+            await _notifications.CreateAsync(
+                userId,
+                AppNotificationType.ActivityRsvpCancelled,
+                $"RSVP Cancelled — {activity.Name}",
+                $"Your registration for {activity.Name} on {activity.Date:MMMM d, yyyy} has been cancelled.",
+                actionUrl: $"/Customer/Dashboard");
 
             if (promotedRsvp is not null)
             {
                 await SendPromotedEmailAsync(activity, promotedRsvp.UserId);
+                // In-app: promotion
+                await _notifications.CreateAsync(
+                    promotedRsvp.UserId,
+                    AppNotificationType.ActivityWaitlistPromoted,
+                    $"You've Been Promoted! — {activity.Name}",
+                    $"A spot opened up for {activity.Name} on {activity.Date:MMMM d, yyyy}. Your spot is now confirmed!",
+                    actionUrl: $"/Customer/Dashboard");
+            }
+
+            // Alert admin / staff across Email, Telegram, and In-App when a player cancels their RSVP
+            if (!isAdmin)
+            {
+                await SendAdminRsvpCancelledAlertAsync(activity, userId, promotedRsvp?.UserId);
             }
         }
 
@@ -308,6 +353,13 @@ public sealed class ActivityRsvpService
         await _context.SaveChangesAsync();
 
         await SendPromotedEmailAsync(activity, rsvp.UserId);
+        // In-app: promotion
+        await _notifications.CreateAsync(
+            rsvp.UserId,
+            AppNotificationType.ActivityWaitlistPromoted,
+            $"You've Been Promoted! — {activity.Name}",
+            $"A spot opened up for {activity.Name} on {activity.Date:MMMM d, yyyy}. Your spot is now confirmed!",
+            actionUrl: $"/Customer/Dashboard");
 
         return (true, "Player has been promoted to Confirmed.");
     }
@@ -626,9 +678,274 @@ public sealed class ActivityRsvpService
         }
     }
 
+    private async Task SendAdminNewRegistrationAlertAsync(Activity activity, string userId)
+    {
+        try
+        {
+            var org = await _context.Organizations
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(o => o.Id == activity.OrganizationId);
+            var profile = await _context.PlayerProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+            var user    = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var playerName = profile is not null && !string.IsNullOrWhiteSpace(profile.DisplayName)
+                ? profile.DisplayName
+                : profile is not null
+                    ? $"{profile.FirstName} {profile.LastName}".Trim()
+                    : user?.UserName ?? "Player";
+
+            if (org is not null)
+            {
+                // Find organization admin / owner user IDs
+                var adminMembers = await _context.OrganizationMembers
+                    .IgnoreQueryFilters()
+                    .Where(m => m.OrganizationId == activity.OrganizationId
+                             && (m.Role == OrganizationRole.OrganizationOwner || m.Role == OrganizationRole.OrganizationAdmin))
+                    .ToListAsync();
+
+                var adminUserIds = adminMembers.Select(m => m.UserId).Distinct().ToList();
+
+                // If no explicit tenant admin found, fall back to platform admin(s)
+                if (!adminUserIds.Any())
+                {
+                    var platformAdminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == PlatformRoles.PlatformAdmin);
+                    if (platformAdminRole is not null)
+                    {
+                        var platformAdminUserIds = await _context.UserRoles
+                            .Where(ur => ur.RoleId == platformAdminRole.Id)
+                            .Select(ur => ur.UserId)
+                            .ToListAsync();
+                        adminUserIds.AddRange(platformAdminUserIds);
+                    }
+                }
+
+                // Find owner/admin email as fallback if org.NotificationEmail is not set
+                string? fallbackEmail = null;
+                if (string.IsNullOrWhiteSpace(org.NotificationEmail) && adminUserIds.Any())
+                {
+                    var ownerUser = await _context.Users
+                        .Where(u => adminUserIds.Contains(u.Id))
+                        .OrderBy(u => u.Id)
+                        .FirstOrDefaultAsync();
+                    fallbackEmail = ownerUser?.Email;
+                }
+
+                // 1. Email notification to org or owner fallback
+                _email.SendActivityNewRegistrationToOrgAsync(
+                    activity,
+                    org,
+                    playerName,
+                    user?.Email ?? string.Empty,
+                    fallbackRecipientEmail: fallbackEmail);
+
+                // 2. Telegram notification
+                _telegram.SendActivityNewRegistrationAlertAsync(activity, org, playerName);
+
+                // 3. In-app notifications for organization admins/owners
+                if (adminUserIds.Any())
+                {
+                    await _notifications.CreateBulkAsync(
+                        adminUserIds,
+                        AppNotificationType.ActivityNewRegistration,
+                        $"New Registration — {activity.Name}",
+                        $"{playerName} registered for {activity.Name} on {activity.Date:MMMM d, yyyy}.",
+                        actionUrl: $"/Admin/Activities/{activity.Id}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send admin new-registration alert for activity {ActivityId}", activity.Id);
+        }
+    }
+
+    private async Task SendAdminRsvpCancelledAlertAsync(Activity activity, string cancelledUserId, string? promotedUserId)
+    {
+        try
+        {
+            var org = await _context.Organizations
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(o => o.Id == activity.OrganizationId);
+            var cancelledProfile = await _context.PlayerProfiles.FirstOrDefaultAsync(p => p.UserId == cancelledUserId);
+            var cancelledUser    = await _context.Users.FirstOrDefaultAsync(u => u.Id == cancelledUserId);
+            var cancelledPlayerName = cancelledProfile is not null && !string.IsNullOrWhiteSpace(cancelledProfile.DisplayName)
+                ? cancelledProfile.DisplayName
+                : cancelledProfile is not null
+                    ? $"{cancelledProfile.FirstName} {cancelledProfile.LastName}".Trim()
+                    : cancelledUser?.UserName ?? "Player";
+
+            string? promotedPlayerName = null;
+            if (!string.IsNullOrWhiteSpace(promotedUserId))
+            {
+                var promotedProfile = await _context.PlayerProfiles.FirstOrDefaultAsync(p => p.UserId == promotedUserId);
+                var promotedUser    = await _context.Users.FirstOrDefaultAsync(u => u.Id == promotedUserId);
+                promotedPlayerName = promotedProfile is not null && !string.IsNullOrWhiteSpace(promotedProfile.DisplayName)
+                    ? promotedProfile.DisplayName
+                    : promotedProfile is not null
+                        ? $"{promotedProfile.FirstName} {promotedProfile.LastName}".Trim()
+                        : promotedUser?.UserName ?? "Promoted Player";
+            }
+
+            if (org is not null)
+            {
+                // Find organization admin / owner user IDs
+                var adminMembers = await _context.OrganizationMembers
+                    .IgnoreQueryFilters()
+                    .Where(m => m.OrganizationId == activity.OrganizationId
+                             && (m.Role == OrganizationRole.OrganizationOwner || m.Role == OrganizationRole.OrganizationAdmin))
+                    .ToListAsync();
+
+                var adminUserIds = adminMembers.Select(m => m.UserId).Distinct().ToList();
+
+                // If no explicit tenant admin found, fall back to platform admin(s)
+                if (!adminUserIds.Any())
+                {
+                    var platformAdminRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == PlatformRoles.PlatformAdmin);
+                    if (platformAdminRole is not null)
+                    {
+                        var platformAdminUserIds = await _context.UserRoles
+                            .Where(ur => ur.RoleId == platformAdminRole.Id)
+                            .Select(ur => ur.UserId)
+                            .ToListAsync();
+                        adminUserIds.AddRange(platformAdminUserIds);
+                    }
+                }
+
+                // Find owner/admin email as fallback if org.NotificationEmail is not set
+                string? fallbackEmail = null;
+                if (string.IsNullOrWhiteSpace(org.NotificationEmail) && adminUserIds.Any())
+                {
+                    var ownerUser = await _context.Users
+                        .Where(u => adminUserIds.Contains(u.Id))
+                        .OrderBy(u => u.Id)
+                        .FirstOrDefaultAsync();
+                    fallbackEmail = ownerUser?.Email;
+                }
+
+                // 1. Email notification to org or owner fallback
+                _email.SendActivityRsvpCancelledToOrgAsync(
+                    activity,
+                    org,
+                    cancelledPlayerName,
+                    cancelledUser?.Email ?? string.Empty,
+                    promotedPlayerName: promotedPlayerName,
+                    fallbackRecipientEmail: fallbackEmail);
+
+                // 2. Telegram notification
+                _telegram.SendActivityRsvpCancelledAlertAsync(activity, org, cancelledPlayerName, promotedPlayerName);
+
+                // 3. In-app notifications for organization admins/owners
+                if (adminUserIds.Any())
+                {
+                    var promoMsg = !string.IsNullOrWhiteSpace(promotedPlayerName)
+                        ? $" Waitlisted player {promotedPlayerName} was automatically promoted."
+                        : string.Empty;
+
+                    await _notifications.CreateBulkAsync(
+                        adminUserIds,
+                        AppNotificationType.ActivityRsvpCancelledAdmin,
+                        $"RSVP Cancelled — {activity.Name}",
+                        $"{cancelledPlayerName} cancelled their registration for {activity.Name} on {activity.Date:MMMM d, yyyy}.{promoMsg}",
+                        actionUrl: $"/Admin/Activities/{activity.Id}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send admin RSVP cancellation alert for activity {ActivityId}", activity.Id);
+        }
+    }
+
+    /// <summary>
+    /// Phase 36: Bulk-notifies all confirmed and waitlisted players that an activity has been cancelled.
+    /// Fires email + in-app notifications for each player and sends a Telegram admin alert.
+    /// Safe to call fire-and-forget: individual failures are caught and logged.
+    /// </summary>
+    public async Task NotifyActivityCancelledAsync(Activity activity, BookingTelegramService? telegram = null)
+    {
+        try
+        {
+            var org = await _context.Organizations
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(o => o.Id == activity.OrganizationId);
+
+            // Fetch all active RSVPs (confirmed + waitlisted) without the tenant query filter
+            // because this may be called from an admin context where the org is the same tenant.
+            var activeRsvps = await _context.ActivityRsvps
+                .Where(r => r.ActivityId == activity.Id
+                         && (r.Status == RsvpStatus.Confirmed || r.Status == RsvpStatus.Waitlisted))
+                .ToListAsync();
+
+            if (!activeRsvps.Any()) return;
+
+            var userIds = activeRsvps.Select(r => r.UserId).Distinct().ToList();
+
+            // Load user info
+            var users    = await _context.Users.Where(u => userIds.Contains(u.Id)).ToListAsync();
+            var profiles = await _context.PlayerProfiles.Where(p => userIds.Contains(p.UserId)).ToListAsync();
+
+            var userMap    = users.ToDictionary(u => u.Id);
+            var profileMap = profiles.ToDictionary(p => p.UserId);
+
+            var now = DateTime.UtcNow;
+
+            foreach (var rsvp in activeRsvps)
+            {
+                try
+                {
+                    var user    = userMap.GetValueOrDefault(rsvp.UserId);
+                    var profile = profileMap.GetValueOrDefault(rsvp.UserId);
+
+                    var email = user?.Email ?? string.Empty;
+                    var name  = profile is not null && !string.IsNullOrWhiteSpace(profile.DisplayName)
+                        ? profile.DisplayName
+                        : profile is not null
+                            ? $"{profile.FirstName} {profile.LastName}".Trim()
+                            : user?.UserName ?? "Player";
+
+                    // Email
+                    if (org is not null && !string.IsNullOrWhiteSpace(email))
+                    {
+                        _email.SendActivityCancelledToPlayerAsync(activity, org, email, name);
+                    }
+
+                    // In-app notification
+                    _context.AppNotifications.Add(new AppNotification
+                    {
+                        UserId    = rsvp.UserId,
+                        Type      = AppNotificationType.ActivityCancelled,
+                        Title     = $"Activity Cancelled \u2014 {activity.Name}",
+                        Body      = $"{activity.Name} scheduled on {activity.Date:MMMM d, yyyy} has been cancelled. We apologise for the inconvenience.",
+                        IsRead    = false,
+                        CreatedAt = now,
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to notify player {UserId} of activity cancellation {ActivityId}",
+                        rsvp.UserId, activity.Id);
+                }
+            }
+
+            // Save all notifications in one batch
+            await _context.SaveChangesAsync();
+
+            // Telegram admin alert
+            var activeTelegram = telegram ?? _telegram;
+            if (activeTelegram is not null && org is not null)
+            {
+                activeTelegram.SendActivityCancelledAlertAsync(activity, org);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send bulk cancellation notifications for activity {ActivityId}", activity.Id);
+        }
+    }
+
     /// <summary>
     /// Checks whether the user is an administrator or staff member of the specified organization (or platform admin).
     /// </summary>
+
     public async Task<bool> IsUserAdminForOrganizationAsync(int organizationId, string userId)
     {
         if (string.IsNullOrEmpty(userId)) return false;

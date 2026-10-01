@@ -118,20 +118,20 @@
 - [x] **Philippine Peso (`₱`) Currency Standardization:**
   - Standardize all currency rendering across frontend, admin pages, and transactional email templates to use the Philippine Peso (`₱`) symbol with `en-PH` formatting.
 
-## Completed Community Foundation Phases (31–35)
+## Completed Community Foundation Phases (31–36)
 
 - [x] **Phase 31 — Customer Account Registration & Authentication:** Self-registration, Name/Email/Password/Mobile, Customer role, platform-level identity.
 - [x] **Phase 32 — Player Account & Profile Foundation:** PlayerProfile model, Avatar upload, Skill Level, Player Dashboard, Privacy Settings.
 - [x] **Phase 33 — Open Play / Activities:** Admin-created events, Activity States, Court allocations, Public Activities browse directory.
 - [x] **Phase 34 — RSVP & Waitlist:** ActivityRsvp model, RSVP states (Confirmed/Waitlisted/Cancelled), Waitlist ordering, Automatic promotion upon cancellation, Admin manual promote & reorder, Player dashboard activities table, Transactional email notifications.
 - [x] **Phase 35 — Recurring Activities:** RecurrenceType, ActivitySeriesStatus, ActivitySeries models, Series CRUD & UI, automatic occurrence generation up to 2 years / 200 occurrences, occurrence cancellation / pause / resume / edit future, occurrence back-links.
+- [x] **Phase 36 — Notifications:** In-app notification system (`AppNotification`, `AppNotificationType`, `AppNotificationService`), player notification feed (`/Customer/Notifications`), navbar unread badge with real-time count, Customer Dashboard quick links, automatic triggers for RSVP confirmed, waitlisted, waitlist promoted, RSVP cancelled, activity cancelled (bulk email & in-app alerts), admin email & Telegram alerts.
 
-## Future Phases (36–61) — PLANNED
+## Future Phases (37–61) — PLANNED
 
 The long-term community and competitive feature roadmap is documented in [`COMMUNITY_ROADMAP.md`](COMMUNITY_ROADMAP.md).
 
 All items below are **PLANNED / FUTURE**:
-- [ ] **Phase 36 — Notifications** *(Email + In-App notifications for community events, Admin/Player triggers)*
 - [ ] **Phase 37 — Calendar Integration** *(ICS, Google Calendar, Apple Calendar, Outlook)*
 - [ ] **Phase 38 — Player Check-In** *(QR Check-In, Admin Check-In, No-Show tracking, Attendance history)*
 - [ ] **Phase 39 — Court Assignment** *(Manual, Automatic, Skill-Based grouping, Lock Assignment)*

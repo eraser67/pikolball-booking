@@ -94,6 +94,9 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     // Phase 35: recurring activity series (tenant-owned).
     public DbSet<ActivitySeries> ActivitySeries => Set<ActivitySeries>();
 
+    // Phase 36: in-app player notifications (global — no tenant filter; player identity is platform-level).
+    public DbSet<AppNotification> AppNotifications => Set<AppNotification>();
+
     // Platform-level settings (global — single row, no tenant filter).
     public DbSet<PlatformSettings> PlatformSettings => Set<PlatformSettings>();
 
@@ -620,6 +623,26 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasQueryFilter(r => CurrentOrganizationId != null && r.OrganizationId == CurrentOrganizationId);
+        });
+
+        // Phase 36: AppNotification — platform-level, user-scoped (no tenant query filter).
+        modelBuilder.Entity<AppNotification>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+
+            entity.Property(n => n.UserId).IsRequired().HasMaxLength(450);
+            entity.Property(n => n.Title).IsRequired().HasMaxLength(200);
+            entity.Property(n => n.Body).HasMaxLength(500);
+            entity.Property(n => n.ActionUrl).HasMaxLength(300);
+
+            // Index for the player notification feed (most common query pattern)
+            entity.HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt })
+                .HasDatabaseName("IX_AppNotification_UserId_IsRead_CreatedAt");
+
+            entity.HasOne<Microsoft.AspNetCore.Identity.IdentityUser>()
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Phase 35: ActivitySeries — tenant-owned recurring template.

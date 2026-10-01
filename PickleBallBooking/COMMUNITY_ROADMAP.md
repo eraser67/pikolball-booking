@@ -1,10 +1,10 @@
 # Punit Bola -- Community & Competitive Feature Roadmap
 
-**Status:** Phases 31–34 COMPLETE (Release 1: Community Foundation in progress)
+**Status:** Phases 31–36 COMPLETE (Release 1: Community Foundation in progress)
 
-**Roadmap Continues From:** Phase 34 (RSVP & Waitlist -- Complete)
+**Roadmap Continues From:** Phase 36 (Notifications -- Complete)
 
-**Next Available Phase:** Phase 35 (Recurring Activities)
+**Next Available Phase:** Phase 37 (Calendar Integration)
 
 > **Note on Phase Numbering:** Phases 1-30 are documented in `DEVELOPMENT_PLAN.md` and are complete.
 > Phases 26-30 in the existing plan cover Subscription Management, Platform Administration, Security Audit,
@@ -457,7 +457,7 @@ tenant-owned types. Added to `TenantOwnedTypes` hash set in `ApplicationDbContex
 
 ## Phase 36 -- Notifications
 
-**Status:** PLANNED / FUTURE
+**Status:** COMPLETE (Implemented)
 
 ### Goal
 

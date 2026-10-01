@@ -195,7 +195,82 @@ public sealed class BookingEmailService
             replyTo: sender.ReplyTo));
     }
 
+    // ─── Phase 36: additional activity notification emails ────────────────────
+
+    /// <summary>
+    /// New player registration alert — sent to the org notification email when a player joins an activity.
+    /// Falls back to <paramref name="fallbackRecipientEmail"/> (e.g. org owner email) if org.NotificationEmail is blank.
+    /// </summary>
+    public void SendActivityNewRegistrationToOrgAsync(
+        Activity activity,
+        Organization org,
+        string playerName,
+        string playerEmail,
+        string? fallbackRecipientEmail = null)
+    {
+        var targetEmail = !string.IsNullOrWhiteSpace(org.NotificationEmail)
+            ? org.NotificationEmail
+            : fallbackRecipientEmail;
+
+        if (string.IsNullOrWhiteSpace(targetEmail)) return;
+        var sender = GetSenderForOrg(org);
+        Fire(_email.SendAsync(
+            targetEmail,
+            org.Name,
+            $"📋 New Activity Registration — {activity.Name}",
+            BuildActivityNewRegistrationOrgHtml(activity, org, playerName, playerEmail),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: !string.IsNullOrWhiteSpace(playerEmail) ? playerEmail : sender.ReplyTo));
+    }
+
+    /// <summary>
+    /// Player cancellation alert — sent to the org notification email when a player cancels their RSVP.
+    /// Falls back to <paramref name="fallbackRecipientEmail"/> (e.g. org owner email) if org.NotificationEmail is blank.
+    /// </summary>
+    public void SendActivityRsvpCancelledToOrgAsync(
+        Activity activity,
+        Organization org,
+        string playerName,
+        string playerEmail,
+        string? promotedPlayerName = null,
+        string? fallbackRecipientEmail = null)
+    {
+        var targetEmail = !string.IsNullOrWhiteSpace(org.NotificationEmail)
+            ? org.NotificationEmail
+            : fallbackRecipientEmail;
+
+        if (string.IsNullOrWhiteSpace(targetEmail)) return;
+        var sender = GetSenderForOrg(org);
+        Fire(_email.SendAsync(
+            targetEmail,
+            org.Name,
+            $"⚠️ Player Cancelled RSVP — {activity.Name}",
+            BuildActivityRsvpCancelledOrgHtml(activity, org, playerName, playerEmail, promotedPlayerName),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: !string.IsNullOrWhiteSpace(playerEmail) ? playerEmail : sender.ReplyTo));
+    }
+
+    /// <summary>
+    /// Activity cancelled — sent to a single confirmed/waitlisted player.
+    /// Caller iterates over the roster and calls this once per player.
+    /// </summary>
+    public void SendActivityCancelledToPlayerAsync(Activity activity, Organization org, string userEmail, string userName)
+    {
+        var sender = GetSenderForOrg(org);
+        Fire(_email.SendAsync(
+            userEmail,
+            userName,
+            $"❌ Activity Cancelled — {activity.Name}",
+            BuildActivityCancelledPlayerHtml(activity, org, userName),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: sender.ReplyTo));
+    }
+
     // ─── Organization notifications ──────────────────────────────────────────
+
 
     /// <summary>New booking alert — sent to org notification email after a booking is created.</summary>
     public void SendNewBookingToOrgAsync(Booking booking, Organization org)
@@ -507,7 +582,85 @@ public sealed class BookingEmailService
         """);
     }
 
+    // ─── Phase 36: HTML templates ─────────────────────────────────────────────
+
+    private static string BuildActivityNewRegistrationOrgHtml(Activity activity, Organization org, string playerName, string playerEmail)
+    {
+        var dateStr = activity.Date.ToString("dddd, MMMM d, yyyy");
+        var timeStr = FormatTimeRange(activity.StartTime, activity.EndTime);
+
+        return Wrap(org.Name, $"""
+            <h2 style="margin-bottom:8px;">New Activity Registration</h2>
+            <p>A player has registered for an activity on <strong>{org.Name}</strong>.</p>
+
+            {DetailBox(new[] {
+                ("Activity",      activity.Name),
+                ("Date",          dateStr),
+                ("Time",          timeStr),
+                ("Player",        playerName),
+                ("Player Email",  string.IsNullOrWhiteSpace(playerEmail) ? "—" : playerEmail),
+            })}
+
+            <p style="color:{GrayText};font-size:13px;">Log in to the admin panel to view the full roster.</p>
+        """);
+    }
+
+    private static string BuildActivityRsvpCancelledOrgHtml(
+        Activity activity,
+        Organization org,
+        string playerName,
+        string playerEmail,
+        string? promotedPlayerName)
+    {
+        var dateStr = activity.Date.ToString("dddd, MMMM d, yyyy");
+        var timeStr = FormatTimeRange(activity.StartTime, activity.EndTime);
+
+        var details = new List<(string Label, string Value)>
+        {
+            ("Activity",     activity.Name),
+            ("Date",         dateStr),
+            ("Time",         timeStr),
+            ("Player",       playerName),
+            ("Player Email", string.IsNullOrWhiteSpace(playerEmail) ? "—" : playerEmail),
+        };
+
+        if (!string.IsNullOrWhiteSpace(promotedPlayerName))
+        {
+            details.Add(("Auto-Promoted Player", $"{promotedPlayerName} (from Waitlist)"));
+        }
+
+        return Wrap(org.Name, $"""
+            <h2 style="color:{Red};margin-bottom:8px;">Player Cancelled RSVP</h2>
+            <p>A player has cancelled their registration for an activity on <strong>{org.Name}</strong>.</p>
+
+            {DetailBox(details)}
+
+            <p style="color:{GrayText};font-size:13px;">Log in to the admin panel to view the updated roster.</p>
+        """);
+    }
+
+    private static string BuildActivityCancelledPlayerHtml(Activity activity, Organization org, string userName)
+    {
+        var dateStr = activity.Date.ToString("dddd, MMMM d, yyyy");
+        var timeStr = FormatTimeRange(activity.StartTime, activity.EndTime);
+
+        return Wrap(org.Name, $"""
+            <h2 style="color:{Red};margin-bottom:8px;">Activity Cancelled</h2>
+            <p>Hi <strong>{userName}</strong>,</p>
+            <p>We regret to inform you that the following activity has been <strong>cancelled</strong>.</p>
+
+            {DetailBox(new[] {
+                ("Activity", activity.Name),
+                ("Date",     dateStr),
+                ("Time",     timeStr),
+            })}
+
+            <p style="color:{GrayText};font-size:13px;">We apologise for the inconvenience. Please check our schedule for upcoming activities.</p>
+        """);
+    }
+
     // ─── Template helpers ─────────────────────────────────────────────────────
+
 
     private static string Wrap(string orgName, string content) => $"""
         <!DOCTYPE html>

@@ -61,6 +61,84 @@ public sealed class BookingTelegramService
         Fire(_telegram.SendMessageAsync(chatId, message));
     }
 
+    // ─── Phase 36: Activity alerts ────────────────────────────────────────────
+
+    /// <summary>
+    /// Alert staff when a player registers for a community activity.
+    /// </summary>
+    public void SendActivityNewRegistrationAlertAsync(Activity activity, Organization org, string playerName)
+    {
+        var chatId = ResolveChatId(org);
+        if (string.IsNullOrWhiteSpace(chatId)) return;
+
+        var orgName     = EscapeMarkdown(org.Name);
+        var actName     = EscapeMarkdown(activity.Name);
+        var playerEsc   = EscapeMarkdown(playerName);
+
+        var message = $"""
+            📋 *New Activity Registration*
+            🏢 *Club*: {orgName}
+            🏓 *Activity*: {actName}
+            📅 *Date*: {activity.Date:MMMM d, yyyy}
+            👤 *Player*: {playerEsc}
+            """;
+
+        Fire(_telegram.SendMessageAsync(chatId, message));
+    }
+
+    /// <summary>
+    /// Alert staff when a player cancels their RSVP for a community activity.
+    /// </summary>
+    public void SendActivityRsvpCancelledAlertAsync(
+        Activity activity,
+        Organization org,
+        string playerName,
+        string? promotedPlayerName = null)
+    {
+        var chatId = ResolveChatId(org);
+        if (string.IsNullOrWhiteSpace(chatId)) return;
+
+        var orgName     = EscapeMarkdown(org.Name);
+        var actName     = EscapeMarkdown(activity.Name);
+        var playerEsc   = EscapeMarkdown(playerName);
+
+        var promotionLine = !string.IsNullOrWhiteSpace(promotedPlayerName)
+            ? $"\n⚡ *Waitlist Auto-Promoted*: {EscapeMarkdown(promotedPlayerName)}"
+            : string.Empty;
+
+        var message = $"""
+            ⚠️ *Activity RSVP Cancelled*
+            🏢 *Club*: {orgName}
+            🏓 *Activity*: {actName}
+            📅 *Date*: {activity.Date:MMMM d, yyyy}
+            👤 *Player*: {playerEsc}{promotionLine}
+            """;
+
+        Fire(_telegram.SendMessageAsync(chatId, message));
+    }
+
+    /// <summary>
+    /// Alert staff (and optionally log) when an activity is cancelled — sent once per cancellation event.
+    /// </summary>
+    public void SendActivityCancelledAlertAsync(Activity activity, Organization org)
+    {
+        var chatId = ResolveChatId(org);
+        if (string.IsNullOrWhiteSpace(chatId)) return;
+
+        var orgName  = EscapeMarkdown(org.Name);
+        var actName  = EscapeMarkdown(activity.Name);
+
+        var message = $"""
+            ❌ *Activity Cancelled*
+            🏢 *Club*: {orgName}
+            🏓 *Activity*: {actName}
+            📅 *Date*: {activity.Date:MMMM d, yyyy}
+            ⚡ All registered players have been notified by email.
+            """;
+
+        Fire(_telegram.SendMessageAsync(chatId, message));
+    }
+
     private string? ResolveChatId(Organization org)
         => !string.IsNullOrWhiteSpace(org.TelegramChatId)
             ? org.TelegramChatId

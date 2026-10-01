@@ -3,6 +3,7 @@
 @inject IOrganizationService OrgSvc
 @inject ICourtImageStorage ImageStorage
 @inject PlatformSettingsService PlatformSettingsSvc
+@inject AppNotificationService NotificationSvc
 @{
     var currentPath = (Context.Request.Path.Value ?? "/").ToLowerInvariant();
     string NavActive(params string[] prefixes)
@@ -18,6 +19,17 @@
     // Phase 31: distinguish customer/player accounts from admin/staff accounts
     var isCustomer = isAuthenticated && User.IsInRole(PlatformRoles.Customer);
     var isAdmin = isAuthenticated && !isCustomer;
+
+    // Phase 36: unread notification count for the bell badge (all authenticated users)
+    int unreadNotifications = 0;
+    if (isAuthenticated)
+    {
+        var userId = Context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!string.IsNullOrEmpty(userId))
+        {
+            unreadNotifications = await NotificationSvc.GetUnreadCountAsync(userId);
+        }
+    }
 
     // Org-aware display name & custom logo: on tenant subdomains show the org's name & logo; elsewhere show platform brand.
     Models.Organization? tenantOrg = TenantCtx.IsResolved ? await OrgSvc.GetCurrentAsync() : null;
@@ -176,6 +188,20 @@
                         </li>
                         @if (isAuthenticated)
                         {
+                            <li class="nav-item">
+                                <a class="nav-link position-relative @NavActive("/customer/notifications")" asp-page="/Customer/Notifications"
+                                   title="Notifications" aria-label="Notifications">
+                                    <i class="bi bi-bell-fill"></i>
+                                    @if (unreadNotifications > 0)
+                                    {
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                              style="font-size:.6rem;min-width:16px;">
+                                            @(unreadNotifications > 9 ? "9+" : unreadNotifications.ToString())
+                                            <span class="visually-hidden">unread notifications</span>
+                                        </span>
+                                    }
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <form method="post" asp-page="/Account/Logout" class="d-flex pb-nav-action-form">
                                     <button type="submit" class="btn btn-outline-primary btn-sm">

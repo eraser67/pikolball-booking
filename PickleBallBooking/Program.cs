@@ -181,6 +181,9 @@ builder.Services.AddScoped<ActivityRsvpService>();
 // Phase 35: recurring activity series management.
 builder.Services.AddScoped<ActivitySeriesService>();
 
+// Phase 36: in-app notification service (platform-level, user-scoped).
+builder.Services.AddScoped<AppNotificationService>();
+
 // Platform-level settings (AllowTenantRegistration toggle etc.)
 builder.Services.AddScoped<PlatformSettingsService>();
 

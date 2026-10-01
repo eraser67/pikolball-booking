@@ -9,11 +9,16 @@ public class DetailModel : PageModel
 {
     private readonly ActivityService _activityService;
     private readonly ActivityRsvpService _rsvpService;
+    private readonly BookingTelegramService _telegram;
 
-    public DetailModel(ActivityService activityService, ActivityRsvpService rsvpService)
+    public DetailModel(
+        ActivityService activityService,
+        ActivityRsvpService rsvpService,
+        BookingTelegramService telegram)
     {
         _activityService = activityService;
-        _rsvpService = rsvpService;
+        _rsvpService     = rsvpService;
+        _telegram        = telegram;
     }
 
     public Activity? Activity { get; private set; }
@@ -36,6 +41,16 @@ public class DetailModel : PageModel
 
     public async Task<IActionResult> OnPostSetStatusAsync(int id, ActivityStatus status)
     {
+        // Phase 36: when an admin cancels an activity, bulk-notify all registered players.
+        if (status == ActivityStatus.Cancelled)
+        {
+            var activity = await _activityService.GetByIdAsync(id);
+            if (activity is not null)
+            {
+                await _rsvpService.NotifyActivityCancelledAsync(activity, _telegram);
+            }
+        }
+
         await _activityService.SetStatusAsync(id, status);
         StatusMessage = $"Activity status changed to {status}.";
         return RedirectToPage(new { id });
