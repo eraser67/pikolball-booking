@@ -138,7 +138,7 @@ All items below are **PLANNED / FUTURE**:
 - [x] **Phase 40 — Round Robin Engine** *(Rotating Partners, Fixed Partners, Singles, Match schedule generation, estimated start/end times, byes, lock controls, score sheets)*
 - [x] **Phase 41 — Match Scoring** *(Score entry, Live score, Admin finalization, Score correction with audit)*
 - [x] **Phase 42 — Standings & Leaderboards** *(Wins, Losses, Win %, Point differential, Tenant-scoped)*
-- [ ] **Phase 43 — Player Statistics & Match History** *(Games played, Partner/Opponent history, Privacy controls)*
+- [x] **Phase 43 — Player Statistics & Match History** *(Games played, Partner/Opponent history, Privacy controls)*
 - [ ] **Phase 44 — Tournament Foundation** *(Single Elimination, Round Robin, Pool Play, Divisions)*
 - [ ] **Phase 45 — Tournament Registration** *(Individual/Team, GCash payment integration, Waitlist)*
 - [ ] **Phase 46 — Tournament Brackets** *(Seeding, Bracket generation, Match advancement, Finalization)*

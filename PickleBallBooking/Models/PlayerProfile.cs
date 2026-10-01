@@ -75,6 +75,9 @@ public class PlayerProfile
     /// <summary>When true, mobile number is visible to other players.</summary>
     public bool PrivacyMobile { get; set; } = false;
 
+    /// <summary>Phase 43: Controls who can view this player's match history and statistics.</summary>
+    public MatchHistoryPrivacyLevel PrivacyMatchHistory { get; set; } = MatchHistoryPrivacyLevel.Public;
+
     // ── Timestamps ───────────────────────────────────────────────────────
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

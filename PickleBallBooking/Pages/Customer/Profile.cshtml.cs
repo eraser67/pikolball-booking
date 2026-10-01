@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -63,8 +63,9 @@ public class ProfileModel : PageModel
             Input.PlayingHand    = profile.PlayingHand;
             Input.Bio            = profile.Bio ?? string.Empty;
             Input.Location       = profile.Location ?? string.Empty;
-            Input.IsDiscoverable = profile.IsDiscoverable;
-            Input.PrivacyMobile  = profile.PrivacyMobile;
+            Input.IsDiscoverable       = profile.IsDiscoverable;
+            Input.PrivacyMobile        = profile.PrivacyMobile;
+            Input.PrivacyMatchHistory  = profile.PrivacyMatchHistory;
         }
         else
         {
@@ -76,6 +77,7 @@ public class ProfileModel : PageModel
             Input.LastName  = parts.Length > 1 ? parts[1] : string.Empty;
             Input.Mobile    = claims.FirstOrDefault(c => c.Type == "mobile")?.Value
                               ?? user.PhoneNumber ?? string.Empty;
+            Input.PrivacyMatchHistory = MatchHistoryPrivacyLevel.Public;
         }
 
         return Page();
@@ -96,17 +98,18 @@ public class ProfileModel : PageModel
         if (user is null) return RedirectToPage("/Account/Login");
 
         await _profileService.UpsertAsync(
-            userId:         user.Id,
-            firstName:      Input.FirstName,
-            lastName:       Input.LastName,
-            displayName:    Input.DisplayName,
-            mobile:         Input.Mobile,
-            skillLevel:     Input.SkillLevel,
-            playingHand:    Input.PlayingHand,
-            bio:            Input.Bio,
-            location:       Input.Location,
-            isDiscoverable: Input.IsDiscoverable,
-            privacyMobile:  Input.PrivacyMobile);
+            userId:               user.Id,
+            firstName:            Input.FirstName,
+            lastName:             Input.LastName,
+            displayName:          Input.DisplayName,
+            mobile:               Input.Mobile,
+            skillLevel:           Input.SkillLevel,
+            playingHand:          Input.PlayingHand,
+            bio:                  Input.Bio,
+            location:             Input.Location,
+            isDiscoverable:       Input.IsDiscoverable,
+            privacyMobile:        Input.PrivacyMobile,
+            privacyMatchHistory:  Input.PrivacyMatchHistory);
 
         // Sync phone number back to Identity user.
         if (!string.IsNullOrEmpty(Input.Mobile) && user.PhoneNumber != Input.Mobile)
@@ -187,5 +190,8 @@ public class ProfileModel : PageModel
 
         [Display(Name = "Show mobile number to other players")]
         public bool PrivacyMobile { get; set; } = false;
+
+        [Display(Name = "Match History & Statistics Visibility")]
+        public MatchHistoryPrivacyLevel PrivacyMatchHistory { get; set; } = MatchHistoryPrivacyLevel.Public;
     }
 }

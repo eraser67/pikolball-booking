@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using PickleBallBooking.Data;
 using PickleBallBooking.Models;
@@ -47,7 +47,8 @@ public sealed class PlayerProfileService
         string? bio,
         string? location,
         bool isDiscoverable,
-        bool privacyMobile)
+        bool privacyMobile,
+        MatchHistoryPrivacyLevel privacyMatchHistory = MatchHistoryPrivacyLevel.Public)
     {
         var profile = await _context.PlayerProfiles
             .FirstOrDefaultAsync(p => p.UserId == userId);
@@ -58,19 +59,20 @@ public sealed class PlayerProfileService
             _context.PlayerProfiles.Add(profile);
         }
 
-        profile.FirstName      = firstName.Trim();
-        profile.LastName       = lastName.Trim();
-        profile.DisplayName    = string.IsNullOrWhiteSpace(displayName)
-                                    ? $"{firstName.Trim()} {lastName.Trim()}"
-                                    : displayName.Trim();
-        profile.Mobile         = mobile?.Trim();
-        profile.SkillLevel     = skillLevel;
-        profile.PlayingHand    = playingHand;
-        profile.Bio            = bio?.Trim();
-        profile.Location       = location?.Trim();
-        profile.IsDiscoverable = isDiscoverable;
-        profile.PrivacyMobile  = privacyMobile;
-        profile.UpdatedAt      = DateTime.UtcNow;
+        profile.FirstName            = firstName.Trim();
+        profile.LastName             = lastName.Trim();
+        profile.DisplayName          = string.IsNullOrWhiteSpace(displayName)
+                                        ? $"{firstName.Trim()} {lastName.Trim()}"
+                                        : displayName.Trim();
+        profile.Mobile               = mobile?.Trim();
+        profile.SkillLevel           = skillLevel;
+        profile.PlayingHand          = playingHand;
+        profile.Bio                  = bio?.Trim();
+        profile.Location             = location?.Trim();
+        profile.IsDiscoverable       = isDiscoverable;
+        profile.PrivacyMobile        = privacyMobile;
+        profile.PrivacyMatchHistory  = privacyMatchHistory;
+        profile.UpdatedAt            = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
 

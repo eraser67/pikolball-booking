@@ -1,4 +1,4 @@
-﻿@page "/Customer/Profile"
+@page "/Customer/Profile"
 @model PickleBallBooking.Pages.Customer.ProfileModel
 @using PickleBallBooking.Models
 @{
@@ -200,12 +200,23 @@
                         </label>
                         <div class="form-text">Appears in platform-wide player search (coming soon).</div>
                     </div>
-                    <div class="form-check form-switch">
+                    <div class="form-check form-switch mb-3">
                         <input asp-for="Input.PrivacyMobile" form="profileForm" class="form-check-input" role="switch" id="profilePrivacyMobile" />
                         <label class="form-check-label fw-medium" for="profilePrivacyMobile">
                             Show mobile to other players
                         </label>
                         <div class="form-text">Off by default.</div>
+                    </div>
+                    <div class="pt-3 border-top">
+                        <label asp-for="Input.PrivacyMatchHistory" class="form-label fw-medium small text-dark mb-1">
+                            <i class="bi bi-shield-lock text-success me-1"></i>Match History & Statistics Visibility
+                        </label>
+                        <select asp-for="Input.PrivacyMatchHistory" form="profileForm" class="form-select form-select-sm" id="profilePrivacyMatchHistory">
+                            <option value="@MatchHistoryPrivacyLevel.Public">🌐 Public — Anyone can view your match stats and history</option>
+                            <option value="@MatchHistoryPrivacyLevel.FollowersOnly">👥 Members Only — Only registered players can view</option>
+                            <option value="@MatchHistoryPrivacyLevel.Private">🔒 Private — Only you and tournament admins can view</option>
+                        </select>
+                        <div class="form-text">Controls visibility of your match records, partner history, and opponent records.</div>
                     </div>
                 </div>
             </div>

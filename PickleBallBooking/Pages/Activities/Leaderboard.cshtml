@@ -96,7 +96,16 @@
                         <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 border-top border-4 border-secondary">
                             <div class="fs-2 mb-1">🥈</div>
                             <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-0 small mb-2">2nd Place</span>
-                            <h6 class="fw-bold text-dark text-truncate mb-1">@p2.DisplayName</h6>
+                            <h6 class="fw-bold text-dark text-truncate mb-1">
+                                @if (!string.IsNullOrEmpty(p2.UserId))
+                                {
+                                    <a asp-page="/Player/Profile" asp-route-userId="@p2.UserId" class="text-dark text-decoration-none">@p2.DisplayName</a>
+                                }
+                                else
+                                {
+                                    @p2.DisplayName
+                                }
+                            </h6>
                             @if (p2.SkillLevel.HasValue)
                             {
                                 <span class="badge bg-light text-muted border mb-2 small" style="font-size:0.7rem;">@p2.SkillLevel</span>
@@ -115,7 +124,16 @@
                         <div class="card border-0 shadow rounded-3 p-3 bg-white h-100 border-top border-4 border-warning transform-scale" style="transform: scale(1.03);">
                             <div class="fs-1 mb-1">👑</div>
                             <span class="badge bg-warning text-dark rounded-pill px-3 py-1 small fw-bold mb-2">1st Place &bull; Leader</span>
-                            <h5 class="fw-bold text-dark text-truncate mb-1">@p1.DisplayName</h5>
+                            <h5 class="fw-bold text-dark text-truncate mb-1">
+                                @if (!string.IsNullOrEmpty(p1.UserId))
+                                {
+                                    <a asp-page="/Player/Profile" asp-route-userId="@p1.UserId" class="text-dark text-decoration-none">@p1.DisplayName</a>
+                                }
+                                else
+                                {
+                                    @p1.DisplayName
+                                }
+                            </h5>
                             @if (p1.SkillLevel.HasValue)
                             {
                                 <span class="badge bg-success-subtle text-success border border-success-subtle mb-2 small">@p1.SkillLevel</span>
@@ -134,7 +152,16 @@
                         <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 border-top border-4 border-bronze">
                             <div class="fs-2 mb-1">🥉</div>
                             <span class="badge bg-light text-muted border rounded-pill px-2 py-0 small mb-2">3rd Place</span>
-                            <h6 class="fw-bold text-dark text-truncate mb-1">@p3.DisplayName</h6>
+                            <h6 class="fw-bold text-dark text-truncate mb-1">
+                                @if (!string.IsNullOrEmpty(p3.UserId))
+                                {
+                                    <a asp-page="/Player/Profile" asp-route-userId="@p3.UserId" class="text-dark text-decoration-none">@p3.DisplayName</a>
+                                }
+                                else
+                                {
+                                    @p3.DisplayName
+                                }
+                            </h6>
                             @if (p3.SkillLevel.HasValue)
                             {
                                 <span class="badge bg-light text-muted border mb-2 small" style="font-size:0.7rem;">@p3.SkillLevel</span>
@@ -268,7 +295,16 @@
                                         }
                                     </td>
                                     <td>
-                                        <div class="fw-bold text-dark">@p.DisplayName</div>
+                                        @if (!string.IsNullOrEmpty(p.UserId))
+                                        {
+                                            <a asp-page="/Player/Profile" asp-route-userId="@p.UserId" class="fw-bold text-dark text-decoration-none">
+                                                @p.DisplayName
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <div class="fw-bold text-dark">@p.DisplayName</div>
+                                        }
                                         @if (p.SkillLevel.HasValue)
                                         {
                                             <span class="badge bg-light text-muted border py-0 px-1" style="font-size:0.65rem;">@p.SkillLevel</span>

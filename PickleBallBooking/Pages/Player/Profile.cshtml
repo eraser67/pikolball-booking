@@ -1,0 +1,614 @@
+@page "/Player/{userId?}"
+@model PickleBallBooking.Pages.Player.ProfileModel
+@using PickleBallBooking.Models
+@{
+    var stats = Model.PlayerStats;
+    ViewData["Title"] = stats != null ? $"{stats.DisplayName} - Player Profile & Stats" : "Player Profile";
+}
+
+<div class="container py-4">
+
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show py-2 mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@Model.StatusMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (stats == null)
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>Player profile not found.
+        </div>
+    }
+    else
+    {
+        <!-- Breadcrumb navigation -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb small">
+                <li class="breadcrumb-item"><a asp-page="/Index" class="text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item"><a asp-page="/Activities/Leaderboard" class="text-decoration-none">Leaderboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@stats.DisplayName</li>
+            </ol>
+        </nav>
+
+        <!-- Player Profile Hero Header -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background: linear-gradient(135deg, #1e3a8a 0%, #047857 100%);">
+            <div class="card-body p-4 text-white">
+                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                    
+                    <div class="d-flex align-items-center gap-3">
+                        @if (!string.IsNullOrEmpty(stats.AvatarUrl))
+                        {
+                            <img src="@stats.AvatarUrl" alt="@stats.DisplayName"
+                                 class="rounded-circle border border-3 border-white shadow"
+                                 style="width: 88px; height: 88px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <div class="rounded-circle bg-white text-success d-flex align-items-center justify-content-center shadow fw-bold border border-3 border-white"
+                                 style="width: 88px; height: 88px; font-size: 2rem;">
+                                @(stats.DisplayName.Length > 0 ? stats.DisplayName[0].ToString().ToUpper() : "P")
+                            </div>
+                        }
+
+                        <div>
+                            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                <h2 class="h3 fw-bold mb-0">@stats.DisplayName</h2>
+                                @if (stats.FullName != stats.DisplayName)
+                                {
+                                    <span class="text-white-50 small">(@stats.FullName)</span>
+                                }
+                                @if (Model.IsSelf)
+                                {
+                                    <span class="badge bg-light text-dark rounded-pill px-2 py-1 small fw-semibold">You</span>
+                                }
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2 flex-wrap small text-white-50">
+                                @if (!string.IsNullOrEmpty(stats.Location))
+                                {
+                                    <span><i class="bi bi-geo-alt me-1"></i>@stats.Location</span>
+                                }
+                                <span>&bull;</span>
+                                <span><i class="bi bi-trophy me-1"></i>@stats.SkillLevel</span>
+                                <span>&bull;</span>
+                                <span><i class="bi bi-hand-index me-1"></i>@stats.PlayingHand Handed</span>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(stats.Bio))
+                            {
+                                <p class="mt-2 mb-0 text-white small opacity-90 fst-italic" style="max-width: 600px;">
+                                    "@stats.Bio"
+                                </p>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Action buttons & Privacy status -->
+                    <div class="d-flex flex-column align-items-md-end gap-2">
+                        @if (Model.IsSelf)
+                        {
+                            <a asp-page="/Customer/Profile" class="btn btn-light btn-sm fw-semibold shadow-sm px-3 rounded-pill">
+                                <i class="bi bi-pencil-square me-1 text-success"></i>Edit Profile & Privacy
+                            </a>
+                        }
+
+                        <div class="d-flex align-items-center gap-1 small text-white-50">
+                            <i class="bi bi-shield-lock"></i>
+                            <span>Visibility:</span>
+                            <span class="badge bg-white bg-opacity-20 text-white rounded-pill px-2">
+                                @stats.PrivacyMatchHistory switch
+                                {
+                                    MatchHistoryPrivacyLevel.Public => "🌐 Public",
+                                    MatchHistoryPrivacyLevel.FollowersOnly => "👥 Members Only",
+                                    MatchHistoryPrivacyLevel.Private => "🔒 Private",
+                                    _ => "Public"
+                                }
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        @if (!stats.CanViewHistory)
+        {
+            <!-- Privacy Restricted Card -->
+            <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4">
+                <div class="mb-3">
+                    <div class="d-inline-flex p-3 rounded-circle bg-light text-secondary fs-1 shadow-sm">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                </div>
+                <h4 class="fw-bold text-dark mb-2">Match History is Private</h4>
+                <p class="text-muted mx-auto" style="max-width: 480px;">
+                    @(stats.PrivacyMessage ?? "This player has chosen to keep their statistics and match history private.")
+                </p>
+                @if (stats.PrivacyMatchHistory == MatchHistoryPrivacyLevel.FollowersOnly && string.IsNullOrEmpty(Model.CurrentUserId))
+                {
+                    <div class="mt-3">
+                        <a asp-page="/Account/Login" asp-route-returnUrl="@Request.Path" class="btn btn-success px-4 rounded-pill fw-semibold">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Sign In to View
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <!-- Filter Bar: Platform vs Venue -->
+            @if (Model.CurrentOrgId.HasValue)
+            {
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div class="small text-muted">
+                        <i class="bi bi-funnel me-1"></i>Showing:
+                        <span class="fw-semibold text-dark">@(Model.Filter == "tenant" ? "This Venue Only" : "All Match Records")</span>
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a asp-page="/Player/Profile" asp-route-userId="@stats.UserId"
+                           class="btn @(Model.Filter != "tenant" ? "btn-success" : "btn-outline-secondary")">
+                            All Venues
+                        </a>
+                        <a asp-page="/Player/Profile" asp-route-userId="@stats.UserId" asp-route-filter="tenant"
+                           class="btn @(Model.Filter == "tenant" ? "btn-success" : "btn-outline-secondary")">
+                            This Venue
+                        </a>
+                    </div>
+                </div>
+            }
+
+            <!-- Overall Performance Cards -->
+            <div class="row g-3 mb-4">
+                <!-- Matches & Record -->
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="text-muted small fw-medium text-uppercase">Matches</span>
+                            <i class="bi bi-controller text-primary fs-5"></i>
+                        </div>
+                        <div class="h3 fw-bold text-dark mb-0">@stats.Overall.MatchesPlayed</div>
+                        <div class="small text-muted mt-1">
+                            <span class="text-success fw-bold">@stats.Overall.Wins</span> W -
+                            <span class="text-danger fw-bold">@stats.Overall.Losses</span> L -
+                            <span class="text-secondary fw-bold">@stats.Overall.Draws</span> D
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Win Rate -->
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="text-muted small fw-medium text-uppercase">Win Rate</span>
+                            <i class="bi bi-pie-chart text-success fs-5"></i>
+                        </div>
+                        <div class="h3 fw-bold text-success mb-0">@stats.Overall.WinPercentage.ToString("F1")%</div>
+                        <div class="small text-muted mt-1">
+                            Streak: <span class="badge @(stats.Overall.CurrentStreak.StartsWith("W") ? "bg-success" : stats.Overall.CurrentStreak.StartsWith("L") ? "bg-danger" : "bg-secondary") rounded-pill px-2">@stats.Overall.CurrentStreak</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Point Differential (+/-) -->
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="text-muted small fw-medium text-uppercase">Differential</span>
+                            <i class="bi bi-graph-up-arrow text-info fs-5"></i>
+                        </div>
+                        <div class="h3 fw-bold @(stats.Overall.PointDifferential > 0 ? "text-success" : stats.Overall.PointDifferential < 0 ? "text-danger" : "text-dark") mb-0">
+                            @(stats.Overall.PointDifferential >= 0 ? "+" : "")@stats.Overall.PointDifferential
+                        </div>
+                        <div class="small text-muted mt-1">
+                            <span class="fw-semibold">@stats.Overall.PointsScored</span> PF &bull; <span class="fw-semibold">@stats.Overall.PointsConceded</span> PA
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form / Last 5 -->
+                <div class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="text-muted small fw-medium text-uppercase">Recent Form</span>
+                            <i class="bi bi-activity text-warning fs-5"></i>
+                        </div>
+                        <div class="d-flex align-items-center gap-1 mt-1 mb-1">
+                            @if (stats.Overall.RecentForm.Count > 0)
+                            {
+                                @foreach (var f in stats.Overall.RecentForm)
+                                {
+                                    <span class="badge @(f == "W" ? "bg-success" : f == "L" ? "bg-danger" : "bg-secondary") rounded-circle p-2"
+                                          style="width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">
+                                        @f
+                                    </span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted small">No matches yet</span>
+                            }
+                        </div>
+                        <div class="small text-muted mt-1">
+                            Avg: @stats.Overall.AveragePointsScored.ToString("F1") pts/match
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabbed Navigation: Match History, Partner History, Opponent History -->
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                <div class="card-header bg-white border-bottom p-0">
+                    <ul class="nav nav-tabs card-header-tabs m-0 px-3 border-0" id="statsTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active py-3 px-4 fw-semibold text-dark border-0 border-bottom border-3 border-success"
+                                    id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches" type="button" role="tab">
+                                <i class="bi bi-clock-history me-1 text-success"></i>Match History
+                                <span class="badge bg-secondary-subtle text-secondary rounded-pill ms-1">@stats.Matches.Count</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-3 px-4 fw-semibold text-muted border-0"
+                                    id="partners-tab" data-bs-toggle="tab" data-bs-target="#partners" type="button" role="tab">
+                                <i class="bi bi-people me-1 text-primary"></i>Partner History
+                                <span class="badge bg-secondary-subtle text-secondary rounded-pill ms-1">@stats.Partners.Count</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-3 px-4 fw-semibold text-muted border-0"
+                                    id="opponents-tab" data-bs-toggle="tab" data-bs-target="#opponents" type="button" role="tab">
+                                <i class="bi bi-swords me-1 text-danger"></i>Opponent History
+                                <span class="badge bg-secondary-subtle text-secondary rounded-pill ms-1">@stats.Opponents.Count</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="tab-content" id="statsTabContent">
+
+                        <!-- TAB 1: FULL MATCH HISTORY -->
+                        <div class="tab-pane fade show active" id="matches" role="tabpanel">
+                            @if (stats.Matches.Count == 0)
+                            {
+                                <div class="text-center py-5">
+                                    <div class="text-muted fs-1 mb-2"><i class="bi bi-trophy"></i></div>
+                                    <h5 class="fw-bold text-dark">No Finalized Matches Found</h5>
+                                    <p class="text-muted small">Matches will appear here as soon as round robin scores are submitted and finalized.</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light text-uppercase small text-muted">
+                                            <tr>
+                                                <th class="ps-4">Result</th>
+                                                <th>Event / Activity</th>
+                                                <th>Score</th>
+                                                <th>Partner</th>
+                                                <th>Opponents</th>
+                                                <th>Round & Court</th>
+                                                <th class="pe-4 text-end">Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var m in stats.Matches)
+                                            {
+                                                <tr>
+                                                    <!-- Result badge -->
+                                                    <td class="ps-4">
+                                                        <span class="badge @(m.Result == "W" ? "bg-success" : m.Result == "L" ? "bg-danger" : "bg-secondary") rounded-pill px-3 py-1 fw-bold">
+                                                            @m.Result
+                                                        </span>
+                                                    </td>
+
+                                                    <!-- Activity / Event -->
+                                                    <td>
+                                                        <div class="fw-semibold text-dark">@m.ActivityName</div>
+                                                        <div class="small text-muted">
+                                                            @m.EventFormat
+                                                            @if (!string.IsNullOrEmpty(m.OrganizationName))
+                                                            {
+                                                                <span>&bull; @m.OrganizationName</span>
+                                                            }
+                                                        </div>
+                                                    </td>
+
+                                                    <!-- Score -->
+                                                    <td>
+                                                        <span class="fs-6 fw-bold @(m.Result == "W" ? "text-success" : m.Result == "L" ? "text-danger" : "text-dark")">
+                                                            @m.ScoreDisplay
+                                                        </span>
+                                                        <div class="small text-muted">
+                                                            @(m.PointDifferential >= 0 ? "+" : "")@m.PointDifferential diff
+                                                        </div>
+                                                    </td>
+
+                                                    <!-- Partner -->
+                                                    <td>
+                                                        @if (!string.IsNullOrEmpty(m.PartnerName))
+                                                        {
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                @if (!string.IsNullOrEmpty(m.PartnerAvatarUrl))
+                                                                {
+                                                                    <img src="@m.PartnerAvatarUrl" class="rounded-circle" style="width:24px;height:24px;object-fit:cover;" alt="" />
+                                                                }
+                                                                else
+                                                                {
+                                                                    <div class="rounded-circle bg-light text-secondary d-flex align-items-center justify-content-center small fw-bold" style="width:24px;height:24px;font-size:0.7rem;">
+                                                                        @m.PartnerName[0]
+                                                                    </div>
+                                                                }
+                                                                @if (!string.IsNullOrEmpty(m.PartnerUserId))
+                                                                {
+                                                                    <a asp-page="/Player/Profile" asp-route-userId="@m.PartnerUserId" class="text-decoration-none text-dark fw-medium small">
+                                                                        @m.PartnerName
+                                                                    </a>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-dark small">@m.PartnerName</span>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted small fst-italic">—</span>
+                                                        }
+                                                    </td>
+
+                                                    <!-- Opponents -->
+                                                    <td>
+                                                        @if (m.Opponents.Count > 0)
+                                                        {
+                                                            <div class="d-flex flex-column gap-1">
+                                                                @foreach (var opp in m.Opponents)
+                                                                {
+                                                                    <div class="d-flex align-items-center gap-1">
+                                                                        @if (!string.IsNullOrEmpty(opp.AvatarUrl))
+                                                                        {
+                                                                            <img src="@opp.AvatarUrl" class="rounded-circle" style="width:20px;height:20px;object-fit:cover;" alt="" />
+                                                                        }
+                                                                        @if (!string.IsNullOrEmpty(opp.UserId))
+                                                                        {
+                                                                            <a asp-page="/Player/Profile" asp-route-userId="@opp.UserId" class="text-decoration-none text-dark small">
+                                                                                @opp.Name
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span class="text-dark small">@opp.Name</span>
+                                                                        }
+                                                                    </div>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted small">—</span>
+                                                        }
+                                                    </td>
+
+                                                    <!-- Round & Court -->
+                                                    <td>
+                                                        <div class="small fw-medium text-dark">Round @m.RoundNumber</div>
+                                                        @if (!string.IsNullOrEmpty(m.CourtName))
+                                                        {
+                                                            <div class="small text-muted">@m.CourtName</div>
+                                                        }
+                                                    </td>
+
+                                                    <!-- Date -->
+                                                    <td class="pe-4 text-end">
+                                                        <div class="small fw-semibold text-dark">@m.MatchDate.ToString("MMM d, yyyy")</div>
+                                                        @if (m.EstimatedStartTime.HasValue)
+                                                        {
+                                                            <div class="small text-muted">@PickleBallBooking.Services.AppClock.To12Hour(m.EstimatedStartTime.Value)</div>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- TAB 2: PARTNER HISTORY -->
+                        <div class="tab-pane fade" id="partners" role="tabpanel">
+                            @if (stats.Partners.Count == 0)
+                            {
+                                <div class="text-center py-5">
+                                    <div class="text-muted fs-1 mb-2"><i class="bi bi-people"></i></div>
+                                    <h5 class="fw-bold text-dark">No Partner History</h5>
+                                    <p class="text-muted small">Partners you team up with in doubles matches will appear here.</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light text-uppercase small text-muted">
+                                            <tr>
+                                                <th class="ps-4">Partner</th>
+                                                <th>Skill Level</th>
+                                                <th>Matches</th>
+                                                <th>Record (W-L-D)</th>
+                                                <th>Win Rate</th>
+                                                <th>Points (PF / PA)</th>
+                                                <th class="pe-4 text-end">Differential</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var p in stats.Partners)
+                                            {
+                                                <tr>
+                                                    <td class="ps-4">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            @if (!string.IsNullOrEmpty(p.PartnerAvatarUrl))
+                                                            {
+                                                                <img src="@p.PartnerAvatarUrl" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" alt="" />
+                                                            }
+                                                            else
+                                                            {
+                                                                <div class="rounded-circle bg-light text-primary d-flex align-items-center justify-content-center fw-bold" style="width:36px;height:36px;">
+                                                                    @(p.PartnerName.Length > 0 ? p.PartnerName[0].ToString().ToUpper() : "P")
+                                                                </div>
+                                                            }
+                                                            <div>
+                                                                @if (!string.IsNullOrEmpty(p.PartnerUserId))
+                                                                {
+                                                                    <a asp-page="/Player/Profile" asp-route-userId="@p.PartnerUserId" class="fw-bold text-dark text-decoration-none">
+                                                                        @p.PartnerName
+                                                                    </a>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <div class="fw-bold text-dark">@p.PartnerName</div>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        @if (p.PartnerSkillLevel.HasValue)
+                                                        {
+                                                            <span class="badge bg-light text-muted border small">@p.PartnerSkillLevel</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted small">—</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <span class="fw-bold text-dark">@p.MatchesTogether</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="text-success fw-bold">@p.Wins</span> -
+                                                        <span class="text-danger fw-bold">@p.Losses</span> -
+                                                        <span class="text-secondary fw-bold">@p.Draws</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="fw-bold @(p.WinPercentage >= 50 ? "text-success" : "text-muted")">
+                                                            @p.WinPercentage.ToString("F1")%
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span class="text-dark small">@p.PointsScored / @p.PointsConceded</span>
+                                                    </td>
+                                                    <td class="pe-4 text-end">
+                                                        <span class="fw-bold @(p.PointDifferential > 0 ? "text-success" : p.PointDifferential < 0 ? "text-danger" : "text-muted")">
+                                                            @(p.PointDifferential >= 0 ? "+" : "")@p.PointDifferential
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- TAB 3: OPPONENT HISTORY -->
+                        <div class="tab-pane fade" id="opponents" role="tabpanel">
+                            @if (stats.Opponents.Count == 0)
+                            {
+                                <div class="text-center py-5">
+                                    <div class="text-muted fs-1 mb-2"><i class="bi bi-swords"></i></div>
+                                    <h5 class="fw-bold text-dark">No Opponent Records</h5>
+                                    <p class="text-muted small">Head-to-head records against opponents you play against will appear here.</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light text-uppercase small text-muted">
+                                            <tr>
+                                                <th class="ps-4">Opponent</th>
+                                                <th>Skill Level</th>
+                                                <th>Matches Against</th>
+                                                <th>Head-to-Head (W-L-D)</th>
+                                                <th>Win Rate</th>
+                                                <th>Points (PF / PA)</th>
+                                                <th class="pe-4 text-end">Differential</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var o in stats.Opponents)
+                                            {
+                                                <tr>
+                                                    <td class="ps-4">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            @if (!string.IsNullOrEmpty(o.OpponentAvatarUrl))
+                                                            {
+                                                                <img src="@o.OpponentAvatarUrl" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" alt="" />
+                                                            }
+                                                            else
+                                                            {
+                                                                <div class="rounded-circle bg-light text-danger d-flex align-items-center justify-content-center fw-bold" style="width:36px;height:36px;">
+                                                                    @(o.OpponentName.Length > 0 ? o.OpponentName[0].ToString().ToUpper() : "O")
+                                                                </div>
+                                                            }
+                                                            <div>
+                                                                @if (!string.IsNullOrEmpty(o.OpponentUserId))
+                                                                {
+                                                                    <a asp-page="/Player/Profile" asp-route-userId="@o.OpponentUserId" class="fw-bold text-dark text-decoration-none">
+                                                                        @o.OpponentName
+                                                                    </a>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <div class="fw-bold text-dark">@o.OpponentName</div>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        @if (o.OpponentSkillLevel.HasValue)
+                                                        {
+                                                            <span class="badge bg-light text-muted border small">@o.OpponentSkillLevel</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted small">—</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <span class="fw-bold text-dark">@o.MatchesAgainst</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="text-success fw-bold">@o.WinsAgainst</span> -
+                                                        <span class="text-danger fw-bold">@o.LossesAgainst</span> -
+                                                        <span class="text-secondary fw-bold">@o.DrawsAgainst</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="fw-bold @(o.WinPercentageAgainst >= 50 ? "text-success" : "text-muted")">
+                                                            @o.WinPercentageAgainst.ToString("F1")%
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span class="text-dark small">@o.PointsScored / @o.PointsConceded</span>
+                                                    </td>
+                                                    <td class="pe-4 text-end">
+                                                        <span class="fw-bold @(o.PointDifferential > 0 ? "text-success" : o.PointDifferential < 0 ? "text-danger" : "text-muted")">
+                                                            @(o.PointDifferential >= 0 ? "+" : "")@o.PointDifferential
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+</div>

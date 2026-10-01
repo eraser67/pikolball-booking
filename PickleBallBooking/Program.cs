@@ -201,6 +201,9 @@ builder.Services.AddScoped<IMatchScoringService, MatchScoringService>();
 // Phase 42: standings and competitive leaderboards.
 builder.Services.AddScoped<IStandingsService, StandingsService>();
 
+// Phase 43: player statistics and match history.
+builder.Services.AddScoped<IPlayerStatisticsService, PlayerStatisticsService>();
+
 // Platform-level settings (AllowTenantRegistration toggle etc.)
 builder.Services.AddScoped<PlatformSettingsService>();
 

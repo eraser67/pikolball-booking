@@ -721,7 +721,7 @@ community engagement leaderboards (Phase 52).
 
 ## Phase 43 -- Player Statistics & Match History
 
-**Status:** PLANNED / FUTURE
+**Status:** COMPLETE
 
 ### Goal
 
@@ -737,9 +737,27 @@ Statistics must be generated exclusively from finalized match records. Incomplet
 matches must not be included. Players may control visibility of their match history
 (public / followers / private).
 
+### Implementation Summary
+
+- **Model & Privacy (`MatchHistoryPrivacyLevel`, `PlayerProfile.PrivacyMatchHistory`):** Added enum `MatchHistoryPrivacyLevel` (`Public`, `FollowersOnly`, `Private`) and database migration `Phase43_PlayerStatistics`.
+- **Service Layer (`IPlayerStatisticsService`, `PlayerStatisticsService`):**
+  - Aggregates overall player metrics (`MatchesPlayed`, `Wins`, `Losses`, `Draws`, `WinPercentage`, `PointsScored`, `PointsConceded`, `PointDifferential`, `AveragePointsScored`, `AveragePointsConceded`, `CurrentStreak`, `RecentForm`).
+  - Aggregates partner history (record with each partner, win rate, point diff).
+  - Aggregates opponent history (head-to-head records against each opponent).
+  - Chronological match timeline strictly filtered to finalized matches (`IsFinalized == true`, `Status != Cancelled`).
+  - Privacy enforcement with customizable visibility and privacy notices.
+  - Multi-tenant support with optional organization scope filter.
+- **UI & Presentation:**
+  - Player Profile view `/Player/{userId?}` with hero header, metric cards, and 3 tabs: Match History, Partner History, and Opponent History.
+  - Profile edit page `/Customer/Profile` with Match History & Statistics Visibility selector.
+  - Customer Dashboard `/Customer/Dashboard` with "My Stats" header button and "Your Competitive Record" summary banner.
+  - Competitive Leaderboard `/Activities/Leaderboard` with podium and ranking table linking player names to `/Player/{userId}`.
+- **Testing:** 14 unit and integration tests added in `PlayerStatisticsServiceTests` (420 tests passing total, zero regressions).
+
 ### Dependencies
 
 - Requires: Phase 41 (Match Scoring), Phase 42 (Standings), Phase 32 (Player Profile)
+- Required by: Phase 44 (Tournament Foundation)
 
 ---
 

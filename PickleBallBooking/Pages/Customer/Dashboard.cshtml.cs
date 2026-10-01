@@ -21,6 +21,7 @@ public class DashboardModel : PageModel
     private readonly ActivityRsvpService _rsvpService;
     private readonly ICourtImageStorage _storage;
     private readonly IPlayerCheckInService _checkInService;
+    private readonly IPlayerStatisticsService _statsService;
 
     public DashboardModel(
         UserManager<IdentityUser> userManager,
@@ -28,7 +29,8 @@ public class DashboardModel : PageModel
         PlayerProfileService profileService,
         ActivityRsvpService rsvpService,
         ICourtImageStorage storage,
-        IPlayerCheckInService checkInService)
+        IPlayerCheckInService checkInService,
+        IPlayerStatisticsService statsService)
     {
         _userManager    = userManager;
         _context        = context;
@@ -36,6 +38,7 @@ public class DashboardModel : PageModel
         _rsvpService    = rsvpService;
         _storage        = storage;
         _checkInService = checkInService;
+        _statsService   = statsService;
     }
 
     public string DisplayName { get; private set; } = string.Empty;
@@ -46,6 +49,8 @@ public class DashboardModel : PageModel
     public string? AvatarUrl { get; private set; }
     public bool HasProfile { get; private set; }
     public PlayerAttendanceStats? AttendanceStats { get; private set; }
+    public PlayerOverallStatsDto? MatchStats { get; private set; }
+    public string? CurrentUserId { get; private set; }
 
     public IReadOnlyList<BookingSummary> RecentBookings { get; private set; } = [];
     public IReadOnlyList<UserActivityItem> UserActivities { get; private set; } = [];
@@ -85,6 +90,10 @@ public class DashboardModel : PageModel
         {
             DisplayName = User.FindFirstValue("fullName") ?? Email;
         }
+
+        CurrentUserId = user.Id;
+        var statsProfile = await _statsService.GetPlayerStatisticsAsync(user.Id, user.Id);
+        MatchStats = statsProfile?.Overall;
 
         RecentBookings = await _context.Bookings
             .IgnoreQueryFilters()
