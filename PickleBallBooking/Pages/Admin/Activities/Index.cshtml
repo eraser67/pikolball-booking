@@ -6,32 +6,38 @@
 }
 @functions {
     static string StatusBadge(PickleBallBooking.Models.ActivityStatus s) => s switch {
-        PickleBallBooking.Models.ActivityStatus.Draft              => "bg-secondary",
+        PickleBallBooking.Models.ActivityStatus.Draft              => "bg-secondary text-white",
         PickleBallBooking.Models.ActivityStatus.Published          => "bg-info text-dark",
-        PickleBallBooking.Models.ActivityStatus.RegistrationOpen   => "bg-success",
+        PickleBallBooking.Models.ActivityStatus.RegistrationOpen   => "bg-success text-white",
         PickleBallBooking.Models.ActivityStatus.Full               => "bg-warning text-dark",
-        PickleBallBooking.Models.ActivityStatus.RegistrationClosed => "bg-secondary",
-        PickleBallBooking.Models.ActivityStatus.InProgress         => "bg-primary",
-        PickleBallBooking.Models.ActivityStatus.Completed          => "bg-dark",
-        PickleBallBooking.Models.ActivityStatus.Cancelled          => "bg-danger",
-        _                                                          => "bg-light text-dark"
+        PickleBallBooking.Models.ActivityStatus.RegistrationClosed => "bg-secondary text-white",
+        PickleBallBooking.Models.ActivityStatus.InProgress         => "bg-primary text-white",
+        PickleBallBooking.Models.ActivityStatus.Completed          => "bg-dark text-white",
+        PickleBallBooking.Models.ActivityStatus.Cancelled          => "bg-danger text-white",
+        _                                                          => "bg-light text-dark border"
     };
+
     static string SkillBadge(PickleBallBooking.Models.ActivitySkillLevel sk) => sk switch {
-        PickleBallBooking.Models.ActivitySkillLevel.Open         => "bg-primary",
-        PickleBallBooking.Models.ActivitySkillLevel.Beginner     => "bg-success",
-        PickleBallBooking.Models.ActivitySkillLevel.Intermediate => "bg-warning text-dark",
-        PickleBallBooking.Models.ActivitySkillLevel.Advanced     => "bg-danger",
-        _                                                        => "bg-secondary"
+        PickleBallBooking.Models.ActivitySkillLevel.Open         => "bg-primary-subtle text-primary border border-primary-subtle",
+        PickleBallBooking.Models.ActivitySkillLevel.Beginner     => "bg-success-subtle text-success border border-success-subtle",
+        PickleBallBooking.Models.ActivitySkillLevel.Intermediate => "bg-warning-subtle text-warning-emphasis border border-warning-subtle",
+        PickleBallBooking.Models.ActivitySkillLevel.Advanced     => "bg-danger-subtle text-danger border border-danger-subtle",
+        _                                                        => "bg-secondary-subtle text-secondary"
     };
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h4 fw-bold mb-0"><i class="bi bi-calendar-event text-success me-2"></i>Activities</h1>
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-3 mb-4">
+    <div>
+        <h1 class="h4 fw-bold mb-0 d-flex align-items-center">
+            <i class="bi bi-calendar-event text-success me-2"></i>Activities
+        </h1>
+        <p class="text-muted small mb-0 mt-1">Manage events, open plays, clinics, and court allocations.</p>
+    </div>
     <div class="d-flex gap-2">
-        <a asp-page="SeriesIndex" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-repeat me-1"></i>Recurring Series
+        <a asp-page="SeriesIndex" class="btn btn-outline-secondary btn-sm flex-fill flex-sm-grow-0 d-flex align-items-center justify-content-center">
+            <i class="bi bi-arrow-repeat me-1"></i>Series
         </a>
-        <a asp-page="Create" class="btn btn-success">
+        <a asp-page="Create" class="btn btn-success btn-sm flex-fill flex-sm-grow-0 d-flex align-items-center justify-content-center">
             <i class="bi bi-plus-circle me-1"></i>New Activity
         </a>
     </div>
@@ -39,10 +45,11 @@
 
 @if (!Model.Activities.Any())
 {
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm rounded-3">
         <div class="card-body text-center py-5">
             <i class="bi bi-calendar-x text-muted" style="font-size:2.5rem;"></i>
-            <p class="text-muted mt-3 mb-2">No activities yet. Create your first one!</p>
+            <h5 class="fw-bold mt-3 mb-1">No activities found</h5>
+            <p class="text-muted mb-3">Create your first activity, clinic, or open play session!</p>
             <a asp-page="Create" class="btn btn-success btn-sm">
                 <i class="bi bi-plus-circle me-1"></i>New Activity
             </a>
@@ -51,7 +58,8 @@
 }
 else
 {
-    <div class="card border-0 shadow-sm">
+    <!-- Desktop Table View (lg and up) -->
+    <div class="card border-0 shadow-sm rounded-3 d-none d-lg-block">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
@@ -64,7 +72,7 @@ else
                         <th>Capacity</th>
                         <th>Price</th>
                         <th>Status</th>
-                        <th></th>
+                        <th class="pe-4 text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -72,7 +80,7 @@ else
                     {
                         <tr>
                             <td class="ps-4 fw-medium">
-                                <a asp-page="Detail" asp-route-id="@a.Id" class="text-decoration-none">@a.Name</a>
+                                <a asp-page="Detail" asp-route-id="@a.Id" class="text-decoration-none fw-semibold text-dark hover-underline">@a.Name</a>
                                 @if (a.SeriesId.HasValue)
                                 {
                                     <a asp-page="SeriesDetail" asp-route-id="@a.SeriesId" class="badge bg-light text-secondary border ms-1 text-decoration-none" style="font-size:.65rem;">
@@ -88,18 +96,28 @@ else
                             <td class="small">
                                 @if (a.ActivityCourts.Any())
                                 {
-                                    @string.Join(", ", a.ActivityCourts.Select(ac => ac.Court?.Name ?? "?"))
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="bi bi-grid-3x3 text-muted me-1"></i>@string.Join(", ", a.ActivityCourts.Select(ac => ac.Court?.Name ?? "?"))
+                                    </span>
                                 }
                                 else { <span class="text-muted">None</span> }
                             </td>
                             <td><span class="badge @SkillBadge(a.SkillLevel) rounded-pill small">@a.SkillLevel</span></td>
-                            <td class="small">@(a.MaxCapacity == 0 ? "∞" : a.MaxCapacity.ToString())</td>
-                            <td class="small">@(a.PricePerPlayer == 0 ? "Free" : "₱" + a.PricePerPlayer.ToString("N0"))</td>
+                            <td class="small">@(a.MaxCapacity == 0 ? "Unlimited" : a.MaxCapacity.ToString() + " max")</td>
+                            <td class="small fw-semibold">@(a.PricePerPlayer == 0 ? "Free" : "₱" + a.PricePerPlayer.ToString("N0"))</td>
                             <td><span class="badge @StatusBadge(a.Status) rounded-pill small">@a.Status</span></td>
-                            <td class="pe-3 text-end">
-                                <a asp-page="CourtAssignment" asp-route-id="@a.Id" class="btn btn-sm btn-outline-success me-1" title="Court Assignments"><i class="bi bi-grid-3x3"></i></a>
-                                <a asp-page="Edit" asp-route-id="@a.Id" class="btn btn-sm btn-outline-primary me-1">Edit</a>
-                                <a asp-page="Detail" asp-route-id="@a.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                            <td class="pe-4 text-end">
+                                <div class="d-inline-flex gap-1">
+                                    <a asp-page="CourtAssignment" asp-route-id="@a.Id" class="btn btn-sm btn-outline-success" title="Court Assignments">
+                                        <i class="bi bi-grid-3x3"></i>
+                                    </a>
+                                    <a asp-page="Edit" asp-route-id="@a.Id" class="btn btn-sm btn-outline-primary" title="Edit Activity">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-page="Detail" asp-route-id="@a.Id" class="btn btn-sm btn-outline-secondary" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -107,4 +125,87 @@ else
             </table>
         </div>
     </div>
+
+    <!-- Mobile & Tablet Card View (d-lg-none) -->
+    <div class="d-lg-none d-flex flex-column gap-3">
+        @foreach (var a in Model.Activities)
+        {
+            <div class="card border-0 shadow-sm rounded-3 p-3 activity-mobile-card">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <div class="min-w-0">
+                        <a asp-page="Detail" asp-route-id="@a.Id" class="h6 fw-bold text-dark text-decoration-none d-block mb-1 text-truncate">
+                            @a.Name
+                        </a>
+                        <div class="d-flex align-items-center gap-1 flex-wrap">
+                            <span class="badge bg-light text-secondary border small">@a.Format</span>
+                            <span class="badge @SkillBadge(a.SkillLevel) rounded-pill small">@a.SkillLevel</span>
+                            @if (a.SeriesId.HasValue)
+                            {
+                                <a asp-page="SeriesDetail" asp-route-id="@a.SeriesId" class="badge bg-light text-secondary border text-decoration-none small">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Series
+                                </a>
+                            }
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <span class="badge @StatusBadge(a.Status) rounded-pill small">@a.Status</span>
+                    </div>
+                </div>
+
+                <div class="small text-muted mb-3 d-flex flex-column gap-1 bg-light p-2 rounded-2">
+                    <div class="d-flex align-items-center text-dark">
+                        <i class="bi bi-calendar3 me-2 text-success"></i>
+                        <strong>@a.Date.ToString("ddd, MMM d, yyyy")</strong>
+                        <span class="mx-1">&bull;</span>
+                        <span class="text-muted">@PickleBallBooking.Services.AppClock.To12HourRange(a.StartTime, a.EndTime)</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-grid-3x3 me-2 text-muted"></i>
+                        <span>
+                            Courts:
+                            @(a.ActivityCourts.Any() ? string.Join(", ", a.ActivityCourts.Select(ac => ac.Court?.Name ?? "?")) : "None allocated")
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between pt-1 border-top border-secondary-subtle">
+                        <span><i class="bi bi-people me-1 text-muted"></i>Cap: @(a.MaxCapacity == 0 ? "Unlimited" : a.MaxCapacity.ToString())</span>
+                        <span class="fw-semibold text-dark">@(a.PricePerPlayer == 0 ? "Free" : "₱" + a.PricePerPlayer.ToString("N0"))</span>
+                    </div>
+                </div>
+
+                <div class="row g-2 pt-1 border-top">
+                    <div class="col-6">
+                        <a asp-page="CourtAssignment" asp-route-id="@a.Id" class="btn btn-outline-success btn-sm w-100 d-flex align-items-center justify-content-center">
+                            <i class="bi bi-grid-3x3 me-1"></i>Courts
+                        </a>
+                    </div>
+                    <div class="col-3">
+                        <a asp-page="Edit" asp-route-id="@a.Id" class="btn btn-outline-primary btn-sm w-100 d-flex align-items-center justify-content-center">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </a>
+                    </div>
+                    <div class="col-3">
+                        <a asp-page="Detail" asp-route-id="@a.Id" class="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center">
+                            <i class="bi bi-eye me-1"></i>View
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Styles {
+<style>
+.activity-mobile-card {
+    border: 1px solid rgba(0,0,0,0.06) !important;
+}
+.hover-underline:hover {
+    text-decoration: underline !important;
+}
+.bg-success-subtle { background-color: rgba(25,135,84,.12); }
+.bg-primary-subtle { background-color: rgba(13,110,253,.12); }
+.bg-warning-subtle { background-color: rgba(255,193,7,.18); }
+.bg-danger-subtle  { background-color: rgba(220,53,69,.12); }
+.bg-secondary-subtle { background-color: rgba(108,117,125,.12); }
+</style>
 }

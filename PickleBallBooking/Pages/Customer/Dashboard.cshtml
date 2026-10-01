@@ -8,10 +8,10 @@
 @functions {
     static string StatusBadgeClass(BookingStatus status) => status switch
     {
-        BookingStatus.Confirmed => "bg-success",
+        BookingStatus.Confirmed => "bg-success text-white",
         BookingStatus.Pending   => "bg-warning text-dark",
-        BookingStatus.Cancelled => "bg-secondary",
-        _                       => "bg-light text-dark"
+        BookingStatus.Cancelled => "bg-secondary text-white",
+        _                       => "bg-light text-dark border"
     };
 
     static string StatusIcon(BookingStatus status) => status switch
@@ -24,62 +24,63 @@
 
     static string RsvpBadge(RsvpStatus s) => s switch
     {
-        RsvpStatus.Confirmed  => "bg-success",
-        RsvpStatus.CheckedIn  => "bg-primary",
-        RsvpStatus.NoShow     => "bg-danger",
+        RsvpStatus.Confirmed  => "bg-success text-white",
+        RsvpStatus.CheckedIn  => "bg-primary text-white",
+        RsvpStatus.NoShow     => "bg-danger text-white",
         RsvpStatus.Waitlisted => "bg-warning text-dark",
-        RsvpStatus.Cancelled  => "bg-secondary",
+        RsvpStatus.Cancelled  => "bg-secondary text-white",
         _                     => "bg-info text-dark"
     };
 }
 
-<div class="container py-4">
+<div class="container py-3 py-md-4">
 
     <!-- Flash Messages -->
     @if (!string.IsNullOrEmpty(Model.StatusMessage))
     {
-        <div class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <div class="alert alert-success alert-dismissible fade show shadow-sm mb-3 mb-md-4 border-0" role="alert">
             <i class="bi bi-check-circle-fill me-2"></i>@Model.StatusMessage
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-3 mb-md-4 border-0" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
     <!-- Welcome Hero -->
-    <div class="card border-0 shadow-sm mb-4 dashboard-hero">
-        <div class="card-body p-4 p-md-5">
+    <div class="card border-0 shadow-sm mb-3 mb-md-4 dashboard-hero rounded-3">
+        <div class="card-body p-3 p-sm-4 p-md-4 p-lg-5">
             <div class="row align-items-center g-3">
                 <div class="col-auto">
                     @if (!string.IsNullOrEmpty(Model.AvatarUrl))
                     {
                         <img src="@Model.AvatarUrl"
                              alt="@Model.DisplayName"
-                             class="rounded-circle shadow-sm"
-                             style="width:72px;height:72px;object-fit:cover;border:3px solid #fff;" />
+                             class="rounded-circle shadow-sm dashboard-avatar" />
                     }
                     else
                     {
-                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center shadow-sm"
-                             style="width:72px;height:72px;font-size:1.75rem;font-weight:700;">
+                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center shadow-sm dashboard-avatar-placeholder">
                             @(string.IsNullOrWhiteSpace(Model.DisplayName) ? "P" : Model.DisplayName[..1].ToUpperInvariant())
                         </div>
                     }
                 </div>
-                <div class="col">
+                <div class="col min-w-0">
                     <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                        <h1 class="h3 fw-bold mb-0">Welcome back, @Model.DisplayName!</h1>
+                        <h1 class="h4 h3-md fw-bold mb-0 text-truncate">Welcome back, @Model.DisplayName!</h1>
                         @if (!string.IsNullOrEmpty(Model.SkillLevelLabel))
                         {
                             <span class="badge bg-white text-dark shadow-sm border small">@Model.SkillLevelLabel</span>
                         }
-                        @if (Model.AttendanceStats is not null && Model.AttendanceStats.TotalActivities > 0)
-                        {
+                    </div>
+
+                    @if (Model.AttendanceStats is not null && Model.AttendanceStats.TotalActivities > 0)
+                    {
+                        <div class="d-flex align-items-center gap-1 flex-wrap mt-1 mb-2">
                             <span class="badge bg-success-subtle text-success border border-success-subtle small" title="Attendance rate for activities">
                                 <i class="bi bi-person-check me-1"></i>@Model.AttendanceStats.AttendanceRate% Attendance (@Model.AttendanceStats.CheckedInCount/@(Model.AttendanceStats.CheckedInCount + Model.AttendanceStats.NoShowCount))
                             </span>
@@ -89,25 +90,26 @@
                                     <i class="bi bi-x-circle me-1"></i>@Model.AttendanceStats.NoShowCount No-Show
                                 </span>
                             }
-                        }
-                    </div>
-                    <div class="text-muted small d-flex flex-wrap gap-3">
-                        <span><i class="bi bi-envelope me-1"></i>@Model.Email</span>
+                        </div>
+                    }
+
+                    <div class="text-muted small d-flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                        <span class="text-truncate d-inline-flex align-items-center"><i class="bi bi-envelope me-1 flex-shrink-0"></i>@Model.Email</span>
                         @if (!string.IsNullOrEmpty(Model.Mobile))
                         {
-                            <span><i class="bi bi-phone me-1"></i>@Model.Mobile</span>
+                            <span class="d-inline-flex align-items-center"><i class="bi bi-phone me-1 flex-shrink-0"></i>@Model.Mobile</span>
                         }
                         @if (!string.IsNullOrEmpty(Model.Location))
                         {
-                            <span><i class="bi bi-geo-alt me-1"></i>@Model.Location</span>
+                            <span class="d-inline-flex align-items-center"><i class="bi bi-geo-alt me-1 flex-shrink-0"></i>@Model.Location</span>
                         }
                     </div>
                 </div>
                 <div class="col-12 col-md-auto mt-2 mt-md-0 d-flex gap-2">
-                    <a asp-page="/Notifications" class="btn btn-outline-primary btn-sm">
+                    <a asp-page="/Notifications" class="btn btn-outline-primary btn-sm flex-fill flex-md-grow-0 d-flex align-items-center justify-content-center">
                         <i class="bi bi-bell me-1"></i>Notifications
                     </a>
-                    <a asp-page="/Customer/Profile" class="btn btn-outline-success btn-sm">
+                    <a asp-page="/Customer/Profile" class="btn btn-outline-success btn-sm flex-fill flex-md-grow-0 d-flex align-items-center justify-content-center">
                         <i class="bi bi-pencil-square me-1"></i>Edit Profile
                     </a>
                 </div>
@@ -116,62 +118,62 @@
     </div>
 
     <!-- Quick Action Cards -->
-    <div class="row g-3 mb-4">
+    <div class="row g-2 g-sm-3 mb-3 mb-md-4">
         <div class="col-6 col-md-3">
-            <a asp-page="/Booking/Index" class="card border-0 shadow-sm text-decoration-none text-dark h-100 p-3 dashboard-card">
-                <div class="card-body p-0 text-center">
+            <a asp-page="/Booking/Index" class="card border-0 shadow-sm text-decoration-none text-dark h-100 p-2 p-sm-3 dashboard-card rounded-3">
+                <div class="card-body p-1 p-sm-2 text-center">
                     <div class="icon-circle bg-success-subtle text-success mx-auto mb-2">
                         <i class="bi bi-calendar-plus" style="font-size:1.25rem;"></i>
                     </div>
-                    <div class="fw-semibold small">Book a Court</div>
+                    <div class="fw-semibold small text-truncate">Book a Court</div>
                 </div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-page="/Activities" class="card border-0 shadow-sm text-decoration-none text-dark h-100 p-3 dashboard-card">
-                <div class="card-body p-0 text-center">
+            <a asp-page="/Activities" class="card border-0 shadow-sm text-decoration-none text-dark h-100 p-2 p-sm-3 dashboard-card rounded-3">
+                <div class="card-body p-1 p-sm-2 text-center">
                     <div class="icon-circle bg-success-subtle text-success mx-auto mb-2">
                         <i class="bi bi-calendar-event" style="font-size:1.25rem;"></i>
                     </div>
-                    <div class="fw-semibold small">Join Activities</div>
+                    <div class="fw-semibold small text-truncate">Join Activities</div>
                 </div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-page="/Booking/Lookup" class="card border-0 shadow-sm text-decoration-none text-dark h-100 p-3 dashboard-card">
-                <div class="card-body p-0 text-center">
+            <a asp-page="/Booking/Lookup" class="card border-0 shadow-sm text-decoration-none text-dark h-100 p-2 p-sm-3 dashboard-card rounded-3">
+                <div class="card-body p-1 p-sm-2 text-center">
                     <div class="icon-circle bg-primary-subtle text-primary mx-auto mb-2">
                         <i class="bi bi-search" style="font-size:1.25rem;"></i>
                     </div>
-                    <div class="fw-semibold small">Look Up Booking</div>
+                    <div class="fw-semibold small text-truncate">Look Up Booking</div>
                 </div>
             </a>
         </div>
         <div class="col-6 col-md-3">
-            <a asp-page="/Customer/Profile" class="card border-0 shadow-sm text-decoration-none text-dark h-100 p-3 dashboard-card">
-                <div class="card-body p-0 text-center">
+            <a asp-page="/Customer/Profile" class="card border-0 shadow-sm text-decoration-none text-dark h-100 p-2 p-sm-3 dashboard-card rounded-3">
+                <div class="card-body p-1 p-sm-2 text-center">
                     <div class="icon-circle bg-info-subtle text-info mx-auto mb-2">
                         <i class="bi bi-person-gear" style="font-size:1.25rem;"></i>
                     </div>
-                    <div class="fw-semibold small">My Profile</div>
+                    <div class="fw-semibold small text-truncate">My Profile</div>
                 </div>
             </a>
         </div>
     </div>
 
-    <!-- My Activities / RSVPs (Phase 34) -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
-            <div class="d-flex align-items-center justify-content-between">
-                <h2 class="h6 fw-bold mb-0">
-                    <i class="bi bi-calendar-check text-success me-2"></i>My Activities & RSVPs
+    <!-- My Activities / RSVPs (Phase 34 & 39) -->
+    <div class="card border-0 shadow-sm mb-3 mb-md-4 rounded-3">
+        <div class="card-header bg-white border-0 pt-3 pt-md-4 pb-2 px-3 px-md-4">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <h2 class="h6 fw-bold mb-0 d-flex align-items-center">
+                    <i class="bi bi-calendar-check text-success me-2"></i>My Activities &amp; RSVPs
                 </h2>
                 <a asp-page="/Activities" class="btn btn-sm btn-outline-success">
                     <i class="bi bi-plus-circle me-1"></i>Find Activities
                 </a>
             </div>
         </div>
-        <div class="card-body px-4">
+        <div class="card-body px-3 px-md-4">
             @if (!Model.UserActivities.Any())
             {
                 <div class="text-center py-5">
@@ -184,13 +186,14 @@
             }
             else
             {
-                <div class="table-responsive">
+                <!-- Desktop Table View -->
+                <div class="table-responsive d-none d-md-block">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
                                 <th class="fw-semibold small text-muted">Activity</th>
                                 <th class="fw-semibold small text-muted">Venue</th>
-                                <th class="fw-semibold small text-muted">Date & Time</th>
+                                <th class="fw-semibold small text-muted">Date &amp; Time</th>
                                 <th class="fw-semibold small text-muted">Courts</th>
                                 <th class="fw-semibold small text-muted">Status</th>
                                 <th class="fw-semibold small text-muted text-end">Action</th>
@@ -214,7 +217,11 @@
                                     <td class="small">
                                         @if (!string.IsNullOrEmpty(act.AssignedCourtName))
                                         {
-                                            <div><span class="badge bg-success-subtle text-success border"><i class="bi bi-geo-alt-fill me-1"></i>@act.AssignedCourtName</span></div>
+                                            <div>
+                                                <span class="badge bg-success-subtle text-success border fw-semibold">
+                                                    <i class="bi bi-grid-3x3 me-1"></i>@act.AssignedCourtName
+                                                </span>
+                                            </div>
                                             <span class="text-muted" style="font-size:0.75rem;">Allocated: @act.CourtNames</span>
                                         }
                                         else
@@ -282,23 +289,116 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Mobile Card View -->
+                <div class="d-md-none d-flex flex-column gap-3">
+                    @foreach (var act in Model.UserActivities)
+                    {
+                        <div class="card border rounded-3 shadow-none p-3 mobile-item-card">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <div class="min-w-0">
+                                    <h6 class="fw-bold mb-1 text-truncate">@act.ActivityName</h6>
+                                    <span class="badge bg-light text-secondary border small">@act.Format &bull; @act.SkillLevel</span>
+                                </div>
+                                <div>
+                                    @if (act.Status == RsvpStatus.CheckedIn)
+                                    {
+                                        <span class="badge bg-primary rounded-pill small">
+                                            <i class="bi bi-patch-check-fill me-1"></i>Checked In
+                                        </span>
+                                    }
+                                    else if (act.Status == RsvpStatus.Confirmed)
+                                    {
+                                        <span class="badge bg-success rounded-pill small">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Confirmed
+                                        </span>
+                                    }
+                                    else if (act.Status == RsvpStatus.Waitlisted)
+                                    {
+                                        <span class="badge bg-warning text-dark rounded-pill small">
+                                            <i class="bi bi-hourglass-split me-1"></i>Waitlist #@act.WaitlistPosition
+                                        </span>
+                                    }
+                                    else if (act.Status == RsvpStatus.NoShow)
+                                    {
+                                        <span class="badge bg-danger rounded-pill small">
+                                            <i class="bi bi-x-circle-fill me-1"></i>No-Show
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary rounded-pill small">@act.Status</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="small text-muted mb-2 d-flex flex-column gap-1">
+                                <div>
+                                    <i class="bi bi-calendar3 me-1 text-success"></i>
+                                    <strong>@act.Date.ToString("ddd, MMM d, yyyy")</strong>
+                                    &bull; @PickleBallBooking.Services.AppClock.To12HourRange(act.StartTime, act.EndTime)
+                                </div>
+                                <div>
+                                    <i class="bi bi-building me-1 text-muted"></i>@act.OrganizationName
+                                </div>
+                                @if (!string.IsNullOrEmpty(act.AssignedCourtName))
+                                {
+                                    <div class="mt-1">
+                                        <span class="badge bg-success-subtle text-success border fw-semibold">
+                                            <i class="bi bi-grid-3x3 me-1"></i>Assigned Court: @act.AssignedCourtName
+                                        </span>
+                                    </div>
+                                }
+                                else if (!string.IsNullOrEmpty(act.CourtNames))
+                                {
+                                    <div>
+                                        <i class="bi bi-grid-3x3 me-1 text-muted"></i>Courts: @act.CourtNames
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="d-flex gap-2 pt-2 border-top">
+                                @if (act.Status is RsvpStatus.Confirmed or RsvpStatus.CheckedIn)
+                                {
+                                    <button type="button" class="btn btn-outline-success btn-sm flex-fill py-1 btn-show-qr d-flex align-items-center justify-content-center"
+                                            data-title="@act.ActivityName"
+                                            data-subtitle="@act.Date.ToString("ddd, MMM d, yyyy") &bull; @act.OrganizationName @(!string.IsNullOrEmpty(act.AssignedCourtName) ? $"&bull; <strong>Assigned Court: {act.AssignedCourtName}</strong>" : "")"
+                                            data-type="Activity Pass"
+                                            data-code="RSVP:@act.RsvpId">
+                                        <i class="bi bi-qr-code me-1"></i>Show QR Pass
+                                    </button>
+                                }
+                                @if (act.Status is RsvpStatus.Confirmed or RsvpStatus.Waitlisted)
+                                {
+                                    <form method="post" asp-page-handler="CancelRsvp" class="flex-shrink-0"
+                                          onsubmit="return confirm('Cancel your registration for @act.ActivityName? If confirmed, your spot will be given to the next waitlisted player.');">
+                                        <input type="hidden" name="activityId" value="@act.ActivityId" />
+                                        <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-3" title="Cancel RSVP">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
             }
         </div>
     </div>
 
     <!-- Recent Bookings -->
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
-            <div class="d-flex align-items-center justify-content-between">
-                <h2 class="h6 fw-bold mb-0">
-                    <i class="bi bi-journal-text text-success me-2"></i>Recent Bookings
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-header bg-white border-0 pt-3 pt-md-4 pb-2 px-3 px-md-4">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <h2 class="h6 fw-bold mb-0 d-flex align-items-center">
+                    <i class="bi bi-journal-text text-success me-2"></i>Recent Court Bookings
                 </h2>
                 <a asp-page="/Booking/Lookup" class="btn btn-sm btn-outline-secondary">
                     Look up a booking
                 </a>
             </div>
         </div>
-        <div class="card-body px-4">
+        <div class="card-body px-3 px-md-4">
             @if (!Model.RecentBookings.Any())
             {
                 <div class="text-center py-5">
@@ -311,7 +411,8 @@
             }
             else
             {
-                <div class="table-responsive">
+                <!-- Desktop Table View -->
+                <div class="table-responsive d-none d-md-block">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
@@ -370,6 +471,67 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Mobile Card View -->
+                <div class="d-md-none d-flex flex-column gap-3">
+                    @foreach (var booking in Model.RecentBookings)
+                    {
+                        <div class="card border rounded-3 shadow-none p-3 mobile-item-card">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <div>
+                                    <h6 class="fw-bold mb-1">@booking.CourtName</h6>
+                                    <span class="font-monospace small text-muted">@booking.Reference</span>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge @StatusBadgeClass(booking.Status) rounded-pill small">
+                                        <i class="bi @StatusIcon(booking.Status) me-1"></i>@booking.Status
+                                    </span>
+                                    <div class="fw-bold small mt-1">₱@booking.Price.ToString("N2")</div>
+                                </div>
+                            </div>
+
+                            <div class="small text-muted mb-2 d-flex flex-column gap-1">
+                                <div>
+                                    <i class="bi bi-calendar3 me-1 text-success"></i>
+                                    <strong>@booking.Date.ToString("ddd, MMM d, yyyy")</strong>
+                                </div>
+                                <div>
+                                    <i class="bi bi-clock me-1 text-muted"></i>
+                                    @booking.StartTime.ToString(@"hh\:mm") – @booking.EndTime.ToString(@"hh\:mm")
+                                </div>
+                                @if (booking.IsCheckedIn)
+                                {
+                                    <div>
+                                        <span class="badge bg-primary rounded-pill small">
+                                            <i class="bi bi-patch-check-fill me-1"></i>Checked In
+                                        </span>
+                                    </div>
+                                }
+                                else if (booking.IsNoShow)
+                                {
+                                    <div>
+                                        <span class="badge bg-danger rounded-pill small">
+                                            <i class="bi bi-x-circle-fill me-1"></i>No-Show
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+
+                            @if (booking.Status == BookingStatus.Confirmed)
+                            {
+                                <div class="pt-2 border-top">
+                                    <button type="button" class="btn btn-outline-success btn-sm w-100 py-1 btn-show-qr d-flex align-items-center justify-content-center"
+                                            data-title="Court Booking: @booking.CourtName"
+                                            data-subtitle="@booking.Date.ToString("ddd, MMM d, yyyy") (@booking.StartTime.ToString(@"hh\:mm") - @booking.EndTime.ToString(@"hh\:mm"))"
+                                            data-type="Booking Pass"
+                                            data-code="BOOKING:@booking.Reference">
+                                        <i class="bi bi-qr-code me-1"></i>Show QR Pass
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
             }
         </div>
     </div>
@@ -379,21 +541,21 @@
 <!-- Check-In QR Pass Modal -->
 <div class="modal fade" id="qrPassModal" tabindex="-1" aria-labelledby="qrPassModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow border-0">
-            <div class="modal-header border-0 pb-0">
+        <div class="modal-content shadow border-0 rounded-4">
+            <div class="modal-header border-0 pb-0 px-3 px-sm-4 pt-3 pt-sm-4">
                 <h5 class="modal-title fw-bold" id="qrPassModalLabel">
                     <i class="bi bi-qr-code-scan text-success me-2"></i>Check-In Pass
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body text-center p-4">
+            <div class="modal-body text-center p-3 p-sm-4">
                 <span id="passTypeBadge" class="badge bg-success-subtle text-success border mb-2">Activity Pass</span>
-                <h5 id="passTitle" class="fw-bold mb-1">Activity Name</h5>
-                <p id="passSubtitle" class="text-muted small mb-3">Venue &amp; Date info</p>
+                <h5 id="passTitle" class="fw-bold mb-1 px-2">Activity Name</h5>
+                <p id="passSubtitle" class="text-muted small mb-3 px-2">Venue &amp; Date info</p>
 
-                <div class="p-3 bg-light rounded-3 d-inline-block border mb-3">
+                <div class="p-3 bg-light rounded-3 d-inline-block border mb-3 shadow-sm pass-qr-box">
                     <a id="passQrLink" href="#" target="_blank" rel="noopener noreferrer" title="Click to view full-size QR code" style="cursor: pointer;">
-                        <img id="passQrImg" src="" alt="Check-In QR Code" style="width:200px;height:200px;object-fit:contain;" class="d-block mx-auto rounded-1" />
+                        <img id="passQrImg" src="" alt="Check-In QR Code" class="img-fluid d-block mx-auto rounded-2" style="max-width:200px;width:100%;height:auto;aspect-ratio:1/1;" />
                         <span class="badge bg-dark bg-opacity-75 small mt-2 d-inline-block">
                             <i class="bi bi-arrows-fullscreen me-1"></i>Click to Enlarge
                         </span>
@@ -402,7 +564,7 @@
 
                 <div class="mb-3">
                     <label class="small text-muted mb-1 d-block">Pass Code (or staff manual entry):</label>
-                    <div class="input-group input-group-sm w-75 mx-auto">
+                    <div class="input-group input-group-sm w-100 max-w-300 mx-auto">
                         <input type="text" id="passCodeText" class="form-control text-center font-monospace fw-bold" readonly />
                         <button class="btn btn-outline-secondary" type="button" id="btnCopyPassCode" title="Copy Code">
                             <i class="bi bi-clipboard"></i>
@@ -410,12 +572,12 @@
                     </div>
                 </div>
 
-                <div class="alert alert-info py-2 px-3 small mb-0 text-start">
+                <div class="alert alert-info py-2 px-3 small mb-0 text-start rounded-3">
                     <i class="bi bi-info-circle me-1"></i> Present this QR code to the venue desk or event host upon arrival to complete your check-in.
                 </div>
             </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer border-0 pt-0 px-3 px-sm-4 pb-3 pb-sm-4">
+                <button type="button" class="btn btn-secondary w-100 rounded-3 py-2" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -468,8 +630,31 @@ document.addEventListener('DOMContentLoaded', function () {
 @section Styles {
 <style>
 .dashboard-hero {
-    background: linear-gradient(135deg, rgba(22,163,74,0.06) 0%, rgba(22,163,74,0.01) 100%);
-    border-left: 4px solid #16a34a !important;
+    background: linear-gradient(135deg, rgba(22,163,74,0.08) 0%, rgba(22,163,74,0.01) 100%);
+    border-left: 5px solid #16a34a !important;
+}
+.dashboard-avatar {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border: 3px solid #fff;
+}
+.dashboard-avatar-placeholder {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+@@media (min-width: 768px) {
+    .dashboard-avatar {
+        width: 72px;
+        height: 72px;
+    }
+    .dashboard-avatar-placeholder {
+        width: 72px;
+        height: 72px;
+        font-size: 1.75rem;
+    }
 }
 .icon-circle {
     width: 44px;
@@ -480,11 +665,26 @@ document.addEventListener('DOMContentLoaded', function () {
     justify-content: center;
 }
 .dashboard-card {
-    transition: transform .15s, box-shadow .15s;
+    transition: transform .15s ease, box-shadow .15s ease;
+    border: 1px solid rgba(0,0,0,0.05) !important;
 }
 .dashboard-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 .5rem 1rem rgba(0,0,0,.08) !important;
+}
+.mobile-item-card {
+    background-color: #fff;
+    transition: box-shadow .15s ease;
+    border-color: rgba(0,0,0,0.08) !important;
+}
+.mobile-item-card:hover {
+    box-shadow: 0 .25rem .5rem rgba(0,0,0,.05) !important;
+}
+.max-w-300 {
+    max-width: 300px;
+}
+.pass-qr-box {
+    background: #f8fafc;
 }
 .bg-success-subtle { background-color: rgba(22,163,74,0.12); }
 .bg-primary-subtle { background-color: rgba(13,110,253,0.12); }
