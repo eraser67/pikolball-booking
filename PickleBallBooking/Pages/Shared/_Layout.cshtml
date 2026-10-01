@@ -93,7 +93,7 @@
 
     <header>
         <nav class="navbar navbar-expand-lg pb-navbar sticky-top" aria-label="Main navigation">
-            <div class="container">
+            <div class="container-fluid px-3 px-lg-4 px-xl-5">
                 <a class="navbar-brand pb-brand" asp-area="" asp-page="/Index">
                     @if (!string.IsNullOrEmpty(tenantLogoUrl))
                     {
@@ -209,12 +209,12 @@
                                             </span>
                                         }
                                     </span>
-                                    <span class="d-inline d-lg-none ms-2">Notifications</span>
+                                    <span class="d-lg-none ms-2">Notifications</span>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <form method="post" asp-page="/Account/Logout" class="d-flex pb-nav-action-form">
-                                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                                    <button type="submit" class="btn btn-outline-primary btn-sm rounded-3">
                                         <i class="bi bi-box-arrow-right me-1"></i>Logout
                                     </button>
                                 </form>
@@ -225,18 +225,18 @@
                             @if (allowTenantReg)
                             {
                                 <li class="nav-item">
-                                    <a class="btn btn-outline-success btn-sm me-2" asp-area="" asp-page="/JoinUs">
+                                    <a class="btn btn-outline-success btn-sm rounded-3" asp-area="" asp-page="/JoinUs">
                                         <i class="bi bi-building-add me-1"></i>Register Your Venue
                                     </a>
                                 </li>
                             }
                             <li class="nav-item">
-                                <a class="btn btn-outline-primary btn-sm me-2" asp-area="" asp-page="/Account/Login">
+                                <a class="btn btn-outline-primary btn-sm rounded-3" asp-area="" asp-page="/Account/Login">
                                     <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="btn btn-success btn-sm" asp-area="" asp-page="/Account/Register">
+                                <a class="btn btn-success btn-sm rounded-3" asp-area="" asp-page="/Account/Register">
                                     <i class="bi bi-person-plus me-1"></i>Sign Up
                                 </a>
                             </li>

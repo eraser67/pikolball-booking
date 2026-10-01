@@ -422,7 +422,8 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   font-size: 1.15rem;
   color: var(--pb-green-900) !important;
   letter-spacing: -0.01em;
-  white-space: normal;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .pb-brand:hover {
@@ -450,9 +451,10 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   color: var(--pb-muted) !important;
   font-weight: 600;
   border-radius: 0.5rem;
-  padding: 0.45rem 0.85rem !important;
+  padding: 0.45rem 0.65rem !important;
   margin: 0 0.1rem;
   transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
 }
 
 .navbar .nav-link:hover {
@@ -522,10 +524,28 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
 }
 
 @media (min-width: 992px) {
+  .pb-navbar .navbar-collapse {
+    display: flex !important;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .pb-navbar .navbar-nav {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .pb-navbar .navbar-nav .nav-link {
+    padding: 0.4rem 0.55rem !important;
+    font-size: 0.9rem;
+  }
+
   .pb-nav-actions {
     flex-direction: row;
     align-items: center;
-    margin-left: 0.5rem;
+    margin-left: auto;
+    flex-shrink: 0;
+    gap: 0.5rem;
   }
 
   .pb-nav-actions .nav-item {
@@ -533,12 +553,44 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   }
 
   .pb-nav-actions .pb-nav-notif-link {
-    padding: 0.4rem 0.6rem;
-    border-radius: var(--pb-radius-sm);
+    width: 38px;
+    height: 38px;
+    padding: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    position: relative;
+    color: var(--pb-muted) !important;
+    font-size: 1.05rem;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .pb-nav-actions .pb-nav-notif-link:hover {
+    background-color: var(--pb-surface-alt);
+    color: var(--pb-green-900) !important;
+  }
+
+  .pb-nav-actions .pb-nav-notif-link.active {
+    background-color: var(--pb-green-100);
+    color: var(--pb-green-900) !important;
   }
 
   .pb-nav-action-form {
     width: auto;
+    margin: 0;
+  }
+
+  .pb-nav-actions .btn,
+  .pb-nav-actions .nav-link {
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 1200px) {
+  .pb-navbar .navbar-nav .nav-link {
+    padding: 0.45rem 0.75rem !important;
+    font-size: 0.95rem;
   }
 }
 
