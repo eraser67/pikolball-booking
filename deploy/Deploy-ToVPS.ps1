@@ -15,11 +15,23 @@ param (
     [string]$VpsIp,
 
     [string]$SshUser = "root",
+    [string]$VpsUser = "",
+    [string]$Domain = "punitbola.tech",
     [int]$SshPort = 22,
     [string]$SshKeyPath = ""
 )
 
+if ($VpsUser -ne "") {
+    $SshUser = $VpsUser
+}
+
 $ErrorActionPreference = "Stop"
+
+Write-Host "=== 0. Building and publishing release bundle ===" -ForegroundColor Cyan
+dotnet publish PickleBallBooking/PickleBallBooking.csproj -c Release -o publish
+if ($LASTEXITCODE -ne 0) {
+    throw "dotnet publish failed with exit code $LASTEXITCODE"
+}
 
 $sshOpts = @("-p", $SshPort)
 $scpOpts = @("-P", $SshPort)
