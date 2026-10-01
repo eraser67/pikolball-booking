@@ -1,9 +1,12 @@
 @page
-@model PickleBallBooking.Pages.Customer.NotificationsModel
+@model PickleBallBooking.Pages.NotificationsModel
 @using PickleBallBooking.Services
 @{
     ViewData["Title"] = "Notifications";
     Layout = "_Layout";
+    var isCustomer = User.IsInRole(PlatformRoles.Customer);
+    var homeUrl = isCustomer ? "/Customer/Dashboard" : "/Admin";
+    var homeText = isCustomer ? "Back to Dashboard" : "Back to Admin";
 }
 
 <div class="container py-4" style="max-width:760px;">
@@ -43,8 +46,8 @@
         <div class="text-center py-5">
             <i class="bi bi-bell-slash display-4 text-muted"></i>
             <p class="text-muted mt-3">You have no notifications yet.</p>
-            <a href="@(User.IsInRole(PickleBallBooking.Services.PlatformRoles.Customer) ? "/Customer/Dashboard" : "/Admin")" class="btn btn-outline-primary btn-sm mt-2">
-                <i class="bi bi-house me-1"></i>@(User.IsInRole(PickleBallBooking.Services.PlatformRoles.Customer) ? "Back to Dashboard" : "Back to Admin")
+            <a href="@homeUrl" class="btn btn-outline-primary btn-sm mt-2">
+                <i class="bi bi-house me-1"></i>@homeText
             </a>
         </div>
     }
@@ -102,8 +105,8 @@
         </div>
 
         <div class="text-center mt-4">
-            <a href="@(User.IsInRole(PickleBallBooking.Services.PlatformRoles.Customer) ? "/Customer/Dashboard" : "/Admin")" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-house me-1"></i>@(User.IsInRole(PickleBallBooking.Services.PlatformRoles.Customer) ? "Back to Dashboard" : "Back to Admin")
+            <a href="@homeUrl" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-house me-1"></i>@homeText
             </a>
         </div>
     }

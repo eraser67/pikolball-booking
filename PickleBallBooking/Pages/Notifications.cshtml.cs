@@ -1,16 +1,18 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PickleBallBooking.Models;
 using PickleBallBooking.Services;
 
-namespace PickleBallBooking.Pages.Customer;
+namespace PickleBallBooking.Pages;
 
 /// <summary>
-/// Phase 36: Player in-app notification feed.
-/// Displays all notifications for the current player, with mark-as-read functionality.
+/// Phase 36: In-app notification feed for all authenticated users (Players and Admins).
+/// Displays notifications for the current user, with mark-as-read functionality.
 /// </summary>
+[Authorize]
 public class NotificationsModel : PageModel
 {
     private readonly UserManager<IdentityUser> _userManager;

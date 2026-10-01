@@ -65,6 +65,8 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Admin");
     // Phase 31: customer-only pages require authentication with the Customer role.
     options.Conventions.AuthorizeFolder("/Customer", PlatformRoles.CustomerPolicy);
+    // Phase 36: In-app notifications feed requires authentication (accessible to both Players and Admins).
+    options.Conventions.AuthorizePage("/Notifications");
 });
 
 // Phase 23: platform-level authorization policy. Only Identity users in the

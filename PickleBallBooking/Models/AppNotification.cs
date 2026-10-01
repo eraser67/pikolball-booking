@@ -10,7 +10,7 @@ namespace PickleBallBooking.Models;
 /// not to any single tenant.
 ///
 /// Notifications are created by <see cref="PickleBallBooking.Services.AppNotificationService"/>
-/// and consumed by the player's notification feed (<c>/Customer/Notifications</c>) and the
+/// and consumed by the notification feed (<c>/Notifications</c>) and the
 /// unread-count badge in the shared layout.
 /// </summary>
 public class AppNotification
