@@ -141,6 +141,11 @@
                                 <i class="bi bi-calendar-event me-1"></i>Activities
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link @NavActive("/activities/leaderboard")" asp-area="" asp-page="/Activities/Leaderboard">
+                                <i class="bi bi-trophy me-1"></i>Leaderboard
+                            </a>
+                        </li>
                         @if (isCustomer)
                         {
                             <li class="nav-item">
@@ -176,6 +181,7 @@
                                     <li><a class="dropdown-item" asp-area="" asp-page="/Admin/Pricing/Index"><i class="bi bi-tags me-2"></i>Manage Pricing</a></li>
                                     <li><a class="dropdown-item" asp-area="" asp-page="/Admin/Activities/Index"><i class="bi bi-calendar-event me-2"></i>Activities</a></li>
                                     <li><a class="dropdown-item" asp-area="" asp-page="/Admin/CheckIn/Index"><i class="bi bi-qr-code-scan me-2 text-primary"></i>Player Check-In</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-page="/Activities/Leaderboard"><i class="bi bi-trophy me-2 text-warning"></i>Leaderboard</a></li>
                                     <li><a class="dropdown-item" asp-area="" asp-page="/Admin/Schedule/Index"><i class="bi bi-calendar-week me-2"></i>Schedule</a></li>
                                 </ul>
                             </li>

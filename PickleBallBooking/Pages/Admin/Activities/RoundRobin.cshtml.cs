@@ -12,14 +12,20 @@ public class RoundRobinModel : PageModel
 {
     private readonly IRoundRobinService _roundRobinService;
     private readonly IMatchScoringService _scoringService;
+    private readonly IStandingsService _standingsService;
 
-    public RoundRobinModel(IRoundRobinService roundRobinService, IMatchScoringService scoringService)
+    public RoundRobinModel(
+        IRoundRobinService roundRobinService,
+        IMatchScoringService scoringService,
+        IStandingsService standingsService)
     {
         _roundRobinService = roundRobinService;
         _scoringService = scoringService;
+        _standingsService = standingsService;
     }
 
     public RoundRobinEventOverviewDto Overview { get; private set; } = null!;
+    public EventStandingsDto? Standings { get; private set; }
 
     [BindProperty]
     public RoundRobinConfigDto Config { get; set; } = new(
@@ -45,6 +51,10 @@ public class RoundRobinModel : PageModel
         if (overview == null) return NotFound();
 
         Overview = overview;
+        if (overview.EventId > 0)
+        {
+            Standings = await _standingsService.GetEventStandingsAsync(id);
+        }
 
         // Prepopulate config if event already exists
         if (overview.EventId > 0)

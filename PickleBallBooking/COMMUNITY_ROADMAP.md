@@ -698,7 +698,7 @@ through an admin override with an explicit reason logged.
 
 ## Phase 42 -- Standings & Leaderboards
 
-**Status:** PLANNED / FUTURE
+**Status:** COMPLETE
 
 ### Goal
 

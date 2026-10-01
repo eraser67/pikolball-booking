@@ -198,6 +198,9 @@ builder.Services.AddScoped<IRoundRobinService, RoundRobinService>();
 // Phase 41: match score recording, live scoring, validation, and finalization.
 builder.Services.AddScoped<IMatchScoringService, MatchScoringService>();
 
+// Phase 42: standings and competitive leaderboards.
+builder.Services.AddScoped<IStandingsService, StandingsService>();
+
 // Platform-level settings (AllowTenantRegistration toggle etc.)
 builder.Services.AddScoped<PlatformSettingsService>();
 

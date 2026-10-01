@@ -137,7 +137,7 @@ All items below are **PLANNED / FUTURE**:
 - [x] **Phase 39 — Court Assignment** *(Manual, Automatic, Skill-Based grouping, Rebalance, Lock Assignment, Printable court sheets, Player-facing court badges)*
 - [x] **Phase 40 — Round Robin Engine** *(Rotating Partners, Fixed Partners, Singles, Match schedule generation, estimated start/end times, byes, lock controls, score sheets)*
 - [x] **Phase 41 — Match Scoring** *(Score entry, Live score, Admin finalization, Score correction with audit)*
-- [ ] **Phase 42 — Standings & Leaderboards** *(Wins, Losses, Win %, Point differential, Tenant-scoped)*
+- [x] **Phase 42 — Standings & Leaderboards** *(Wins, Losses, Win %, Point differential, Tenant-scoped)*
 - [ ] **Phase 43 — Player Statistics & Match History** *(Games played, Partner/Opponent history, Privacy controls)*
 - [ ] **Phase 44 — Tournament Foundation** *(Single Elimination, Round Robin, Pool Play, Divisions)*
 - [ ] **Phase 45 — Tournament Registration** *(Individual/Team, GCash payment integration, Waitlist)*
