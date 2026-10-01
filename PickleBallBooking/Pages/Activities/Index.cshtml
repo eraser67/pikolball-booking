@@ -148,18 +148,43 @@
                             <div class="mt-auto pt-2">
                                 @if (hasUserRsvp && userRsvp != null)
                                 {
-                                    @if (userRsvp.Status == RsvpStatus.Confirmed)
+                                    @if (userRsvp.Status == RsvpStatus.CheckedIn)
+                                    {
+                                        <div class="alert alert-primary py-2 px-3 mb-2 small d-flex align-items-center justify-content-between">
+                                            <span><i class="bi bi-patch-check-fill me-1"></i>You're Checked In!</span>
+                                            <span class="badge bg-primary">Checked In</span>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-primary btn-sm w-100 fw-medium btn-show-qr mb-2"
+                                                data-title="@a.Name"
+                                                data-subtitle="@a.Date.ToString("ddd, MMM d, yyyy") &bull; @PickleBallBooking.Services.AppClock.To12HourRange(a.StartTime, a.EndTime)"
+                                                data-type="Activity Pass"
+                                                data-code="RSVP:@userRsvp.Id"
+                                                title="Show QR Check-In Pass">
+                                            <i class="bi bi-qr-code me-1"></i>Show Check-In Pass
+                                        </button>
+                                    }
+                                    else if (userRsvp.Status == RsvpStatus.Confirmed)
                                     {
                                         <div class="alert alert-success py-2 px-3 mb-2 small d-flex align-items-center justify-content-between">
                                             <span><i class="bi bi-check-circle-fill me-1"></i>You're Confirmed!</span>
                                             <span class="badge bg-success-subtle text-success">Spot Secured</span>
                                         </div>
-                                        <form method="post" asp-page-handler="Cancel" onsubmit="return confirm('Are you sure you want to cancel your spot? If you cancel, your spot will be given to the next player on the waitlist.');">
-                                            <input type="hidden" name="activityId" value="@a.Id" />
-                                            <button type="submit" class="btn btn-outline-danger btn-sm w-100 fw-medium">
-                                                <i class="bi bi-x-circle me-1"></i>Cancel RSVP
+                                        <div class="d-flex gap-2 mb-2">
+                                            <button type="button" class="btn btn-outline-success btn-sm flex-grow-1 fw-medium btn-show-qr"
+                                                    data-title="@a.Name"
+                                                    data-subtitle="@a.Date.ToString("ddd, MMM d, yyyy") &bull; @PickleBallBooking.Services.AppClock.To12HourRange(a.StartTime, a.EndTime)"
+                                                    data-type="Activity Pass"
+                                                    data-code="RSVP:@userRsvp.Id"
+                                                    title="Show QR Check-In Pass">
+                                                <i class="bi bi-qr-code me-1"></i>Pass
                                             </button>
-                                        </form>
+                                            <form method="post" asp-page-handler="Cancel" onsubmit="return confirm('Are you sure you want to cancel your spot? If you cancel, your spot will be given to the next player on the waitlist.');" class="m-0">
+                                                <input type="hidden" name="activityId" value="@a.Id" />
+                                                <button type="submit" class="btn btn-outline-danger btn-sm fw-medium">
+                                                    <i class="bi bi-x-circle me-1"></i>Cancel
+                                                </button>
+                                            </form>
+                                        </div>
                                     }
                                     else if (userRsvp.Status == RsvpStatus.Waitlisted)
                                     {
@@ -249,6 +274,86 @@
     }
 
 </div>
+
+<!-- Check-In QR Pass Modal -->
+<div class="modal fade" id="activityQrPassModal" tabindex="-1" aria-labelledby="activityQrPassModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="activityQrPassModalLabel">
+                    <i class="bi bi-qr-code-scan text-success me-2"></i>Check-In Pass
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <span id="actPassTypeBadge" class="badge bg-success-subtle text-success border mb-2">Activity Pass</span>
+                <h5 id="actPassTitle" class="fw-bold mb-1">Activity Name</h5>
+                <p id="actPassSubtitle" class="text-muted small mb-3">Venue &amp; Date info</p>
+
+                <div class="p-3 bg-light rounded-3 d-inline-block border mb-3">
+                    <img id="actPassQrImg" src="" alt="Check-In QR Code" style="width:200px;height:200px;object-fit:contain;" class="d-block mx-auto" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="small text-muted mb-1 d-block">Pass Code (or staff manual entry):</label>
+                    <div class="input-group input-group-sm w-75 mx-auto">
+                        <input type="text" id="actPassCodeText" class="form-control text-center font-monospace fw-bold" readonly />
+                        <button class="btn btn-outline-secondary" type="button" id="btnActCopyPassCode" title="Copy Code">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="alert alert-info py-2 px-3 small mb-0 text-start">
+                    <i class="bi bi-info-circle me-1"></i> Present this QR code to the venue desk or event host upon arrival to complete your check-in.
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modalEl = document.getElementById('activityQrPassModal');
+    if (!modalEl) return;
+    const modal = new bootstrap.Modal(modalEl);
+
+    document.querySelectorAll('.btn-show-qr').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const title = this.getAttribute('data-title') || 'Pass';
+            const subtitle = this.getAttribute('data-subtitle') || '';
+            const code = this.getAttribute('data-code') || '';
+            const type = this.getAttribute('data-type') || 'Pass';
+
+            document.getElementById('actPassTitle').textContent = title;
+            document.getElementById('actPassSubtitle').innerHTML = subtitle;
+            document.getElementById('actPassTypeBadge').textContent = type;
+            document.getElementById('actPassCodeText').value = code;
+
+            const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=' + encodeURIComponent(code);
+            document.getElementById('actPassQrImg').src = qrUrl;
+
+            modal.show();
+        });
+    });
+
+    const copyBtn = document.getElementById('btnActCopyPassCode');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+            const input = document.getElementById('actPassCodeText');
+            input.select();
+            navigator.clipboard.writeText(input.value);
+            copyBtn.innerHTML = '<i class="bi bi-check2 text-success"></i>';
+            setTimeout(() => { copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+        });
+    }
+});
+</script>
+}
 
 @section Styles {
 <style>
