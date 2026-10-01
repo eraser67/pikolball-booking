@@ -47,6 +47,9 @@ public class ActivityRsvp
     /// <summary>Phase 38: Method used to check in (QR Scan, Admin Dashboard, Manual).</summary>
     public CheckInMethod? CheckInMethod { get; set; }
 
+    /// <summary>Phase 39: Court assignment for this RSVP if assigned.</summary>
+    public ActivityCourtAssignment? CourtAssignment { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

@@ -189,6 +189,9 @@ builder.Services.AddScoped<AppNotificationService>();
 // Phase 38: player check-in, attendance, and no-show tracking.
 builder.Services.AddScoped<IPlayerCheckInService, PlayerCheckInService>();
 
+// Phase 39: court assignment and skill-based grouping.
+builder.Services.AddScoped<ICourtAssignmentService, CourtAssignmentService>();
+
 // Platform-level settings (AllowTenantRegistration toggle etc.)
 builder.Services.AddScoped<PlatformSettingsService>();
 

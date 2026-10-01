@@ -56,6 +56,9 @@
         <div class="text-muted small mt-1">@a.Format &bull; @a.SkillLevel</div>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        <a asp-page="CourtAssignment" asp-route-id="@a.Id" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-grid-3x3-gap me-1"></i>Court Assignments
+        </a>
         <a asp-page="Edit" asp-route-id="@a.Id" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
@@ -165,6 +168,7 @@
                                     <th>Player</th>
                                     <th>Skill</th>
                                     <th>Contact</th>
+                                    <th>Court</th>
                                     <th>Attendance</th>
                                     <th>RSVP Time</th>
                                     <th class="text-end">Actions</th>
@@ -174,6 +178,7 @@
                                 @for (int i = 0; i < roster.ConfirmedPlayers.Count; i++)
                                 {
                                     var p = roster.ConfirmedPlayers[i];
+                                    var assignedCourt = Model.CourtOverview?.Courts.FirstOrDefault(c => c.Players.Any(pl => pl.RsvpId == p.RsvpId));
                                     <tr>
                                         <td class="text-muted small">@(i + 1)</td>
                                         <td>
@@ -199,6 +204,18 @@
                                             @if (!string.IsNullOrEmpty(p.Mobile))
                                             {
                                                 <div class="text-muted" style="font-size:0.75rem;">@p.Mobile</div>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (assignedCourt is not null)
+                                            {
+                                                <span class="badge bg-primary-subtle text-primary border" title="Assigned to @assignedCourt.CourtName">
+                                                    <i class="bi bi-grid-3x3 me-1"></i>@assignedCourt.CourtName
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-light text-muted border">Unassigned</span>
                                             }
                                         </td>
                                         <td>
@@ -393,6 +410,46 @@
     </div>
 
     <div class="col-lg-4">
+        <!-- Phase 39: Court Assignments widget -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-0 pt-4 pb-2 px-4 d-flex justify-content-between align-items-center">
+                <h2 class="h6 fw-bold mb-0">
+                    <i class="bi bi-grid-3x3-gap me-2 text-success"></i>Court Assignments
+                </h2>
+                @if (Model.CourtOverview?.AreCourtAssignmentsLocked == true)
+                {
+                    <span class="badge bg-danger">Locked</span>
+                }
+                else
+                {
+                    <span class="badge bg-success-subtle text-success">Editable</span>
+                }
+            </div>
+            <div class="card-body px-4 pb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="small text-muted">Assigned / Confirmed:</span>
+                    <span class="fw-bold small">@(Model.CourtOverview?.TotalAssignedCount ?? 0) / @(Model.CourtOverview?.TotalConfirmedCount ?? 0)</span>
+                </div>
+                @if (Model.CourtOverview?.Courts.Any() == true)
+                {
+                    <ul class="list-group list-group-flush mb-3 small">
+                        @foreach (var c in Model.CourtOverview.Courts)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                                <span><i class="bi bi-grid-3x3 text-muted me-1"></i>@c.CourtName</span>
+                                <span class="badge bg-light text-dark border">@c.Players.Count players</span>
+                            </li>
+                        }
+                    </ul>
+                }
+                <div class="d-grid">
+                    <a asp-page="CourtAssignment" asp-route-id="@a.Id" class="btn btn-outline-success btn-sm fw-semibold">
+                        <i class="bi bi-gear-fill me-1"></i>Manage Court Assignments
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- Status management -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white border-0 pt-4 pb-2 px-4">

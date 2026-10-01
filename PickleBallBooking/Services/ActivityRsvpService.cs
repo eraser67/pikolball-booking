@@ -428,9 +428,11 @@ public sealed class ActivityRsvpService
         }
 
         return await _context.ActivityRsvps
+            .Include(r => r.CourtAssignment)
+                .ThenInclude(ca => ca!.Court)
             .Where(r => idList.Contains(r.ActivityId)
                      && r.UserId == userId
-                     && (r.Status == RsvpStatus.Confirmed || r.Status == RsvpStatus.Waitlisted))
+                     && (r.Status == RsvpStatus.Confirmed || r.Status == RsvpStatus.Waitlisted || r.Status == RsvpStatus.CheckedIn))
             .ToDictionaryAsync(r => r.ActivityId);
     }
 
@@ -543,6 +545,8 @@ public sealed class ActivityRsvpService
 
         var rsvps = await _context.ActivityRsvps
             .IgnoreQueryFilters()
+            .Include(r => r.CourtAssignment)
+                .ThenInclude(ca => ca!.Court)
             .Include(r => r.Activity)
                 .ThenInclude(a => a!.ActivityCourts)
                     .ThenInclude(ac => ac.Court)
@@ -582,7 +586,8 @@ public sealed class ActivityRsvpService
                 r.WaitlistPosition,
                 r.CreatedAt,
                 r.CheckedInAt,
-                r.CheckInMethod);
+                r.CheckInMethod,
+                r.CourtAssignment?.Court?.Name);
         }).ToList();
     }
 
@@ -1060,4 +1065,5 @@ public record UserActivityItem(
     int? WaitlistPosition,
     DateTime CreatedAt,
     DateTime? CheckedInAt = null,
-    CheckInMethod? CheckInMethod = null);
+    CheckInMethod? CheckInMethod = null,
+    string? AssignedCourtName = null);

@@ -76,6 +76,18 @@ public class Activity
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    // ── Phase 39 Court Assignment ─────────────────────────────────────────
+    /// <summary>Phase 39: Whether court assignments are locked from editing.</summary>
+    public bool AreCourtAssignmentsLocked { get; set; } = false;
+
+    public DateTime? CourtAssignmentsLockedAt { get; set; }
+
+    [MaxLength(450)]
+    public string? CourtAssignmentsLockedByUserId { get; set; }
+
+    /// <summary>Phase 39: Player court assignments for this activity.</summary>
+    public ICollection<ActivityCourtAssignment> CourtAssignments { get; set; } = new List<ActivityCourtAssignment>();
+
     // ── Navigation ────────────────────────────────────────────────────────
     /// <summary>Courts assigned to this activity via the ActivityCourt join table.</summary>
     public ICollection<ActivityCourt> ActivityCourts { get; set; } = new List<ActivityCourt>();

@@ -584,7 +584,7 @@ No-show history is visible on the player's profile (tenant-scoped). Attendance d
 
 ## Phase 39 -- Court Assignment
 
-**Status:** PLANNED / FUTURE
+**Status:** COMPLETE
 
 ### Goal
 

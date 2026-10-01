@@ -97,6 +97,7 @@ else
                             <td class="small">@(a.PricePerPlayer == 0 ? "Free" : "₱" + a.PricePerPlayer.ToString("N0"))</td>
                             <td><span class="badge @StatusBadge(a.Status) rounded-pill small">@a.Status</span></td>
                             <td class="pe-3 text-end">
+                                <a asp-page="CourtAssignment" asp-route-id="@a.Id" class="btn btn-sm btn-outline-success me-1" title="Court Assignments"><i class="bi bi-grid-3x3"></i></a>
                                 <a asp-page="Edit" asp-route-id="@a.Id" class="btn btn-sm btn-outline-primary me-1">Edit</a>
                                 <a asp-page="Detail" asp-route-id="@a.Id" class="btn btn-sm btn-outline-secondary">View</a>
                             </td>

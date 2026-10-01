@@ -37,5 +37,10 @@ public enum AppNotificationType
 
     /// <summary>Player attendance was checked in on the day of the activity.</summary>
     ActivityCheckedIn = 9,
+
+    // ── Phase 39 Court Assignment ─────────────────────────────────────────────
+
+    /// <summary>Player was assigned to a court for an activity.</summary>
+    ActivityCourtAssigned = 10,
 }
 

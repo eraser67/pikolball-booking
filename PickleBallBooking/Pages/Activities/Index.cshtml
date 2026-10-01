@@ -167,12 +167,19 @@
                                     {
                                         <div class="alert alert-success py-2 px-3 mb-2 small d-flex align-items-center justify-content-between">
                                             <span><i class="bi bi-check-circle-fill me-1"></i>You're Confirmed!</span>
-                                            <span class="badge bg-success-subtle text-success">Spot Secured</span>
+                                            @if (userRsvp.CourtAssignment?.Court != null)
+                                            {
+                                                <span class="badge bg-primary-subtle text-primary border"><i class="bi bi-grid-3x3 me-1"></i>@userRsvp.CourtAssignment.Court.Name</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success-subtle text-success">Spot Secured</span>
+                                            }
                                         </div>
                                         <div class="d-flex gap-2 mb-2">
                                             <button type="button" class="btn btn-outline-success btn-sm flex-grow-1 fw-medium btn-show-qr"
                                                     data-title="@a.Name"
-                                                    data-subtitle="@a.Date.ToString("ddd, MMM d, yyyy") &bull; @PickleBallBooking.Services.AppClock.To12HourRange(a.StartTime, a.EndTime)"
+                                                    data-subtitle="@a.Date.ToString("ddd, MMM d, yyyy") &bull; @PickleBallBooking.Services.AppClock.To12HourRange(a.StartTime, a.EndTime) @(userRsvp.CourtAssignment?.Court != null ? $"&bull; <strong>Assigned: {userRsvp.CourtAssignment.Court.Name}</strong>" : "")"
                                                     data-type="Activity Pass"
                                                     data-code="RSVP:@userRsvp.Id"
                                                     title="Show QR Check-In Pass">

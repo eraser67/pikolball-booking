@@ -11,21 +11,25 @@ public class DetailModel : PageModel
     private readonly ActivityRsvpService _rsvpService;
     private readonly BookingTelegramService _telegram;
     private readonly IPlayerCheckInService _checkInService;
+    private readonly ICourtAssignmentService _courtAssignmentService;
 
     public DetailModel(
         ActivityService activityService,
         ActivityRsvpService rsvpService,
         BookingTelegramService telegram,
-        IPlayerCheckInService checkInService)
+        IPlayerCheckInService checkInService,
+        ICourtAssignmentService courtAssignmentService)
     {
-        _activityService = activityService;
-        _rsvpService     = rsvpService;
-        _telegram        = telegram;
-        _checkInService  = checkInService;
+        _activityService        = activityService;
+        _rsvpService            = rsvpService;
+        _telegram               = telegram;
+        _checkInService         = checkInService;
+        _courtAssignmentService = courtAssignmentService;
     }
 
     public Activity? Activity { get; private set; }
     public ActivityRosterResult? Roster { get; private set; }
+    public ActivityCourtAssignmentOverviewDto? CourtOverview { get; private set; }
 
     [TempData]
     public string? StatusMessage { get; set; }
@@ -39,6 +43,7 @@ public class DetailModel : PageModel
         if (Activity is null) return NotFound();
 
         Roster = await _rsvpService.GetRosterAsync(id);
+        CourtOverview = await _courtAssignmentService.GetOverviewAsync(id);
         return Page();
     }
 

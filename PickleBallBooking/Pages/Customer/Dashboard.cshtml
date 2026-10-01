@@ -211,7 +211,17 @@
                                         <div><strong>@act.Date.ToString("ddd, MMM d, yyyy")</strong></div>
                                         <div class="text-muted">@PickleBallBooking.Services.AppClock.To12HourRange(act.StartTime, act.EndTime)</div>
                                     </td>
-                                    <td class="small text-muted">@act.CourtNames</td>
+                                    <td class="small">
+                                        @if (!string.IsNullOrEmpty(act.AssignedCourtName))
+                                        {
+                                            <div><span class="badge bg-success-subtle text-success border"><i class="bi bi-geo-alt-fill me-1"></i>@act.AssignedCourtName</span></div>
+                                            <span class="text-muted" style="font-size:0.75rem;">Allocated: @act.CourtNames</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">@act.CourtNames</span>
+                                        }
+                                    </td>
                                     <td>
                                         @if (act.Status == RsvpStatus.CheckedIn)
                                         {
@@ -248,7 +258,7 @@
                                             {
                                                 <button type="button" class="btn btn-outline-success btn-sm py-1 px-2 btn-show-qr"
                                                         data-title="@act.ActivityName"
-                                                        data-subtitle="@act.Date.ToString("ddd, MMM d, yyyy") &bull; @act.OrganizationName"
+                                                        data-subtitle="@act.Date.ToString("ddd, MMM d, yyyy") &bull; @act.OrganizationName @(!string.IsNullOrEmpty(act.AssignedCourtName) ? $"&bull; <strong>Assigned Court: {act.AssignedCourtName}</strong>" : "")"
                                                         data-type="Activity Pass"
                                                         data-code="RSVP:@act.RsvpId"
                                                         title="Show Check-In QR Pass">

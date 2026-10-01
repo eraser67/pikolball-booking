@@ -1,0 +1,378 @@
+@page "/Admin/Activities/{id:int}/CourtAssignment"
+@model PickleBallBooking.Pages.Admin.Activities.CourtAssignmentModel
+@using PickleBallBooking.Models
+@{
+    var ov = Model.Overview!;
+    ViewData["Title"] = $"Court Assignments — {ov.ActivityName}";
+}
+@functions {
+    static string SkillBadgeClass(PlayerSkillLevel sk) => sk switch {
+        PlayerSkillLevel.Beginner     => "bg-success-subtle text-success border border-success-subtle",
+        PlayerSkillLevel.Intermediate => "bg-warning-subtle text-warning-emphasis border border-warning-subtle",
+        PlayerSkillLevel.Advanced     => "bg-danger-subtle text-danger border border-danger-subtle",
+        _                             => "bg-secondary-subtle text-secondary"
+    };
+
+    static string SkillIcon(PlayerSkillLevel sk) => sk switch {
+        PlayerSkillLevel.Beginner     => "🟢",
+        PlayerSkillLevel.Intermediate => "🟡",
+        PlayerSkillLevel.Advanced     => "🔴",
+        _                             => "⚪"
+    };
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="Index">Activities</a></li>
+        <li class="breadcrumb-item"><a asp-page="Detail" asp-route-id="@ov.ActivityId">@ov.ActivityName</a></li>
+        <li class="breadcrumb-item active">Court Assignments</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+    <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h1 class="h3 fw-bold mb-0">Court Assignments</h1>
+            @if (ov.AreCourtAssignmentsLocked)
+            {
+                <span class="badge bg-danger rounded-pill px-3 py-2">
+                    <i class="bi bi-lock-fill me-1"></i>Locked
+                </span>
+            }
+            else
+            {
+                <span class="badge bg-success-subtle text-success border rounded-pill px-3 py-2">
+                    <i class="bi bi-unlock-fill me-1"></i>Editable
+                </span>
+            }
+        </div>
+        <p class="text-muted small mt-1 mb-0">
+            <strong>@ov.ActivityName</strong> &bull; @ov.Date.ToString("dddd, MMMM d, yyyy") &bull; @PickleBallBooking.Services.AppClock.To12HourRange(ov.StartTime, ov.EndTime)
+            <span class="ms-2 badge bg-light text-dark border">@ov.TotalAssignedCount / @ov.TotalConfirmedCount Players Assigned</span>
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print();">
+            <i class="bi bi-printer me-1"></i>Print Court Sheets
+        </button>
+        <a asp-page="Detail" asp-route-id="@ov.ActivityId" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Activity
+        </a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (ov.AreCourtAssignmentsLocked)
+{
+    <div class="alert alert-warning d-flex align-items-center justify-content-between mb-4 shadow-sm border-warning">
+        <div>
+            <i class="bi bi-lock-fill fs-5 me-2"></i>
+            <strong>Court assignments are currently locked.</strong> Changes cannot be made until unlocked by staff.
+            @if (ov.CourtAssignmentsLockedAt.HasValue)
+            {
+                <span class="text-muted small ms-1">(Locked at @ov.CourtAssignmentsLockedAt.Value.ToLocalTime().ToString("g"))</span>
+            }
+        </div>
+        <form method="post" asp-page-handler="ToggleLock">
+            <input type="hidden" name="lockAssignments" value="false" />
+            <button type="submit" class="btn btn-outline-dark btn-sm fw-semibold">
+                <i class="bi bi-unlock me-1"></i>Unlock Assignments
+            </button>
+        </form>
+    </div>
+}
+else
+{
+    <!-- Action Bar -->
+    <div class="card border-0 shadow-sm mb-4 bg-light">
+        <div class="card-body p-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="text-muted small fw-semibold text-uppercase">Automation:</span>
+
+                    <form method="post" asp-page-handler="AutoAssign" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-primary"
+                                title="Distribute players evenly across all courts"
+                                @(ov.Courts.Count == 0 || ov.TotalConfirmedCount == 0 ? "disabled" : "")>
+                            <i class="bi bi-shuffle me-1"></i>Auto Assign (Even Split)
+                        </button>
+                    </form>
+
+                    <form method="post" asp-page-handler="SkillGroup" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-success"
+                                title="Group similar skill level players together on the same courts"
+                                @(ov.Courts.Count == 0 || ov.TotalConfirmedCount == 0 ? "disabled" : "")>
+                            <i class="bi bi-bar-chart-steps me-1"></i>Skill-Based Grouping
+                        </button>
+                    </form>
+
+                    <form method="post" asp-page-handler="Rebalance" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                title="Balance courts so each court has an equal number of players"
+                                @(ov.TotalAssignedCount == 0 ? "disabled" : "")>
+                            <i class="bi bi-arrow-left-right me-1"></i>Rebalance
+                        </button>
+                    </form>
+
+                    <form method="post" asp-page-handler="Clear" class="d-inline"
+                          onsubmit="return confirm('Are you sure you want to clear all court assignments for this activity?');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                title="Clear all court assignments"
+                                @(ov.TotalAssignedCount == 0 ? "disabled" : "")>
+                            <i class="bi bi-trash3 me-1"></i>Clear All
+                        </button>
+                    </form>
+                </div>
+
+                <div>
+                    <form method="post" asp-page-handler="ToggleLock">
+                        <input type="hidden" name="lockAssignments" value="true" />
+                        <button type="submit" class="btn btn-sm btn-dark fw-semibold"
+                                @(ov.TotalAssignedCount == 0 ? "disabled" : "")>
+                            <i class="bi bi-lock me-1"></i>Lock Assignments
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ov.Courts.Count == 0)
+{
+    <div class="alert alert-info shadow-sm p-4">
+        <h5 class="fw-bold"><i class="bi bi-info-circle me-2"></i>No Courts Allocated Yet</h5>
+        <p class="mb-3 text-muted">
+            This activity does not have any courts allocated to it. To assign players to courts, allocate one or more courts in the activity settings first.
+        </p>
+        <a asp-page="Edit" asp-route-id="@ov.ActivityId" class="btn btn-primary btn-sm">
+            <i class="bi bi-pencil me-1"></i>Edit Activity &amp; Allocate Courts
+        </a>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        <!-- Courts Grid (Left / Main) -->
+        <div class="col-lg-8 col-xl-9">
+            <div class="row g-3">
+                @foreach (var court in ov.Courts)
+                {
+                    <div class="col-md-6 col-xl-4">
+                        <div class="card h-100 shadow-sm border-0 court-board-card">
+                            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="fw-bold mb-0 text-success">
+                                        <i class="bi bi-grid-3x3 me-1"></i>@court.CourtName
+                                    </h5>
+                                </div>
+                                <span class="badge @(court.Players.Count >= 4 ? "bg-success" : court.Players.Count > 0 ? "bg-primary" : "bg-secondary") rounded-pill px-2 py-1">
+                                    @court.Players.Count Players
+                                </span>
+                            </div>
+                            <div class="card-body p-3">
+                                @if (court.Players.Count == 0)
+                                {
+                                    <div class="p-4 text-center text-muted border border-dashed rounded-3 bg-light">
+                                        <i class="bi bi-person-plus fs-2 text-secondary d-block mb-1"></i>
+                                        <span class="small">No players assigned</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="d-flex flex-column gap-2">
+                                        @foreach (var player in court.Players)
+                                        {
+                                            <div class="p-2 rounded-2 border bg-light d-flex justify-content-between align-items-center gap-2">
+                                                <div class="d-flex align-items-center gap-2 min-w-0">
+                                                    @if (!string.IsNullOrEmpty(player.AvatarUrl))
+                                                    {
+                                                        <img src="@player.AvatarUrl" alt="@player.PlayerName" class="rounded-circle" style="width:32px;height:32px;object-fit:cover;" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="rounded-circle bg-secondary bg-opacity-25 text-dark d-flex align-items-center justify-content-center fw-bold small" style="width:32px;height:32px;">
+                                                            @(player.PlayerName.Length > 0 ? player.PlayerName[0].ToString().ToUpper() : "?")
+                                                        </div>
+                                                    }
+                                                    <div class="text-truncate">
+                                                        <div class="fw-semibold small text-truncate">@player.PlayerName</div>
+                                                        <div class="d-flex align-items-center gap-1 mt-0">
+                                                            <span class="badge @SkillBadgeClass(player.SkillLevel) py-0 px-1" style="font-size:0.65rem;">
+                                                                @player.SkillLevel
+                                                            </span>
+                                                            @if (player.IsCheckedIn)
+                                                            {
+                                                                <span class="badge bg-primary-subtle text-primary border py-0 px-1" style="font-size:0.65rem;" title="Checked in">
+                                                                    <i class="bi bi-patch-check-fill me-1"></i>In
+                                                                </span>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                @if (!ov.AreCourtAssignmentsLocked)
+                                                {
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <!-- Move dropdown -->
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-outline-secondary btn-sm p-1 py-0 dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Move to another court">
+                                                                <i class="bi bi-arrow-left-right small"></i>
+                                                            </button>
+                                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                                                <li class="dropdown-header small">Move to Court</li>
+                                                                @foreach (var targetCourt in ov.Courts.Where(c => c.CourtId != court.CourtId))
+                                                                {
+                                                                    <li>
+                                                                        <form method="post" asp-page-handler="Move">
+                                                                            <input type="hidden" name="rsvpId" value="@player.RsvpId" />
+                                                                            <input type="hidden" name="targetCourtId" value="@targetCourt.CourtId" />
+                                                                            <button type="submit" class="dropdown-item small">
+                                                                                <i class="bi bi-arrow-right-short text-success me-1"></i>@targetCourt.CourtName (@targetCourt.Players.Count)
+                                                                            </button>
+                                                                        </form>
+                                                                    </li>
+                                                                }
+                                                            </ul>
+                                                        </div>
+
+                                                        <!-- Unassign button -->
+                                                        <form method="post" asp-page-handler="Unassign">
+                                                            <input type="hidden" name="rsvpId" value="@player.RsvpId" />
+                                                            <button type="submit" class="btn btn-outline-danger btn-sm p-1 py-0" title="Remove from court">
+                                                                <i class="bi bi-x-lg small"></i>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Unassigned Players Sidebar (Right) -->
+        <div class="col-lg-4 col-xl-3">
+            <div class="card border-0 shadow-sm sticky-top" style="top: 1rem;">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0">
+                        <i class="bi bi-people me-1"></i>Unassigned
+                    </h6>
+                    <span class="badge bg-warning text-dark rounded-pill">
+                        @ov.UnassignedPlayers.Count
+                    </span>
+                </div>
+                <div class="card-body p-3">
+                    @if (ov.UnassignedPlayers.Count == 0)
+                    {
+                        <div class="text-center text-muted p-3">
+                            <i class="bi bi-check-circle-fill text-success fs-3 d-block mb-1"></i>
+                            <span class="small">All confirmed players have been assigned to courts!</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-2" style="max-height: 550px; overflow-y: auto;">
+                            @foreach (var player in ov.UnassignedPlayers)
+                            {
+                                <div class="p-2 rounded-2 border bg-white d-flex justify-content-between align-items-center gap-2">
+                                    <div class="d-flex align-items-center gap-2 min-w-0">
+                                        @if (!string.IsNullOrEmpty(player.AvatarUrl))
+                                        {
+                                            <img src="@player.AvatarUrl" alt="@player.PlayerName" class="rounded-circle" style="width:30px;height:30px;object-fit:cover;" />
+                                        }
+                                        else
+                                        {
+                                            <div class="rounded-circle bg-secondary bg-opacity-25 text-dark d-flex align-items-center justify-content-center fw-bold small" style="width:30px;height:30px;">
+                                                @(player.PlayerName.Length > 0 ? player.PlayerName[0].ToString().ToUpper() : "?")
+                                            </div>
+                                        }
+                                        <div class="text-truncate">
+                                            <div class="fw-semibold small text-truncate">@player.PlayerName</div>
+                                            <span class="badge @SkillBadgeClass(player.SkillLevel) py-0 px-1" style="font-size:0.65rem;">
+                                                @player.SkillLevel
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    @if (!ov.AreCourtAssignmentsLocked)
+                                    {
+                                        <div class="dropdown">
+                                            <button class="btn btn-success btn-sm py-1 px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Assign to court">
+                                                <i class="bi bi-plus-lg"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                                <li class="dropdown-header small">Assign to:</li>
+                                                @foreach (var court in ov.Courts)
+                                                {
+                                                    <li>
+                                                        <form method="post" asp-page-handler="Assign">
+                                                            <input type="hidden" name="rsvpId" value="@player.RsvpId" />
+                                                            <input type="hidden" name="courtId" value="@court.CourtId" />
+                                                            <button type="submit" class="dropdown-item small">
+                                                                <i class="bi bi-grid-3x3 text-success me-1"></i>@court.CourtName (@court.Players.Count)
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .court-board-card {
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .court-board-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+    }
+
+    @@media print {
+        nav, .btn, .dropdown, form, .badge.bg-success-subtle, .badge.bg-danger {
+            display: none !important;
+        }
+        .court-board-card {
+            border: 1px solid #ccc !important;
+            break-inside: avoid;
+            page-break-inside: avoid;
+            margin-bottom: 1.5rem !important;
+        }
+        .col-lg-8, .col-xl-9 {
+            width: 100% !important;
+            max-width: 100% !important;
+            flex: 0 0 100% !important;
+        }
+        .col-lg-4, .col-xl-3 {
+            display: none !important;
+        }
+    }
+</style>

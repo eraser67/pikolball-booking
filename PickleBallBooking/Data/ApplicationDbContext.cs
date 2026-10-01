@@ -97,6 +97,9 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     // Phase 36: in-app player notifications (global — no tenant filter; player identity is platform-level).
     public DbSet<AppNotification> AppNotifications => Set<AppNotification>();
 
+    // Phase 39: activity court assignments (tenant-owned).
+    public DbSet<ActivityCourtAssignment> ActivityCourtAssignments => Set<ActivityCourtAssignment>();
+
     // Platform-level settings (global — single row, no tenant filter).
     public DbSet<PlatformSettings> PlatformSettings => Set<PlatformSettings>();
 
@@ -120,6 +123,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         typeof(ActivityRsvp),
         // Phase 35
         typeof(ActivitySeries),
+        // Phase 39
+        typeof(ActivityCourtAssignment),
     };
 
     public override int SaveChanges()
@@ -677,5 +682,45 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             // Tenant query filter
             entity.HasQueryFilter(s => CurrentOrganizationId != null && s.OrganizationId == CurrentOrganizationId);
         });
+
+        // Phase 39: ActivityCourtAssignment — tenant-owned.
+        modelBuilder.Entity<ActivityCourtAssignment>(entity =>
+        {
+            entity.HasKey(ca => ca.Id);
+
+            entity.Property(ca => ca.UserId).IsRequired().HasMaxLength(450);
+            entity.Property(ca => ca.Notes).HasMaxLength(500);
+
+            // One player per activity can only have one active court assignment
+            entity.HasIndex(ca => new { ca.OrganizationId, ca.ActivityId, ca.ActivityRsvpId })
+                .IsUnique()
+                .HasDatabaseName("IX_ActivityCourtAssignment_Org_Activity_Rsvp");
+
+            entity.HasIndex(ca => new { ca.OrganizationId, ca.ActivityId, ca.CourtId })
+                .HasDatabaseName("IX_ActivityCourtAssignment_Org_Activity_Court");
+
+            entity.HasOne(ca => ca.Activity)
+                .WithMany(a => a.CourtAssignments)
+                .HasForeignKey(ca => ca.ActivityId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(ca => ca.Court)
+                .WithMany()
+                .HasForeignKey(ca => ca.CourtId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(ca => ca.ActivityRsvp)
+                .WithOne(r => r.CourtAssignment)
+                .HasForeignKey<ActivityCourtAssignment>(ca => ca.ActivityRsvpId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(ca => ca.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(ca => CurrentOrganizationId != null && ca.OrganizationId == CurrentOrganizationId);
+        });
     }
 }
+
