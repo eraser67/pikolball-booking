@@ -46,6 +46,24 @@
                     <span class="badge @FormatBadgeClass(ov.Format) rounded-pill px-2 py-1 small">
                         @FormatTitle(ov.Format)
                     </span>
+                    @if (ov.ActivityStatus == ActivityStatus.Completed)
+                    {
+                        <span class="badge bg-success rounded-pill px-2 py-1 small">
+                            <i class="bi bi-check2-all me-1"></i>Activity Completed
+                        </span>
+                    }
+                    else if (Model.Standings != null && Model.Standings.IsEventComplete)
+                    {
+                        <span class="badge bg-warning text-dark rounded-pill px-2 py-1 small">
+                            <i class="bi bi-trophy-fill me-1"></i>All Matches Finished
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-primary-subtle text-primary border rounded-pill px-2 py-1 small">
+                            <i class="bi bi-arrow-repeat me-1"></i>In Progress
+                        </span>
+                    }
                     @if (ov.IsLocked)
                     {
                         <span class="badge bg-danger rounded-pill px-2 py-1 small">
@@ -436,6 +454,78 @@
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @{
+            var totalMatches = ov.TotalMatchesCount;
+            var finalizedMatches = Model.Standings?.FinalizedMatches ?? 0;
+            var inProgressMatches = Model.Standings?.InProgressMatches ?? 0;
+            var scheduledMatches = Model.Standings?.ScheduledMatches ?? 0;
+            var isAllFinalized = totalMatches > 0 && finalizedMatches == totalMatches;
+            var percentDone = totalMatches > 0 ? (int)Math.Round((double)finalizedMatches / totalMatches * 100.0) : 0;
+        }
+
+        @if (ov.ActivityStatus == ActivityStatus.Completed)
+        {
+            <div class="alert alert-light border border-success-subtle shadow-sm rounded-3 p-3 mb-4 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-success rounded-circle p-2 fs-5"><i class="bi bi-check2-all"></i></span>
+                    <div>
+                        <h6 class="fw-bold text-success mb-0">Activity Officially Completed</h6>
+                        <span class="small text-muted">All @totalMatches matches have concluded and official standings are archived.</span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-success fw-semibold shadow-sm" onclick="document.getElementById('standings-tab').click();">
+                    <i class="bi bi-trophy-fill text-warning me-1"></i>View Final Standings
+                </button>
+            </div>
+        }
+        else if (isAllFinalized)
+        {
+            <div class="alert alert-success border-0 shadow-sm rounded-3 p-3 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-warning rounded-circle p-2 fs-5 text-dark"><i class="bi bi-trophy-fill"></i></span>
+                    <div>
+                        <h6 class="fw-bold text-success mb-1">All @totalMatches Matches Concluded &amp; Finalized!</h6>
+                        <p class="small text-muted mb-0">Every match score has been recorded and verified. Official standings are ready and this activity can now be closed.</p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button type="button" class="btn btn-sm btn-outline-success fw-semibold shadow-sm" onclick="document.getElementById('standings-tab').click();">
+                        <i class="bi bi-award me-1"></i>View Standings
+                    </button>
+                    <form method="post" asp-page-handler="CompleteActivity" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-success fw-semibold shadow-sm px-3" onclick="return confirm('Officially mark this activity as Completed? This confirms all matches have finished and records final attendance.');">
+                            <i class="bi bi-check-circle-fill me-1"></i>Mark Activity Completed
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+        else if (totalMatches > 0)
+        {
+            <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
+                <div class="card-body p-3">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-1 mb-2">
+                        <span class="small fw-semibold text-muted text-uppercase" style="font-size:0.75rem;">
+                            Activity Progress: <strong class="text-dark">@finalizedMatches of @totalMatches matches finalized</strong> (@percentDone%)
+                        </span>
+                        <div class="d-flex align-items-center gap-2 small">
+                            @if (inProgressMatches > 0)
+                            {
+                                <span class="badge bg-primary-subtle text-primary border"><span class="spinner-grow spinner-grow-sm me-1" style="width:0.4rem;height:0.4rem;"></span>@inProgressMatches Live</span>
+                            }
+                            @if (scheduledMatches > 0)
+                            {
+                                <span class="badge bg-light text-muted border"><i class="bi bi-clock me-1"></i>@scheduledMatches Pending</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: @percentDone%;" aria-valuenow="@percentDone" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
             </div>

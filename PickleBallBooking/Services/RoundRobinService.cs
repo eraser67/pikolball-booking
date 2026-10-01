@@ -99,7 +99,8 @@ public class RoundRobinService : IRoundRobinService
                 [],
                 participants,
                 availableCourts,
-                0
+                0,
+                activity.Status
             );
         }
 
@@ -195,7 +196,8 @@ public class RoundRobinService : IRoundRobinService
             roundDtos,
             participants,
             availableCourts,
-            rrEvent.Matches.Count
+            rrEvent.Matches.Count,
+            activity.Status
         );
     }
 

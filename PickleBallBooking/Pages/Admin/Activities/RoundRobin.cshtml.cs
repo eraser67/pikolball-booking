@@ -13,15 +13,18 @@ public class RoundRobinModel : PageModel
     private readonly IRoundRobinService _roundRobinService;
     private readonly IMatchScoringService _scoringService;
     private readonly IStandingsService _standingsService;
+    private readonly ActivityService _activityService;
 
     public RoundRobinModel(
         IRoundRobinService roundRobinService,
         IMatchScoringService scoringService,
-        IStandingsService standingsService)
+        IStandingsService standingsService,
+        ActivityService activityService)
     {
         _roundRobinService = roundRobinService;
         _scoringService = scoringService;
         _standingsService = standingsService;
+        _activityService = activityService;
     }
 
     public RoundRobinEventOverviewDto Overview { get; private set; } = null!;
@@ -204,6 +207,13 @@ public class RoundRobinModel : PageModel
         if (result.Success) StatusMessage = result.Message;
         else ErrorMessage = result.Message;
 
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostCompleteActivityAsync(int id)
+    {
+        await _activityService.SetStatusAsync(id, ActivityStatus.Completed);
+        StatusMessage = "Activity has been officially marked as Completed! All matches have concluded and official standings are finalized.";
         return RedirectToPage(new { id });
     }
 }

@@ -92,7 +92,8 @@ public record RoundRobinEventOverviewDto(
     IReadOnlyList<RoundRobinRoundDto> Rounds,
     IReadOnlyList<RoundRobinParticipantDto> Participants,
     IReadOnlyList<RoundRobinCourtDto> AvailableCourts,
-    int TotalMatchesCount
+    int TotalMatchesCount,
+    ActivityStatus ActivityStatus = ActivityStatus.Draft
 );
 
 public record PlayerRoundMatchDto(
