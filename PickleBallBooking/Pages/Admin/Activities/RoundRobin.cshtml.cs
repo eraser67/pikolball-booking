@@ -60,11 +60,19 @@ public class RoundRobinModel : PageModel
         }
         else
         {
+            var defaultRounds = Math.Max(1, Math.Min(5, overview.Participants.Count > 1 ? overview.Participants.Count - 1 : 3));
+            var totalMins = (int)(overview.EndTime - overview.StartTime).TotalMinutes;
+            if (totalMins <= 0) totalMins = 120; // 2 hours fallback
+
+            var defaultBreak = 5;
+            var totalBreakMins = Math.Max(0, (defaultRounds - 1) * defaultBreak);
+            var computedDuration = Math.Max(15, Math.Min(60, (totalMins - totalBreakMins) / defaultRounds));
+
             Config = new RoundRobinConfigDto(
                 RoundRobinFormat.RotatingPartners,
-                Math.Max(1, Math.Min(5, overview.Participants.Count - 1)),
-                15,
-                5,
+                defaultRounds,
+                computedDuration,
+                defaultBreak,
                 ScoringType.RallyScoring,
                 11,
                 true,
