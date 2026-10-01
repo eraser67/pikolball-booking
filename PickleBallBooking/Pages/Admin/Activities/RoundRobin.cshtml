@@ -319,10 +319,10 @@
                             @if (round.EstimatedStartTime.HasValue)
                             {
                                 <span class="text-muted small">
-                                    <i class="bi bi-clock me-1 text-success"></i>@round.EstimatedStartTime.Value.ToString("h:mm tt")
+                                    <i class="bi bi-clock me-1 text-success"></i>@PickleBallBooking.Services.AppClock.To12Hour(round.EstimatedStartTime.Value)
                                     @if (round.EstimatedEndTime.HasValue)
                                     {
-                                        <span>– @round.EstimatedEndTime.Value.ToString("h:mm tt")</span>
+                                        <span>– @PickleBallBooking.Services.AppClock.To12Hour(round.EstimatedEndTime.Value)</span>
                                     }
                                 </span>
                             }
