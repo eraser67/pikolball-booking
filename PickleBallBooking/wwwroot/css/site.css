@@ -2856,4 +2856,172 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
 .pb-action-card:hover .card-body {
   background-color: #f8fffe;
 }
+
+/* =========================================================
+   Phase 43 — Player Profile & Statistics Responsive System
+   ========================================================= */
+
+.pb-profile-container {
+  width: 100%;
+}
+
+/* Hero Header */
+.pb-profile-hero {
+  background: linear-gradient(135deg, #0f3d2e 0%, #15803d 50%, #047857 100%);
+  position: relative;
+}
+
+.pb-profile-avatar {
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.pb-avatar-fallback {
+  font-size: 1.85rem;
+}
+
+@media (min-width: 768px) {
+  .pb-profile-avatar {
+    width: 96px;
+    height: 96px;
+  }
+  .pb-avatar-fallback {
+    font-size: 2.25rem;
+  }
+}
+
+.pb-hero-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.25rem 0.65rem;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  backdrop-filter: blur(4px);
+  color: #fff;
+  white-space: nowrap;
+}
+
+.pb-hero-bio {
+  max-width: 640px;
+  line-height: 1.5;
+}
+
+.pb-hero-glass-panel {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* Stat Cards */
+.pb-stat-card {
+  background-color: var(--pb-surface);
+  border: 1px solid var(--pb-border) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pb-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 61, 46, 0.08) !important;
+}
+
+.pb-stat-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 992px) {
+  .pb-stat-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+}
+
+/* Filter Pill Group */
+.pb-filter-pill-group {
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* Profile Tabs */
+.pb-profile-tabs {
+  background: var(--pb-surface);
+  border-bottom: 1px solid var(--pb-border) !important;
+  gap: 0.25rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pb-profile-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.pb-profile-tabs .nav-link {
+  color: var(--pb-muted) !important;
+  font-weight: 600;
+  border: none !important;
+  border-bottom: 3px solid transparent !important;
+  border-radius: 0 !important;
+  padding: 0.9rem 1.25rem !important;
+  background: transparent !important;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.pb-profile-tabs .nav-link:hover {
+  color: var(--pb-green-900) !important;
+  border-bottom-color: var(--pb-border) !important;
+}
+
+.pb-profile-tabs .nav-link.active {
+  color: var(--pb-green-900) !important;
+  border-bottom: 3px solid var(--pb-green-600) !important;
+}
+
+.pb-profile-tabs .nav-link .badge {
+  background-color: var(--pb-surface-alt);
+  color: var(--pb-muted);
+  font-size: 0.75rem;
+}
+
+.pb-profile-tabs .nav-link.active .badge {
+  background-color: var(--pb-green-100);
+  color: var(--pb-green-800);
+}
+
+/* Stats Tables */
+.pb-stats-table th {
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  font-size: 0.78rem;
+}
+
+.pb-stats-table td {
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+
+.pb-stats-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.pb-stats-table tbody tr:hover {
+  background-color: var(--pb-surface-alt);
+}
+
 

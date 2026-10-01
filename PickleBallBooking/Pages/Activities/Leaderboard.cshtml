@@ -8,7 +8,7 @@
     var topPointDiff = lb.Rankings.OrderByDescending(r => r.PointDifferential).FirstOrDefault();
 }
 
-<div class="container py-4">
+<div class="py-3 py-md-4">
     <!-- Breadcrumb & Header -->
     <nav aria-label="breadcrumb" class="mb-2">
         <ol class="breadcrumb">
@@ -121,7 +121,7 @@
                 {
                     var p1 = lb.TopPodium[0];
                     <div class="col-12 col-sm-4 order-1 order-sm-2 mb-2 mb-sm-0">
-                        <div class="card border-0 shadow rounded-3 p-3 bg-white h-100 border-top border-4 border-warning transform-scale" style="transform: scale(1.03);">
+                        <div class="card border-0 shadow rounded-3 p-3 bg-white h-100 border-top border-4 border-warning pb-podium-first">
                             <div class="fs-1 mb-1">👑</div>
                             <span class="badge bg-warning text-dark rounded-pill px-3 py-1 small fw-bold mb-2">1st Place &bull; Leader</span>
                             <h5 class="fw-bold text-dark text-truncate mb-1">
@@ -364,6 +364,12 @@
 }
 .bg-light-subtle {
     background-color: rgba(0, 0, 0, 0.02) !important;
+}
+@@media (min-width: 576px) {
+    .pb-podium-first {
+        transform: scale(1.04);
+        z-index: 2;
+    }
 }
 @@media print {
     nav, .btn, form {
