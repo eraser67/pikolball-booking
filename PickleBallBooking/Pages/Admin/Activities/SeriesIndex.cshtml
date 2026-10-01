@@ -1,0 +1,118 @@
+@page "/Admin/Activities/Series"
+@model PickleBallBooking.Pages.Admin.Activities.SeriesIndexModel
+@using PickleBallBooking.Models
+@{
+    ViewData["Title"] = "Recurring Series";
+}
+@functions {
+    static string StatusBadge(ActivitySeriesStatus s) => s switch {
+        ActivitySeriesStatus.Active    => "bg-success",
+        ActivitySeriesStatus.Paused    => "bg-warning text-dark",
+        ActivitySeriesStatus.Cancelled => "bg-danger",
+        ActivitySeriesStatus.Completed => "bg-secondary",
+        _                              => "bg-light text-dark"
+    };
+    static string RecurrenceIcon(RecurrenceType r) => r switch {
+        RecurrenceType.Weekly      => "bi-arrow-repeat",
+        RecurrenceType.Monthly     => "bi-calendar-month",
+        RecurrenceType.SpecificDays => "bi-calendar-check",
+        _                          => "bi-calendar"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold mb-0"><i class="bi bi-arrow-repeat text-success me-2"></i>Recurring Series</h1>
+        <p class="text-muted small mb-0 mt-1">Recurring activity templates that auto-generate occurrences.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-list me-1"></i>All Activities
+        </a>
+        <a asp-page="SeriesCreate" class="btn btn-success">
+            <i class="bi bi-plus-circle me-1"></i>New Series
+        </a>
+    </div>
+</div>
+
+@if (!Model.Series.Any())
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-arrow-repeat text-muted" style="font-size:2.5rem;"></i>
+            <p class="text-muted mt-3 mb-2">No recurring series yet. Create one to auto-generate activities on a schedule!</p>
+            <a asp-page="SeriesCreate" class="btn btn-success btn-sm">
+                <i class="bi bi-plus-circle me-1"></i>New Series
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Series Name</th>
+                        <th>Recurrence</th>
+                        <th>Date Range</th>
+                        <th>Time</th>
+                        <th>Occurrences</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.Series)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-medium">
+                                <a asp-page="SeriesDetail" asp-route-id="@s.Id" class="text-decoration-none">@s.Name</a>
+                                <div class="small text-muted">@s.Format &bull; @s.SkillLevel</div>
+                            </td>
+                            <td class="small">
+                                <i class="bi @RecurrenceIcon(s.RecurrenceType) me-1"></i>
+                                @s.RecurrenceType
+                                @if (s.RecurrenceType == RecurrenceType.Weekly && !string.IsNullOrEmpty(s.WeeklyDays))
+                                {
+                                    <div class="text-muted" style="font-size:.75rem;">
+                                        @string.Join(", ", s.GetWeeklyDays().Select(d => d.ToString()))
+                                    </div>
+                                }
+                                @if (s.RecurrenceType == RecurrenceType.Monthly && s.MonthlyDayOfMonth.HasValue)
+                                {
+                                    <div class="text-muted" style="font-size:.75rem;">Day @s.MonthlyDayOfMonth of month</div>
+                                }
+                            </td>
+                            <td class="small">
+                                @s.SeriesStartDate.ToString("MMM d, yyyy")
+                                @if (s.SeriesEndDate.HasValue)
+                                {
+                                    <span class="text-muted"> → @s.SeriesEndDate.Value.ToString("MMM d, yyyy")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted"> → Open-ended</span>
+                                }
+                            </td>
+                            <td class="small text-muted">
+                                @PickleBallBooking.Services.AppClock.To12HourRange(s.OccurrenceStartTime, s.OccurrenceEndTime)
+                            </td>
+                            <td class="small">
+                                <span class="badge bg-light text-dark border">@s.Occurrences.Count occ.</span>
+                            </td>
+                            <td>
+                                <span class="badge @StatusBadge(s.Status) rounded-pill small">@s.Status</span>
+                            </td>
+                            <td class="pe-3 text-end">
+                                <a asp-page="SeriesEdit" asp-route-id="@s.Id" class="btn btn-sm btn-outline-primary me-1">Edit</a>
+                                <a asp-page="SeriesDetail" asp-route-id="@s.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

@@ -61,6 +61,16 @@ public class Activity
     // ── Status ────────────────────────────────────────────────────────────
     public ActivityStatus Status { get; set; } = ActivityStatus.Draft;
 
+    // ── Phase 35: Recurring Series back-reference ─────────────────────────
+    /// <summary>
+    /// Null for standalone activities. When set, this Activity was generated
+    /// from the given <see cref="ActivitySeries"/> recurring template.
+    /// </summary>
+    public int? SeriesId { get; set; }
+
+    /// <summary>Navigation to the parent series. Null for standalone activities.</summary>
+    public ActivitySeries? Series { get; set; }
+
     // ── Timestamps ────────────────────────────────────────────────────────
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

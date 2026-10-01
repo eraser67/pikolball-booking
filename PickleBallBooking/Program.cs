@@ -178,6 +178,9 @@ builder.Services.AddScoped<ActivityService>();
 // Phase 34: activity RSVP & waitlist management.
 builder.Services.AddScoped<ActivityRsvpService>();
 
+// Phase 35: recurring activity series management.
+builder.Services.AddScoped<ActivitySeriesService>();
+
 // Platform-level settings (AllowTenantRegistration toggle etc.)
 builder.Services.AddScoped<PlatformSettingsService>();
 

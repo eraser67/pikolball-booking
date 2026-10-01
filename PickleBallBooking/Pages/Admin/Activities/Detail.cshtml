@@ -32,12 +32,26 @@
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-1">
                 <li class="breadcrumb-item"><a asp-page="Index">Activities</a></li>
+                @if (a.SeriesId.HasValue)
+                {
+                    <li class="breadcrumb-item">
+                        <a asp-page="SeriesDetail" asp-route-id="@a.SeriesId">
+                            <i class="bi bi-arrow-repeat me-1"></i>Series
+                        </a>
+                    </li>
+                }
                 <li class="breadcrumb-item active">@a.Name</li>
             </ol>
         </nav>
         <h1 class="h4 fw-bold mb-0">
             @a.Name
             <span class="badge @StatusBadge(a.Status) ms-2">@a.Status</span>
+            @if (a.SeriesId.HasValue)
+            {
+                <span class="badge bg-light text-secondary border ms-1" style="font-size:.65rem;">
+                    <i class="bi bi-arrow-repeat me-1"></i>Recurring
+                </span>
+            }
         </h1>
         <div class="text-muted small mt-1">@a.Format &bull; @a.SkillLevel</div>
     </div>

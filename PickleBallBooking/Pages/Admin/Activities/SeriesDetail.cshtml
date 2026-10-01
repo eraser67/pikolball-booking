@@ -1,0 +1,232 @@
+@page "/Admin/Activities/Series/{id:int}"
+@model PickleBallBooking.Pages.Admin.Activities.SeriesDetailModel
+@using PickleBallBooking.Models
+@using PickleBallBooking.Services
+@{
+    ViewData["Title"] = Model.Series?.Name ?? "Series";
+    var s = Model.Series!;
+    var today = AppClock.TodayLocal;
+}
+@functions {
+    static string ActivityStatusBadge(ActivityStatus st) => st switch {
+        ActivityStatus.Draft              => "bg-secondary",
+        ActivityStatus.Published          => "bg-info text-dark",
+        ActivityStatus.RegistrationOpen   => "bg-success",
+        ActivityStatus.Full               => "bg-warning text-dark",
+        ActivityStatus.RegistrationClosed => "bg-secondary",
+        ActivityStatus.InProgress         => "bg-primary",
+        ActivityStatus.Completed          => "bg-dark",
+        ActivityStatus.Cancelled          => "bg-danger",
+        _                                 => "bg-light text-dark"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold mb-0"><i class="bi bi-arrow-repeat text-success me-2"></i>@s.Name</h1>
+        <p class="text-muted small mb-0 mt-1">@s.Format &bull; @s.SkillLevel &bull; @s.RecurrenceType</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page="SeriesIndex" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>All Series
+        </a>
+        @if (s.Status == ActivitySeriesStatus.Active)
+        {
+            <a asp-page="SeriesEdit" asp-route-id="@s.Id" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-pencil me-1"></i>Edit
+            </a>
+        }
+    </div>
+</div>
+
+@if (Model.StatusMessage is not null)
+{
+    <div class="alert alert-success alert-dismissible py-2 small">
+        @Model.StatusMessage <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger alert-dismissible py-2 small">
+        @Model.ErrorMessage <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row g-4">
+    <!-- Left: Series Info + Controls -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                <h2 class="h6 fw-bold mb-0">Series Info</h2>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <dl class="row small mb-0">
+                    <dt class="col-5 text-muted">Status</dt>
+                    <dd class="col-7">
+                        @{
+                            var badge = s.Status switch {
+                                ActivitySeriesStatus.Active    => "bg-success",
+                                ActivitySeriesStatus.Paused    => "bg-warning text-dark",
+                                ActivitySeriesStatus.Cancelled => "bg-danger",
+                                ActivitySeriesStatus.Completed => "bg-secondary",
+                                _ => "bg-light"
+                            };
+                        }
+                        <span class="badge @badge">@s.Status</span>
+                    </dd>
+                    <dt class="col-5 text-muted">Recurrence</dt>
+                    <dd class="col-7">@s.RecurrenceType</dd>
+                    @if (s.RecurrenceType == RecurrenceType.Weekly)
+                    {
+                        <dt class="col-5 text-muted">Days</dt>
+                        <dd class="col-7">@string.Join(", ", s.GetWeeklyDays().Select(d => d.ToString()))</dd>
+                    }
+                    @if (s.RecurrenceType == RecurrenceType.Monthly)
+                    {
+                        <dt class="col-5 text-muted">Day of Month</dt>
+                        <dd class="col-7">Day @s.MonthlyDayOfMonth</dd>
+                    }
+                    <dt class="col-5 text-muted">Start Date</dt>
+                    <dd class="col-7">@s.SeriesStartDate.ToString("MMM d, yyyy")</dd>
+                    <dt class="col-5 text-muted">End Date</dt>
+                    <dd class="col-7">@(s.SeriesEndDate?.ToString("MMM d, yyyy") ?? "Open-ended")</dd>
+                    <dt class="col-5 text-muted">Time</dt>
+                    <dd class="col-7">@AppClock.To12HourRange(s.OccurrenceStartTime, s.OccurrenceEndTime)</dd>
+                    <dt class="col-5 text-muted">Capacity</dt>
+                    <dd class="col-7">@(s.MaxCapacity == 0 ? "∞ Unlimited" : s.MaxCapacity.ToString())</dd>
+                    <dt class="col-5 text-muted">Price</dt>
+                    <dd class="col-7">@(s.PricePerPlayer == 0 ? "Free" : "₱" + s.PricePerPlayer.ToString("N0"))</dd>
+                    <dt class="col-5 text-muted">Occurrences</dt>
+                    <dd class="col-7">@s.Occurrences.Count total</dd>
+                    <dt class="col-5 text-muted">Created</dt>
+                    <dd class="col-7">@AppClock.ToPhilippineTime(s.CreatedAt).ToString("MMM d, yyyy")</dd>
+                </dl>
+                @if (!string.IsNullOrWhiteSpace(s.Description))
+                {
+                    <hr class="my-3" />
+                    <p class="small text-muted mb-0">@s.Description</p>
+                }
+            </div>
+        </div>
+
+        <!-- Series Actions -->
+        @if (s.Status != ActivitySeriesStatus.Cancelled)
+        {
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                    <h2 class="h6 fw-bold mb-0">Series Actions</h2>
+                </div>
+                <div class="card-body px-4 pb-4 d-flex flex-column gap-2">
+                    @if (s.Status == ActivitySeriesStatus.Active)
+                    {
+                        <form method="post" asp-page-handler="Pause" asp-route-id="@s.Id">
+                            <button type="submit" class="btn btn-warning btn-sm w-100">
+                                <i class="bi bi-pause-circle me-1"></i>Pause Series
+                            </button>
+                        </form>
+                    }
+                    @if (s.Status == ActivitySeriesStatus.Paused)
+                    {
+                        <form method="post" asp-page-handler="Resume" asp-route-id="@s.Id">
+                            <button type="submit" class="btn btn-success btn-sm w-100">
+                                <i class="bi bi-play-circle me-1"></i>Resume Series
+                            </button>
+                        </form>
+                    }
+
+                    <!-- Cancel from date -->
+                    <form method="post" asp-page-handler="CancelFromDate" asp-route-id="@s.Id"
+                          onsubmit="return confirm('Cancel series and all occurrences from this date onward?')">
+                        <div class="input-group input-group-sm">
+                            <input type="date" name="fromDateStr"
+                                   value="@today.ToString("yyyy-MM-dd")"
+                                   class="form-control" required />
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="bi bi-x-circle me-1"></i>Cancel From
+                            </button>
+                        </div>
+                    </form>
+
+                    <form method="post" asp-page-handler="CancelSeries" asp-route-id="@s.Id"
+                          onsubmit="return confirm('Cancel the entire series and all future occurrences? This cannot be undone.')">
+                        <button type="submit" class="btn btn-danger btn-sm w-100">
+                            <i class="bi bi-x-octagon me-1"></i>Cancel Entire Series
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Right: Occurrences list -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pt-4 pb-2 px-4 d-flex justify-content-between align-items-center">
+                <h2 class="h6 fw-bold mb-0">Occurrences (@s.Occurrences.Count)</h2>
+            </div>
+            @if (!s.Occurrences.Any())
+            {
+                <div class="card-body text-center py-4">
+                    <p class="text-muted small mb-0">No occurrences generated yet.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Date</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>RSVPs</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var occ in s.Occurrences.OrderBy(o => o.Date))
+                            {
+                                <tr class="@(occ.Date < today ? "opacity-50" : "")">
+                                    <td class="ps-4">
+                                        <a asp-page="Detail" asp-route-id="@occ.Id" class="text-decoration-none fw-medium">
+                                            @occ.Date.ToString("MMM d, yyyy")
+                                            @if (occ.Date == today)
+                                            {
+                                                <span class="badge bg-primary ms-1" style="font-size:.65rem;">Today</span>
+                                            }
+                                        </a>
+                                        <div class="text-muted" style="font-size:.75rem;">@occ.Date.DayOfWeek</div>
+                                    </td>
+                                    <td class="text-muted">@AppClock.To12HourRange(occ.StartTime, occ.EndTime)</td>
+                                    <td>
+                                        <span class="badge @ActivityStatusBadge(occ.Status) rounded-pill" style="font-size:.72rem;">
+                                            @occ.Status
+                                        </span>
+                                    </td>
+                                    <td>@occ.Rsvps.Count</td>
+                                    <td class="pe-3 text-end">
+                                        <a asp-page="Detail" asp-route-id="@occ.Id"
+                                           class="btn btn-sm btn-outline-secondary me-1">View</a>
+                                        @if (occ.Status is not ActivityStatus.Cancelled and not ActivityStatus.Completed
+                                             && occ.Date >= today)
+                                        {
+                                            <form method="post" asp-page-handler="CancelOccurrence"
+                                                  asp-route-id="@s.Id"
+                                                  style="display:inline"
+                                                  onsubmit="return confirm('Cancel this occurrence only?')">
+                                                <input type="hidden" name="activityId" value="@occ.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-x"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

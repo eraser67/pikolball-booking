@@ -383,14 +383,25 @@ For free activities, RSVP can be auto-confirmed without payment review. Extend t
 
 ## Phase 35 -- Recurring Activities
 
-**Status:** PLANNED / FUTURE
+**Status:** COMPLETE ✅
+
+**Completed:** 2026-10-01
 
 ### Goal
 
 Allow tenant admins to define a recurring activity template that automatically generates
 individual activity instances on a schedule.
 
-### Recurrence Options
+### What Was Implemented
+
+#### New Models
+- **`RecurrenceType` enum** — `Weekly`, `Monthly`, `SpecificDays`
+- **`ActivitySeriesStatus` enum** — `Active`, `Paused`, `Cancelled`, `Completed`
+- **`ActivitySeries` model** — recurring template with full recurrence config, scheduling window,
+  and occurrence defaults (name, format, skill level, time, capacity, price)
+- **`Activity.SeriesId`** — nullable FK back-reference linking occurrences to their parent series
+
+#### Recurrence Options
 
 | Option        | Description                                          |
 |---------------|------------------------------------------------------|
@@ -400,21 +411,47 @@ individual activity instances on a schedule.
 | Start Date    | First occurrence date                                |
 | End Date      | Last occurrence date (or no end date / open-ended)   |
 
-### Series Management
+#### New Service: `ActivitySeriesService`
+- Create series + generate up to 200 occurrences on creation
+- Pause / Resume series (resume regenerates missing future occurrences)
+- Cancel entire series (cancels all future non-completed occurrences)
+- Cancel series from a given date onward
+- Cancel a single occurrence without affecting siblings
+- Bulk-update future occurrences when series template is edited
+- `GetCurrentCourtIdsAsync` for pre-filling edit forms
 
-Pause series, resume series, cancel single occurrence, cancel series from a given date,
-modify future occurrences (capacity, price, courts).
+#### Admin Pages (Razor Pages)
+- **`/Admin/Activities/Series`** — series index with recurrence type, date range, occurrence count
+- **`/Admin/Activities/Series/Create`** — form with dynamic JS panels per recurrence type, day-of-week checkboxes
+- **`/Admin/Activities/Series/{id}`** — series detail with full occurrence table + lifecycle action buttons
+- **`/Admin/Activities/Series/{id}/Edit`** — edit form with apply-to-future-occurrences option
+
+#### Navigation Integration
+- "Recurring Series" button added to Activities index header
+- "Series" back-link badge on each occurrence in the Activities index
+- "Recurring" breadcrumb + badge on Activity detail pages for series occurrences
+
+#### Database (Migration `Phase35_RecurringActivitySeries`)
+- New `ActivitySeries` table with all recurrence fields
+- Nullable `SeriesId` FK column on `Activities` table
+- Indexes: `IX_ActivitySeries_OrganizationId_Status`, `IX_Activities_SeriesId`
+- FK constraints with `RESTRICT` delete behavior (series deletion does not cascade-delete occurrences)
 
 ### Isolation from Existing Booking System
 
 Recurring activities generate `Activity` records (Phase 33), not `Booking` records.
-The existing fixed hourly time-slot booking system must not be affected.
+The existing fixed hourly time-slot booking system is completely unmodified.
+
+### Tenant Isolation
+
+`ActivitySeries` participates in the same EF global query filter pattern as all other
+tenant-owned types. Added to `TenantOwnedTypes` hash set in `ApplicationDbContext`.
 
 ### Dependencies
 
 - Requires: Phase 33 (Activities)
 - Requires: Phase 34 (RSVP)
-- Existing: Court model, Fixed TimeSlot model (conceptual alignment only -- do not modify)
+- Existing: Court model, Fixed TimeSlot model (conceptual alignment only — not modified)
 
 ---
 
@@ -459,6 +496,7 @@ in-app notification infrastructure.
 | Email      | Phase 36 | Extend existing BookingEmailService / IEmailService    |
 | In-App     | Phase 36 | Simple notification feed visible on player dashboard   |
 | Push (PWA) | Phase 61 | Browser push notifications via service worker          |
+| Telegram        |    | Group Notification   |
 | SMS        | Future   | Optional -- out of scope for initial implementation    |
 
 ### Dependencies

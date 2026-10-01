@@ -91,6 +91,9 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     // Phase 34: activity RSVPs and waitlist (tenant-owned).
     public DbSet<ActivityRsvp> ActivityRsvps => Set<ActivityRsvp>();
 
+    // Phase 35: recurring activity series (tenant-owned).
+    public DbSet<ActivitySeries> ActivitySeries => Set<ActivitySeries>();
+
     // Platform-level settings (global — single row, no tenant filter).
     public DbSet<PlatformSettings> PlatformSettings => Set<PlatformSettings>();
 
@@ -112,6 +115,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         typeof(ActivityCourt),
         // Phase 34
         typeof(ActivityRsvp),
+        // Phase 35
+        typeof(ActivitySeries),
     };
 
     public override int SaveChanges()
@@ -615,6 +620,39 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasQueryFilter(r => CurrentOrganizationId != null && r.OrganizationId == CurrentOrganizationId);
+        });
+
+        // Phase 35: ActivitySeries — tenant-owned recurring template.
+        modelBuilder.Entity<ActivitySeries>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+
+            entity.Property(s => s.Name).IsRequired().HasMaxLength(150);
+            entity.Property(s => s.Description).HasMaxLength(2000);
+            entity.Property(s => s.WeeklyDays).HasMaxLength(20);
+            entity.Property(s => s.SpecificDates).HasMaxLength(2000);
+            entity.Property(s => s.PricePerPlayer).HasColumnType("numeric(8,2)");
+            entity.Property(s => s.OccurrenceStartTime).HasColumnType("time without time zone");
+            entity.Property(s => s.OccurrenceEndTime).HasColumnType("time without time zone");
+
+            // Index for querying active series for a tenant
+            entity.HasIndex(s => new { s.OrganizationId, s.Status })
+                .HasDatabaseName("IX_ActivitySeries_OrganizationId_Status");
+
+            // Tenant FK
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(s => s.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // One-to-many: series -> occurrences (Activities)
+            entity.HasMany(s => s.Occurrences)
+                .WithOne(a => a.Series)
+                .HasForeignKey(a => a.SeriesId)
+                .OnDelete(DeleteBehavior.Restrict); // don't cascade-delete occurrences when series is deleted
+
+            // Tenant query filter
+            entity.HasQueryFilter(s => CurrentOrganizationId != null && s.OrganizationId == CurrentOrganizationId);
         });
     }
 }

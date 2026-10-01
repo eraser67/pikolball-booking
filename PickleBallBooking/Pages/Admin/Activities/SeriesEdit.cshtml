@@ -1,0 +1,235 @@
+@page "/Admin/Activities/Series/{id:int}/Edit"
+@model PickleBallBooking.Pages.Admin.Activities.SeriesEditModel
+@using PickleBallBooking.Models
+@{
+    ViewData["Title"] = "Edit Series";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h4 fw-bold mb-0"><i class="bi bi-pencil text-success me-2"></i>Edit Series</h1>
+    <a asp-page="SeriesDetail" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+</div>
+
+<form method="post" id="editSeriesForm">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small"></div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+
+            <!-- Details -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                    <h2 class="h6 fw-bold mb-0"><i class="bi bi-info-circle me-2 text-success"></i>Series Details</h2>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Input.Name" class="form-label fw-medium"></label>
+                            <input asp-for="Input.Name" class="form-control" />
+                            <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-4">
+                            <label asp-for="Input.Format" class="form-label fw-medium"></label>
+                            <select asp-for="Input.Format" class="form-select"
+                                    asp-items="Html.GetEnumSelectList<PickleBallBooking.Models.ActivityFormat>()"></select>
+                        </div>
+                        <div class="col-sm-4">
+                            <label asp-for="Input.SkillLevel" class="form-label fw-medium"></label>
+                            <select asp-for="Input.SkillLevel" class="form-select"
+                                    asp-items="Html.GetEnumSelectList<PickleBallBooking.Models.ActivitySkillLevel>()"></select>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Input.Description" class="form-label fw-medium"></label>
+                            <textarea asp-for="Input.Description" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recurrence -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                    <h2 class="h6 fw-bold mb-0"><i class="bi bi-arrow-repeat me-2 text-success"></i>Recurrence</h2>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-sm-4">
+                            <label asp-for="Input.RecurrenceType" class="form-label fw-medium"></label>
+                            <select asp-for="Input.RecurrenceType" class="form-select" id="recurrenceType"
+                                    asp-items="Html.GetEnumSelectList<PickleBallBooking.Models.RecurrenceType>()"></select>
+                        </div>
+
+                        <div class="col-12" id="weeklyPanel">
+                            <label class="form-label fw-medium">Days of the Week</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var day in Enum.GetValues<DayOfWeek>())
+                                {
+                                    var dayInt = (int)day;
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input day-check" type="checkbox"
+                                               id="day_@dayInt" value="@dayInt" />
+                                        <label class="form-check-label" for="day_@dayInt">@day</label>
+                                    </div>
+                                }
+                            </div>
+                            <input type="hidden" asp-for="Input.WeeklyDays" id="weeklyDaysHidden" />
+                            <span asp-validation-for="Input.WeeklyDays" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-sm-4" id="monthlyPanel" style="display:none;">
+                            <label asp-for="Input.MonthlyDayOfMonth" class="form-label fw-medium"></label>
+                            <input asp-for="Input.MonthlyDayOfMonth" type="number" min="1" max="31" class="form-control" />
+                            <span asp-validation-for="Input.MonthlyDayOfMonth" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12" id="specificPanel" style="display:none;">
+                            <label asp-for="Input.SpecificDates" class="form-label fw-medium"></label>
+                            <input asp-for="Input.SpecificDates" class="form-control" />
+                            <div class="form-text">Comma-separated yyyy-MM-dd dates.</div>
+                            <span asp-validation-for="Input.SpecificDates" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <label asp-for="Input.SeriesStartDateStr" class="form-label fw-medium"></label>
+                            <input asp-for="Input.SeriesStartDateStr" type="date" class="form-control" />
+                            <span asp-validation-for="Input.SeriesStartDateStr" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label asp-for="Input.SeriesEndDateStr" class="form-label fw-medium"></label>
+                            <input asp-for="Input.SeriesEndDateStr" type="date" class="form-control" />
+                            <div class="form-text">Leave blank for open-ended.</div>
+                        </div>
+
+                        <div class="col-sm-4">
+                            <label asp-for="Input.OccurrenceStartTimeStr" class="form-label fw-medium"></label>
+                            <input asp-for="Input.OccurrenceStartTimeStr" type="time" class="form-control" />
+                            <span asp-validation-for="Input.OccurrenceStartTimeStr" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-4">
+                            <label asp-for="Input.OccurrenceEndTimeStr" class="form-label fw-medium"></label>
+                            <input asp-for="Input.OccurrenceEndTimeStr" type="time" class="form-control" />
+                            <span asp-validation-for="Input.OccurrenceEndTimeStr" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Courts -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                    <h2 class="h6 fw-bold mb-0"><i class="bi bi-grid-3x3-gap me-2 text-success"></i>Courts</h2>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    @if (Model.CourtOptions != null)
+                    {
+                        <div class="row g-2">
+                            @foreach (var court in Model.CourtOptions)
+                            {
+                                <div class="col-sm-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="Input.SelectedCourtIds"
+                                               value="@court.Value"
+                                               id="court_@court.Value"
+                                               @(Model.Input.SelectedCourtIds != null && Model.Input.SelectedCourtIds.Contains(int.Parse(court.Value)) ? "checked" : "") />
+                                        <label class="form-check-label" for="court_@court.Value">@court.Text</label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted small">No active courts available.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                    <h2 class="h6 fw-bold mb-0"><i class="bi bi-people me-2 text-success"></i>Participation</h2>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="mb-3">
+                        <label asp-for="Input.MaxCapacity" class="form-label fw-medium"></label>
+                        <input asp-for="Input.MaxCapacity" type="number" min="0" class="form-control" />
+                        <div class="form-text">0 = unlimited.</div>
+                        <span asp-validation-for="Input.MaxCapacity" class="text-danger small"></span>
+                    </div>
+                    <div>
+                        <label asp-for="Input.PricePerPlayer" class="form-label fw-medium"></label>
+                        <div class="input-group">
+                            <span class="input-group-text">₱</span>
+                            <input asp-for="Input.PricePerPlayer" type="number" min="0" step="0.01" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Input.PricePerPlayer" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                    <h2 class="h6 fw-bold mb-0"><i class="bi bi-calendar-check me-2 text-warning"></i>Apply to Occurrences</h2>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="form-check">
+                        <input asp-for="ApplyToFutureOccurrences" class="form-check-input" type="checkbox" />
+                        <label asp-for="ApplyToFutureOccurrences" class="form-check-label">
+                            Apply changes to future occurrences
+                        </label>
+                    </div>
+                    <div class="form-text mt-1">
+                        When checked, updates name, description, format, time, capacity, and price on all
+                        upcoming occurrences (Draft/Published/Open) that have not yet started.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-success fw-semibold px-4">
+            <i class="bi bi-check-circle me-2"></i>Save Changes
+        </button>
+        <a asp-page="SeriesDetail" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const recurrenceType = document.getElementById('recurrenceType');
+        const weeklyPanel    = document.getElementById('weeklyPanel');
+        const monthlyPanel   = document.getElementById('monthlyPanel');
+        const specificPanel  = document.getElementById('specificPanel');
+
+        function updatePanels() {
+            const val = recurrenceType.value;
+            weeklyPanel.style.display   = val === '0' ? '' : 'none';
+            monthlyPanel.style.display  = val === '1' ? '' : 'none';
+            specificPanel.style.display = val === '2' ? '' : 'none';
+        }
+        recurrenceType.addEventListener('change', updatePanels);
+        updatePanels();
+
+        function updateWeeklyDays() {
+            const checked = Array.from(document.querySelectorAll('.day-check:checked'))
+                .map(cb => cb.value).sort().join(',');
+            document.getElementById('weeklyDaysHidden').value = checked;
+        }
+        document.querySelectorAll('.day-check').forEach(cb => cb.addEventListener('change', updateWeeklyDays));
+
+        const existingDays = document.getElementById('weeklyDaysHidden').value;
+        if (existingDays) {
+            existingDays.split(',').forEach(d => {
+                const cb = document.getElementById('day_' + d.trim());
+                if (cb) cb.checked = true;
+            });
+        }
+    </script>
+}
