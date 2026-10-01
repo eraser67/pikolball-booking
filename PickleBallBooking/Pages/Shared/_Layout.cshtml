@@ -196,17 +196,20 @@
                         @if (isAuthenticated)
                         {
                             <li class="nav-item">
-                                <a class="nav-link position-relative @NavActive("/notifications")" asp-page="/Notifications"
+                                <a class="nav-link pb-nav-notif-link @NavActive("/notifications")" asp-page="/Notifications"
                                    title="Notifications" aria-label="Notifications">
-                                    <i class="bi bi-bell-fill"></i>
-                                    @if (unreadNotifications > 0)
-                                    {
-                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                                              style="font-size:.6rem;min-width:16px;">
-                                            @(unreadNotifications > 9 ? "9+" : unreadNotifications.ToString())
-                                            <span class="visually-hidden">unread notifications</span>
-                                        </span>
-                                    }
+                                    <span class="pb-notif-icon-wrap position-relative d-inline-flex align-items-center justify-content-center">
+                                        <i class="bi bi-bell-fill"></i>
+                                        @if (unreadNotifications > 0)
+                                        {
+                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                                  style="font-size:.6rem;min-width:16px;line-height:1.2;padding:2px 4px;z-index:2;">
+                                                @(unreadNotifications > 9 ? "9+" : unreadNotifications.ToString())
+                                                <span class="visually-hidden">unread notifications</span>
+                                            </span>
+                                        }
+                                    </span>
+                                    <span class="d-inline d-lg-none ms-2">Notifications</span>
                                 </a>
                             </li>
                             <li class="nav-item">
