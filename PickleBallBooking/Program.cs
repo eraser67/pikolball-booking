@@ -192,6 +192,9 @@ builder.Services.AddScoped<IPlayerCheckInService, PlayerCheckInService>();
 // Phase 39: court assignment and skill-based grouping.
 builder.Services.AddScoped<ICourtAssignmentService, CourtAssignmentService>();
 
+// Phase 40: round robin match schedule generation and management.
+builder.Services.AddScoped<IRoundRobinService, RoundRobinService>();
+
 // Platform-level settings (AllowTenantRegistration toggle etc.)
 builder.Services.AddScoped<PlatformSettingsService>();
 

@@ -100,6 +100,11 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     // Phase 39: activity court assignments (tenant-owned).
     public DbSet<ActivityCourtAssignment> ActivityCourtAssignments => Set<ActivityCourtAssignment>();
 
+    // Phase 40: round robin events, matches, and byes (tenant-owned).
+    public DbSet<RoundRobinEvent> RoundRobinEvents => Set<RoundRobinEvent>();
+    public DbSet<RoundRobinMatch> RoundRobinMatches => Set<RoundRobinMatch>();
+    public DbSet<RoundRobinBye> RoundRobinByes => Set<RoundRobinBye>();
+
     // Platform-level settings (global — single row, no tenant filter).
     public DbSet<PlatformSettings> PlatformSettings => Set<PlatformSettings>();
 
@@ -125,6 +130,10 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         typeof(ActivitySeries),
         // Phase 39
         typeof(ActivityCourtAssignment),
+        // Phase 40
+        typeof(RoundRobinEvent),
+        typeof(RoundRobinMatch),
+        typeof(RoundRobinBye),
     };
 
     public override int SaveChanges()
@@ -720,6 +729,77 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasQueryFilter(ca => CurrentOrganizationId != null && ca.OrganizationId == CurrentOrganizationId);
+        });
+
+        // Phase 40: RoundRobinEvent — tenant-owned.
+        modelBuilder.Entity<RoundRobinEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasIndex(e => new { e.OrganizationId, e.ActivityId })
+                .HasDatabaseName("IX_RoundRobinEvent_Org_Activity");
+
+            entity.HasOne(e => e.Activity)
+                .WithMany(a => a.RoundRobinEvents)
+                .HasForeignKey(e => e.ActivityId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(e => CurrentOrganizationId != null && e.OrganizationId == CurrentOrganizationId);
+        });
+
+        // Phase 40: RoundRobinMatch — tenant-owned.
+        modelBuilder.Entity<RoundRobinMatch>(entity =>
+        {
+            entity.HasKey(m => m.Id);
+
+            entity.HasIndex(m => new { m.OrganizationId, m.RoundRobinEventId, m.RoundNumber })
+                .HasDatabaseName("IX_RoundRobinMatch_Org_Event_Round");
+
+            entity.HasIndex(m => new { m.OrganizationId, m.CourtId })
+                .HasDatabaseName("IX_RoundRobinMatch_Org_Court");
+
+            entity.HasOne(m => m.RoundRobinEvent)
+                .WithMany(e => e.Matches)
+                .HasForeignKey(m => m.RoundRobinEventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(m => m.Court)
+                .WithMany()
+                .HasForeignKey(m => m.CourtId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(m => m.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(m => CurrentOrganizationId != null && m.OrganizationId == CurrentOrganizationId);
+        });
+
+        // Phase 40: RoundRobinBye — tenant-owned.
+        modelBuilder.Entity<RoundRobinBye>(entity =>
+        {
+            entity.HasKey(b => b.Id);
+
+            entity.HasIndex(b => new { b.OrganizationId, b.RoundRobinEventId, b.RoundNumber })
+                .HasDatabaseName("IX_RoundRobinBye_Org_Event_Round");
+
+            entity.HasOne(b => b.RoundRobinEvent)
+                .WithMany(e => e.Byes)
+                .HasForeignKey(b => b.RoundRobinEventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(b => b.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(b => CurrentOrganizationId != null && b.OrganizationId == CurrentOrganizationId);
         });
     }
 }

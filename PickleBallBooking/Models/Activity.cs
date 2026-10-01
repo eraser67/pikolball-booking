@@ -95,6 +95,9 @@ public class Activity
     /// <summary>Phase 34: RSVPs and waitlist registrations for this activity.</summary>
     public ICollection<ActivityRsvp> Rsvps { get; set; } = new List<ActivityRsvp>();
 
+    /// <summary>Phase 40: Round robin events and match schedules for this activity.</summary>
+    public ICollection<RoundRobinEvent> RoundRobinEvents { get; set; } = new List<RoundRobinEvent>();
+
     // ── Registration State Helpers ─────────────────────────────────────────
 
     /// <summary>

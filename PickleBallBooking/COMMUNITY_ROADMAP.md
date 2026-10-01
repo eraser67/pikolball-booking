@@ -620,7 +620,7 @@ records or create `Booking` records.
 
 ## Phase 40 -- Round Robin Engine
 
-**Status:** PLANNED / FUTURE
+**Status:** COMPLETE
 
 ### Goal
 

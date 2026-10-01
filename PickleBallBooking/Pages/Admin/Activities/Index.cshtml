@@ -108,6 +108,9 @@ else
                             <td><span class="badge @StatusBadge(a.Status) rounded-pill small">@a.Status</span></td>
                             <td class="pe-4 text-end">
                                 <div class="d-inline-flex gap-1">
+                                    <a asp-page="RoundRobin" asp-route-id="@a.Id" class="btn btn-sm btn-outline-info" title="Round Robin Schedule">
+                                        <i class="bi bi-diagram-3"></i>
+                                    </a>
                                     <a asp-page="CourtAssignment" asp-route-id="@a.Id" class="btn btn-sm btn-outline-success" title="Court Assignments">
                                         <i class="bi bi-grid-3x3"></i>
                                     </a>
@@ -174,16 +177,21 @@ else
 
                 <div class="row g-2 pt-1 border-top">
                     <div class="col-6">
+                        <a asp-page="RoundRobin" asp-route-id="@a.Id" class="btn btn-outline-info btn-sm w-100 d-flex align-items-center justify-content-center">
+                            <i class="bi bi-diagram-3 me-1"></i>Round Robin
+                        </a>
+                    </div>
+                    <div class="col-6">
                         <a asp-page="CourtAssignment" asp-route-id="@a.Id" class="btn btn-outline-success btn-sm w-100 d-flex align-items-center justify-content-center">
                             <i class="bi bi-grid-3x3 me-1"></i>Courts
                         </a>
                     </div>
-                    <div class="col-3">
+                    <div class="col-6">
                         <a asp-page="Edit" asp-route-id="@a.Id" class="btn btn-outline-primary btn-sm w-100 d-flex align-items-center justify-content-center">
                             <i class="bi bi-pencil me-1"></i>Edit
                         </a>
                     </div>
-                    <div class="col-3">
+                    <div class="col-6">
                         <a asp-page="Detail" asp-route-id="@a.Id" class="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center">
                             <i class="bi bi-eye me-1"></i>View
                         </a>

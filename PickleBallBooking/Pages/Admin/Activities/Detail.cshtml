@@ -55,8 +55,11 @@
         </div>
         <div class="text-muted small mt-1">@a.Format &bull; @a.SkillLevel</div>
     </div>
-    <div class="d-flex gap-2 w-100 w-md-auto">
-        <a asp-page="CourtAssignment" asp-route-id="@a.Id" class="btn btn-outline-success btn-sm flex-fill flex-md-grow-0 d-flex align-items-center justify-content-center">
+    <div class="d-flex gap-2 w-100 w-md-auto flex-wrap">
+        <a asp-page="RoundRobin" asp-route-id="@a.Id" class="btn btn-outline-success btn-sm flex-fill flex-md-grow-0 d-flex align-items-center justify-content-center">
+            <i class="bi bi-diagram-3 me-1"></i>Round Robin
+        </a>
+        <a asp-page="CourtAssignment" asp-route-id="@a.Id" class="btn btn-outline-secondary btn-sm flex-fill flex-md-grow-0 d-flex align-items-center justify-content-center">
             <i class="bi bi-grid-3x3-gap me-1"></i>Court Assignments
         </a>
         <a asp-page="Edit" asp-route-id="@a.Id" class="btn btn-outline-primary btn-sm flex-fill flex-md-grow-0 d-flex align-items-center justify-content-center">
@@ -619,6 +622,57 @@
                         <i class="bi bi-gear-fill me-1"></i>Manage Court Assignments
                     </a>
                 </div>
+            </div>
+        </div>
+
+        <!-- Phase 40: Round Robin Engine widget -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white border-0 pt-3 pt-md-4 pb-2 px-3 px-md-4 d-flex justify-content-between align-items-center">
+                <h2 class="h6 fw-bold mb-0">
+                    <i class="bi bi-diagram-3-fill me-2 text-success"></i>Round Robin
+                </h2>
+                @if (Model.RoundRobinOverview?.EventId > 0)
+                {
+                    @if (Model.RoundRobinOverview.IsLocked)
+                    {
+                        <span class="badge bg-danger small"><i class="bi bi-lock-fill me-1"></i>Locked</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success-subtle text-success small">Scheduled</span>
+                    }
+                }
+                else
+                {
+                    <span class="badge bg-light text-muted border small">Not Generated</span>
+                }
+            </div>
+            <div class="card-body px-3 px-md-4 pb-3 pb-md-4">
+                @if (Model.RoundRobinOverview?.EventId > 0)
+                {
+                    <div class="d-flex justify-content-between align-items-center mb-2 small">
+                        <span class="text-muted">Format:</span>
+                        <span class="fw-semibold">@Model.RoundRobinOverview.Format</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2 small">
+                        <span class="text-muted">Rounds / Matches:</span>
+                        <span class="fw-semibold">@Model.RoundRobinOverview.NumberOfRounds Rounds &bull; @Model.RoundRobinOverview.TotalMatchesCount Matches</span>
+                    </div>
+                    <div class="d-grid mt-3">
+                        <a asp-page="RoundRobin" asp-route-id="@a.Id" class="btn btn-success btn-sm fw-semibold py-2 shadow-sm">
+                            <i class="bi bi-diagram-3 me-1"></i>View Match Schedule
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <p class="small text-muted mb-3">Generate automated round robin match pairings, court assignments, and schedules.</p>
+                    <div class="d-grid">
+                        <a asp-page="RoundRobin" asp-route-id="@a.Id" class="btn btn-outline-success btn-sm fw-semibold py-2">
+                            <i class="bi bi-plus-circle me-1"></i>Create Round Robin
+                        </a>
+                    </div>
+                }
             </div>
         </div>
 

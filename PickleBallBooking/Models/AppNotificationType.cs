@@ -42,5 +42,10 @@ public enum AppNotificationType
 
     /// <summary>Player was assigned to a court for an activity.</summary>
     ActivityCourtAssigned = 10,
+
+    // ── Phase 40 Round Robin ──────────────────────────────────────────────────
+
+    /// <summary>Round Robin match schedule was generated/published for an activity.</summary>
+    ActivityRoundRobinScheduled = 11,
 }
 

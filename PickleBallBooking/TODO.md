@@ -135,7 +135,7 @@ All items below are **PLANNED / FUTURE**:
 - [ ] **Phase 37 — Calendar Integration** *(ICS, Google Calendar, Apple Calendar, Outlook)*
 - [x] **Phase 38 — Player Check-In** *(QR Check-In, Admin Check-In dashboard with camera scanner, No-Show tracking, Attendance stats, Player Pass QR modal)*
 - [x] **Phase 39 — Court Assignment** *(Manual, Automatic, Skill-Based grouping, Rebalance, Lock Assignment, Printable court sheets, Player-facing court badges)*
-- [ ] **Phase 40 — Round Robin Engine** *(Rotating Partners, Fixed Partners, Singles, Match schedule generation)*
+- [x] **Phase 40 — Round Robin Engine** *(Rotating Partners, Fixed Partners, Singles, Match schedule generation, estimated start/end times, byes, lock controls, score sheets)*
 - [ ] **Phase 41 — Match Scoring** *(Score entry, Live score, Admin finalization, Score correction with audit)*
 - [ ] **Phase 42 — Standings & Leaderboards** *(Wins, Losses, Win %, Point differential, Tenant-scoped)*
 - [ ] **Phase 43 — Player Statistics & Match History** *(Games played, Partner/Opponent history, Privacy controls)*
