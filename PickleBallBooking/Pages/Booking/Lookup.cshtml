@@ -106,12 +106,23 @@
                     {
                         <div class="col-lg-5 text-center">
                             <div class="p-3 bg-light rounded-3 border">
-                                <span class="badge bg-success-subtle text-success border mb-2">Check-In QR Pass</span>
-                                <div class="bg-white p-2 rounded-2 d-inline-block shadow-sm mb-2">
-                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=@Uri.EscapeDataString($"BOOKING:{Model.Booking.BookingReference}")"
-                                         alt="Check-In QR Code"
-                                         style="width:170px;height:170px;object-fit:contain;"
-                                         class="d-block mx-auto" />
+                                <span class="badge bg-success-subtle text-success border mb-2">
+                                    <i class="bi bi-patch-check-fill me-1"></i>Check-In QR Pass
+                                </span>
+                                <div class="my-2">
+                                    <button type="button" class="btn p-0 border-0 bg-transparent" data-bs-toggle="modal" data-bs-target="#qrZoomModal" title="Click to enlarge QR pass">
+                                        <div class="bg-white p-2 rounded-3 d-inline-block shadow-sm position-relative qr-pass-card" style="cursor: pointer;">
+                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=@Uri.EscapeDataString($"BOOKING:{Model.Booking.BookingReference}")"
+                                                 alt="Check-In QR Code"
+                                                 style="width:170px;height:170px;object-fit:contain;"
+                                                 class="d-block mx-auto rounded-1" />
+                                            <div class="mt-1">
+                                                <span class="badge bg-dark bg-opacity-75 small">
+                                                    <i class="bi bi-arrows-fullscreen me-1"></i>Click to Enlarge
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </button>
                                 </div>
                                 <div class="input-group input-group-sm w-75 mx-auto mb-2">
                                     <input type="text" id="passCodeRef" class="form-control text-center font-monospace fw-bold"
@@ -121,31 +132,118 @@
                                     </button>
                                 </div>
                                 <p class="small text-muted mb-0">
-                                    <i class="bi bi-qr-code-scan me-1"></i>Present this QR code to the front desk upon arrival.
+                                    <i class="bi bi-qr-code-scan me-1"></i>Tap QR to enlarge, or present to staff at front desk.
                                 </p>
+                            </div>
+                        </div>
+                    }
+                    else if (Model.Booking.BookingStatus == PickleBallBooking.Models.BookingStatus.Pending)
+                    {
+                        <div class="col-lg-5 text-center">
+                            <div class="p-4 bg-light rounded-3 border">
+                                <div class="text-warning mb-2">
+                                    <i class="bi bi-hourglass-split display-6"></i>
+                                </div>
+                                <h6 class="fw-bold mb-1">Awaiting Confirmation</h6>
+                                <p class="small text-muted mb-3">
+                                    This booking is currently <strong>Pending</strong>. Your Check-In QR Pass will become available once confirmed by staff.
+                                </p>
+                                @if (User.Identity?.IsAuthenticated == true)
+                                {
+                                    <form method="post" asp-page-handler="StaffCheckIn" class="d-inline">
+                                        <input type="hidden" name="bookingReference" value="@Model.Booking.BookingReference" />
+                                        <input type="hidden" name="contactInfo" value="@Model.Input.ContactInfo" />
+                                        <button type="submit" class="btn btn-success btn-sm px-3 shadow-sm">
+                                            <i class="bi bi-check2-circle me-1"></i>Confirm &amp; Check In Now
+                                        </button>
+                                    </form>
+                                }
                             </div>
                         </div>
                     }
                 </div>
             </div>
         </div>
+
+        @if (Model.Booking.BookingStatus == PickleBallBooking.Models.BookingStatus.Confirmed)
+        {
+            <!-- QR Pass Enlarged Modal -->
+            <div class="modal fade" id="qrZoomModal" tabindex="-1" aria-labelledby="qrZoomModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content shadow border-0">
+                        <div class="modal-header border-0 pb-0">
+                            <h5 class="modal-title fw-bold" id="qrZoomModalLabel">
+                                <i class="bi bi-qr-code-scan text-success me-2"></i>Court Check-In Pass
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-center p-4">
+                            <span class="badge bg-success-subtle text-success border mb-2">Confirmed Booking</span>
+                            <h5 class="fw-bold mb-1">@Model.Booking.Court?.Name</h5>
+                            <p class="text-muted small mb-3">
+                                @Model.Booking.BookingDate.ToString("dddd, MMMM d, yyyy") &bull; @PickleBallBooking.Services.AppClock.To12HourRange(Model.Booking.StartTime, Model.Booking.EndTime)
+                            </p>
+
+                            <div class="p-3 bg-light rounded-3 d-inline-block border shadow-sm mb-3">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=@Uri.EscapeDataString($"BOOKING:{Model.Booking.BookingReference}")"
+                                     alt="Enlarged Check-In QR Code"
+                                     style="width:240px;height:240px;object-fit:contain;"
+                                     class="d-block mx-auto" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="small text-muted mb-1 d-block">Pass Code (or staff manual check-in):</label>
+                                <div class="input-group input-group-sm w-75 mx-auto">
+                                    <input type="text" id="modalPassCodeText" class="form-control text-center font-monospace fw-bold"
+                                           value="BOOKING:@Model.Booking.BookingReference" readonly />
+                                    <button class="btn btn-outline-secondary" type="button" id="btnCopyModalPass" title="Copy Pass Code">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info py-2 px-3 small mb-0 text-start">
+                                <i class="bi bi-info-circle me-1"></i> Present this QR code to venue staff upon arrival. Staff will scan it to verify and record your attendance.
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     }
 }
+
+<style>
+    .qr-pass-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .qr-pass-card:hover {
+        transform: scale(1.03);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+</style>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const btn = document.getElementById('btnCopyRef');
-            if (btn) {
-                btn.addEventListener('click', function () {
-                    const input = document.getElementById('passCodeRef');
-                    input.select();
-                    navigator.clipboard.writeText(input.value);
-                    btn.innerHTML = '<i class="bi bi-check2 text-success"></i>';
-                    setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
-                });
+            function setupCopy(btnId, inputId) {
+                const btn = document.getElementById(btnId);
+                const input = document.getElementById(inputId);
+                if (btn && input) {
+                    btn.addEventListener('click', function () {
+                        input.select();
+                        navigator.clipboard.writeText(input.value);
+                        btn.innerHTML = '<i class="bi bi-check2 text-success"></i>';
+                        setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+                    });
+                }
             }
+            setupCopy('btnCopyRef', 'passCodeRef');
+            setupCopy('btnCopyModalPass', 'modalPassCodeText');
         });
     </script>
 }

@@ -291,7 +291,12 @@
                 <p id="actPassSubtitle" class="text-muted small mb-3">Venue &amp; Date info</p>
 
                 <div class="p-3 bg-light rounded-3 d-inline-block border mb-3">
-                    <img id="actPassQrImg" src="" alt="Check-In QR Code" style="width:200px;height:200px;object-fit:contain;" class="d-block mx-auto" />
+                    <a id="actPassQrLink" href="#" target="_blank" rel="noopener noreferrer" title="Click to view full-size QR code" style="cursor: pointer;">
+                        <img id="actPassQrImg" src="" alt="Check-In QR Code" style="width:200px;height:200px;object-fit:contain;" class="d-block mx-auto rounded-1" />
+                        <span class="badge bg-dark bg-opacity-75 small mt-2 d-inline-block">
+                            <i class="bi bi-arrows-fullscreen me-1"></i>Click to Enlarge
+                        </span>
+                    </a>
                 </div>
 
                 <div class="mb-3">
@@ -334,8 +339,12 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('actPassTypeBadge').textContent = type;
             document.getElementById('actPassCodeText').value = code;
 
-            const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=' + encodeURIComponent(code);
+            const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=' + encodeURIComponent(code);
             document.getElementById('actPassQrImg').src = qrUrl;
+            const link = document.getElementById('actPassQrLink');
+            if (link) {
+                link.href = qrUrl;
+            }
 
             modal.show();
         });
