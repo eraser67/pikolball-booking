@@ -196,6 +196,7 @@ public sealed class AppNotificationService
         AppNotificationType.ActivityReminder       => "bi-bell-fill text-info",
         AppNotificationType.ActivityNewRegistration => "bi-person-plus-fill text-primary",
         AppNotificationType.ActivityRsvpCancelledAdmin => "bi-person-dash-fill text-warning",
+        AppNotificationType.ActivityCheckedIn      => "bi-person-check-fill text-success",
         _                                          => "bi-bell text-muted",
     };
 }

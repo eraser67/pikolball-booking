@@ -510,10 +510,12 @@ public sealed class ActivityRsvpService
                 avatarUrl,
                 r.Status,
                 r.WaitlistPosition,
-                r.CreatedAt);
+                r.CreatedAt,
+                r.CheckedInAt,
+                r.CheckInMethod);
         }).ToList();
 
-        var confirmed = playerItems.Where(p => p.Status == RsvpStatus.Confirmed).ToList();
+        var confirmed = playerItems.Where(p => p.Status is RsvpStatus.Confirmed or RsvpStatus.CheckedIn or RsvpStatus.NoShow).ToList();
         var waitlisted = playerItems.Where(p => p.Status == RsvpStatus.Waitlisted)
             .OrderBy(p => p.WaitlistPosition ?? int.MaxValue)
             .ThenBy(p => p.CreatedAt)
@@ -527,7 +529,9 @@ public sealed class ActivityRsvpService
             cancelled,
             activity.MaxCapacity,
             confirmed.Count,
-            waitlisted.Count);
+            waitlisted.Count,
+            confirmed.Count(p => p.Status == RsvpStatus.CheckedIn),
+            confirmed.Count(p => p.Status == RsvpStatus.NoShow));
     }
 
     /// <summary>
@@ -542,7 +546,7 @@ public sealed class ActivityRsvpService
             .Include(r => r.Activity)
                 .ThenInclude(a => a!.ActivityCourts)
                     .ThenInclude(ac => ac.Court)
-            .Where(r => r.UserId == userId && (r.Status == RsvpStatus.Confirmed || r.Status == RsvpStatus.Waitlisted))
+            .Where(r => r.UserId == userId && (r.Status == RsvpStatus.Confirmed || r.Status == RsvpStatus.Waitlisted || r.Status == RsvpStatus.CheckedIn || r.Status == RsvpStatus.NoShow))
             .OrderBy(r => r.Activity != null ? r.Activity.Date : DateOnly.MinValue)
             .ThenBy(r => r.Activity != null ? r.Activity.StartTime : TimeSpan.Zero)
             .ToListAsync();
@@ -576,7 +580,9 @@ public sealed class ActivityRsvpService
                 courts,
                 r.Status,
                 r.WaitlistPosition,
-                r.CreatedAt);
+                r.CreatedAt,
+                r.CheckedInAt,
+                r.CheckInMethod);
         }).ToList();
     }
 
@@ -1022,7 +1028,9 @@ public record RsvpPlayerItem(
     string? AvatarUrl,
     RsvpStatus Status,
     int? WaitlistPosition,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    DateTime? CheckedInAt = null,
+    CheckInMethod? CheckInMethod = null);
 
 public record ActivityRosterResult(
     Activity Activity,
@@ -1031,7 +1039,9 @@ public record ActivityRosterResult(
     List<RsvpPlayerItem> CancelledPlayers,
     int MaxCapacity,
     int ConfirmedCount,
-    int WaitlistCount);
+    int WaitlistCount,
+    int CheckedInCount = 0,
+    int NoShowCount = 0);
 
 public record UserActivityItem(
     int RsvpId,
@@ -1048,4 +1058,6 @@ public record UserActivityItem(
     string CourtNames,
     RsvpStatus Status,
     int? WaitlistPosition,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    DateTime? CheckedInAt = null,
+    CheckInMethod? CheckInMethod = null);

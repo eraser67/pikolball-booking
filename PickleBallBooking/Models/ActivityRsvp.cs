@@ -37,7 +37,18 @@ public class ActivityRsvp
     [MaxLength(500)]
     public string? Notes { get; set; }
 
+    /// <summary>Phase 38: Timestamp when the player was checked in on the day of the activity.</summary>
+    public DateTime? CheckedInAt { get; set; }
+
+    /// <summary>Phase 38: Identity user ID of staff who checked the player in.</summary>
+    [MaxLength(450)]
+    public string? CheckedInByUserId { get; set; }
+
+    /// <summary>Phase 38: Method used to check in (QR Scan, Admin Dashboard, Manual).</summary>
+    public CheckInMethod? CheckInMethod { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
+

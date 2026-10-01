@@ -133,7 +133,7 @@ The long-term community and competitive feature roadmap is documented in [`COMMU
 
 All items below are **PLANNED / FUTURE**:
 - [ ] **Phase 37 — Calendar Integration** *(ICS, Google Calendar, Apple Calendar, Outlook)*
-- [ ] **Phase 38 — Player Check-In** *(QR Check-In, Admin Check-In, No-Show tracking, Attendance history)*
+- [x] **Phase 38 — Player Check-In** *(QR Check-In, Admin Check-In dashboard with camera scanner, No-Show tracking, Attendance stats, Player Pass QR modal)*
 - [ ] **Phase 39 — Court Assignment** *(Manual, Automatic, Skill-Based grouping, Lock Assignment)*
 - [ ] **Phase 40 — Round Robin Engine** *(Rotating Partners, Fixed Partners, Singles, Match schedule generation)*
 - [ ] **Phase 41 — Match Scoring** *(Score entry, Live score, Admin finalization, Score correction with audit)*

@@ -134,6 +134,14 @@
                 <h2 class="h6 fw-bold mb-0">
                     <i class="bi bi-people-fill text-success me-2"></i>Confirmed Players
                     <span class="badge bg-success-subtle text-success ms-2">@(roster?.ConfirmedCount ?? 0)</span>
+                    @if ((roster?.CheckedInCount ?? 0) > 0)
+                    {
+                        <span class="badge bg-success ms-1">@roster!.CheckedInCount Checked In</span>
+                    }
+                    @if ((roster?.NoShowCount ?? 0) > 0)
+                    {
+                        <span class="badge bg-danger ms-1">@roster!.NoShowCount No-Show</span>
+                    }
                 </h2>
                 <div class="small text-muted">
                     @(a.MaxCapacity == 0 ? "Unlimited capacity" : $"{a.MaxCapacity - (roster?.ConfirmedCount ?? 0)} spots left")
@@ -157,6 +165,7 @@
                                     <th>Player</th>
                                     <th>Skill</th>
                                     <th>Contact</th>
+                                    <th>Attendance</th>
                                     <th>RSVP Time</th>
                                     <th class="text-end">Actions</th>
                                 </tr>
@@ -192,15 +201,65 @@
                                                 <div class="text-muted" style="font-size:0.75rem;">@p.Mobile</div>
                                             }
                                         </td>
+                                        <td>
+                                            @if (p.Status == RsvpStatus.CheckedIn)
+                                            {
+                                                <span class="badge bg-success"><i class="bi bi-check2-circle me-1"></i>Checked In</span>
+                                                @if (p.CheckedInAt.HasValue)
+                                                {
+                                                    <div class="text-muted" style="font-size:0.7rem;">@p.CheckedInAt.Value.ToLocalTime().ToString("h:mm tt")</div>
+                                                }
+                                            }
+                                            else if (p.Status == RsvpStatus.NoShow)
+                                            {
+                                                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>No-Show</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Pending</span>
+                                            }
+                                        </td>
                                         <td class="small text-muted">@p.CreatedAt.ToString("MMM d, h:mm tt")</td>
                                         <td class="text-end">
-                                            <form method="post" asp-page-handler="RemoveRsvp" onsubmit="return confirm('Remove @p.PlayerName from confirmed list? If there is a waitlist, the next player will be automatically promoted.');" class="d-inline">
-                                                <input type="hidden" name="id" value="@a.Id" />
-                                                <input type="hidden" name="userId" value="@p.UserId" />
-                                                <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Remove player">
-                                                    <i class="bi bi-x"></i> Remove
-                                                </button>
-                                            </form>
+                                            <div class="btn-group btn-group-sm">
+                                                @if (p.Status != RsvpStatus.CheckedIn)
+                                                {
+                                                    <form method="post" asp-page-handler="CheckInRsvp" class="d-inline">
+                                                        <input type="hidden" name="id" value="@a.Id" />
+                                                        <input type="hidden" name="rsvpId" value="@p.RsvpId" />
+                                                        <button type="submit" class="btn btn-success btn-sm py-0 px-2" title="Check In Player">
+                                                            <i class="bi bi-check2"></i> Check In
+                                                        </button>
+                                                    </form>
+                                                }
+                                                @if (p.Status != RsvpStatus.NoShow && p.Status != RsvpStatus.CheckedIn)
+                                                {
+                                                    <form method="post" asp-page-handler="MarkNoShow" class="d-inline ms-1" onsubmit="return confirm('Mark @p.PlayerName as No-Show?');">
+                                                        <input type="hidden" name="id" value="@a.Id" />
+                                                        <input type="hidden" name="rsvpId" value="@p.RsvpId" />
+                                                        <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-2" title="Mark No-Show">
+                                                            <i class="bi bi-x-circle"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                                @if (p.Status == RsvpStatus.CheckedIn || p.Status == RsvpStatus.NoShow)
+                                                {
+                                                    <form method="post" asp-page-handler="UndoCheckIn" class="d-inline ms-1">
+                                                        <input type="hidden" name="id" value="@a.Id" />
+                                                        <input type="hidden" name="rsvpId" value="@p.RsvpId" />
+                                                        <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Reset Check-In">
+                                                            <i class="bi bi-arrow-counterclockwise"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                                <form method="post" asp-page-handler="RemoveRsvp" onsubmit="return confirm('Remove @p.PlayerName from confirmed list? If there is a waitlist, the next player will be automatically promoted.');" class="d-inline ms-1">
+                                                    <input type="hidden" name="id" value="@a.Id" />
+                                                    <input type="hidden" name="userId" value="@p.UserId" />
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Remove player">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 }

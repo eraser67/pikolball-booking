@@ -548,7 +548,7 @@ via standard calendar formats.
 
 ## Phase 38 -- Player Check-In
 
-**Status:** PLANNED / FUTURE
+**Status:** COMPLETE
 
 ### Goal
 

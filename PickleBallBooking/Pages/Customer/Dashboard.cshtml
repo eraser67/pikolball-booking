@@ -25,6 +25,8 @@
     static string RsvpBadge(RsvpStatus s) => s switch
     {
         RsvpStatus.Confirmed  => "bg-success",
+        RsvpStatus.CheckedIn  => "bg-primary",
+        RsvpStatus.NoShow     => "bg-danger",
         RsvpStatus.Waitlisted => "bg-warning text-dark",
         RsvpStatus.Cancelled  => "bg-secondary",
         _                     => "bg-info text-dark"
@@ -75,6 +77,18 @@
                         @if (!string.IsNullOrEmpty(Model.SkillLevelLabel))
                         {
                             <span class="badge bg-white text-dark shadow-sm border small">@Model.SkillLevelLabel</span>
+                        }
+                        @if (Model.AttendanceStats is not null && Model.AttendanceStats.TotalActivities > 0)
+                        {
+                            <span class="badge bg-success-subtle text-success border border-success-subtle small" title="Attendance rate for activities">
+                                <i class="bi bi-person-check me-1"></i>@Model.AttendanceStats.AttendanceRate% Attendance (@Model.AttendanceStats.CheckedInCount/@(Model.AttendanceStats.CheckedInCount + Model.AttendanceStats.NoShowCount))
+                            </span>
+                            @if (Model.AttendanceStats.NoShowCount > 0)
+                            {
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle small" title="No-show count">
+                                    <i class="bi bi-x-circle me-1"></i>@Model.AttendanceStats.NoShowCount No-Show
+                                </span>
+                            }
                         }
                     </div>
                     <div class="text-muted small d-flex flex-wrap gap-3">
@@ -199,7 +213,13 @@
                                     </td>
                                     <td class="small text-muted">@act.CourtNames</td>
                                     <td>
-                                        @if (act.Status == RsvpStatus.Confirmed)
+                                        @if (act.Status == RsvpStatus.CheckedIn)
+                                        {
+                                            <span class="badge bg-primary rounded-pill">
+                                                <i class="bi bi-patch-check-fill me-1"></i>Checked In
+                                            </span>
+                                        }
+                                        else if (act.Status == RsvpStatus.Confirmed)
                                         {
                                             <span class="badge bg-success rounded-pill">
                                                 <i class="bi bi-check-circle-fill me-1"></i>Confirmed
@@ -211,19 +231,41 @@
                                                 <i class="bi bi-hourglass-split me-1"></i>Waitlist #@act.WaitlistPosition
                                             </span>
                                         }
+                                        else if (act.Status == RsvpStatus.NoShow)
+                                        {
+                                            <span class="badge bg-danger rounded-pill">
+                                                <i class="bi bi-x-circle-fill me-1"></i>No-Show
+                                            </span>
+                                        }
                                         else
                                         {
                                             <span class="badge bg-secondary rounded-pill">@act.Status</span>
                                         }
                                     </td>
                                     <td class="text-end">
-                                        <form method="post" asp-page-handler="CancelRsvp"
-                                              onsubmit="return confirm('Cancel your registration for @act.ActivityName? If confirmed, your spot will be given to the next waitlisted player.');">
-                                            <input type="hidden" name="activityId" value="@act.ActivityId" />
-                                            <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" title="Cancel RSVP">
-                                                <i class="bi bi-x-circle me-1"></i>Cancel
-                                            </button>
-                                        </form>
+                                        <div class="d-inline-flex gap-1 justify-content-end align-items-center">
+                                            @if (act.Status is RsvpStatus.Confirmed or RsvpStatus.CheckedIn)
+                                            {
+                                                <button type="button" class="btn btn-outline-success btn-sm py-1 px-2 btn-show-qr"
+                                                        data-title="@act.ActivityName"
+                                                        data-subtitle="@act.Date.ToString("ddd, MMM d, yyyy") &bull; @act.OrganizationName"
+                                                        data-type="Activity Pass"
+                                                        data-code="RSVP:@act.RsvpId"
+                                                        title="Show Check-In QR Pass">
+                                                    <i class="bi bi-qr-code me-1"></i>Pass
+                                                </button>
+                                            }
+                                            @if (act.Status is RsvpStatus.Confirmed or RsvpStatus.Waitlisted)
+                                            {
+                                                <form method="post" asp-page-handler="CancelRsvp"
+                                                      onsubmit="return confirm('Cancel your registration for @act.ActivityName? If confirmed, your spot will be given to the next waitlisted player.');">
+                                                    <input type="hidden" name="activityId" value="@act.ActivityId" />
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" title="Cancel RSVP">
+                                                        <i class="bi bi-x-circle me-1"></i>Cancel
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -269,6 +311,7 @@
                                 <th class="fw-semibold small text-muted">Time</th>
                                 <th class="fw-semibold small text-muted">Status</th>
                                 <th class="fw-semibold small text-muted text-end">Amount</th>
+                                <th class="fw-semibold small text-muted text-end">Check-In</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -285,8 +328,33 @@
                                         <span class="badge @StatusBadgeClass(booking.Status) rounded-pill">
                                             <i class="bi @StatusIcon(booking.Status) me-1"></i>@booking.Status
                                         </span>
+                                        @if (booking.IsCheckedIn)
+                                        {
+                                            <span class="badge bg-primary rounded-pill ms-1" title="Checked in at @booking.CheckedInAt?.ToString("g")">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Checked In
+                                            </span>
+                                        }
+                                        else if (booking.IsNoShow)
+                                        {
+                                            <span class="badge bg-danger rounded-pill ms-1">
+                                                <i class="bi bi-x-circle-fill me-1"></i>No-Show
+                                            </span>
+                                        }
                                     </td>
                                     <td class="text-end fw-semibold">₱@booking.Price.ToString("N2")</td>
+                                    <td class="text-end">
+                                        @if (booking.Status == BookingStatus.Confirmed)
+                                        {
+                                            <button type="button" class="btn btn-outline-success btn-sm py-1 px-2 btn-show-qr"
+                                                    data-title="Court Booking: @booking.CourtName"
+                                                    data-subtitle="@booking.Date.ToString("ddd, MMM d, yyyy") (@booking.StartTime.ToString(@"hh\:mm") - @booking.EndTime.ToString(@"hh\:mm"))"
+                                                    data-type="Booking Pass"
+                                                    data-code="BOOKING:@booking.Reference"
+                                                    title="Show Check-In QR Pass">
+                                                <i class="bi bi-qr-code me-1"></i>Pass
+                                            </button>
+                                        }
+                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -297,6 +365,86 @@
     </div>
 
 </div>
+
+<!-- Check-In QR Pass Modal -->
+<div class="modal fade" id="qrPassModal" tabindex="-1" aria-labelledby="qrPassModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="qrPassModalLabel">
+                    <i class="bi bi-qr-code-scan text-success me-2"></i>Check-In Pass
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <span id="passTypeBadge" class="badge bg-success-subtle text-success border mb-2">Activity Pass</span>
+                <h5 id="passTitle" class="fw-bold mb-1">Activity Name</h5>
+                <p id="passSubtitle" class="text-muted small mb-3">Venue &amp; Date info</p>
+
+                <div class="p-3 bg-light rounded-3 d-inline-block border mb-3">
+                    <img id="passQrImg" src="" alt="Check-In QR Code" style="width:200px;height:200px;object-fit:contain;" class="d-block mx-auto" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="small text-muted mb-1 d-block">Pass Code (or staff manual entry):</label>
+                    <div class="input-group input-group-sm w-75 mx-auto">
+                        <input type="text" id="passCodeText" class="form-control text-center font-monospace fw-bold" readonly />
+                        <button class="btn btn-outline-secondary" type="button" id="btnCopyPassCode" title="Copy Code">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="alert alert-info py-2 px-3 small mb-0 text-start">
+                    <i class="bi bi-info-circle me-1"></i> Present this QR code to the venue desk or event host upon arrival to complete your check-in.
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modalEl = document.getElementById('qrPassModal');
+    if (!modalEl) return;
+    const modal = new bootstrap.Modal(modalEl);
+
+    document.querySelectorAll('.btn-show-qr').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const title = this.getAttribute('data-title') || 'Pass';
+            const subtitle = this.getAttribute('data-subtitle') || '';
+            const code = this.getAttribute('data-code') || '';
+            const type = this.getAttribute('data-type') || 'Pass';
+
+            document.getElementById('passTitle').textContent = title;
+            document.getElementById('passSubtitle').innerHTML = subtitle;
+            document.getElementById('passTypeBadge').textContent = type;
+            document.getElementById('passCodeText').value = code;
+
+            const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=' + encodeURIComponent(code);
+            document.getElementById('passQrImg').src = qrUrl;
+
+            modal.show();
+        });
+    });
+
+    const copyBtn = document.getElementById('btnCopyPassCode');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+            const input = document.getElementById('passCodeText');
+            input.select();
+            navigator.clipboard.writeText(input.value);
+            copyBtn.innerHTML = '<i class="bi bi-check2 text-success"></i>';
+            setTimeout(() => { copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+        });
+    }
+});
+</script>
+}
 
 @section Styles {
 <style>

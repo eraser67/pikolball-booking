@@ -186,6 +186,9 @@ builder.Services.AddScoped<ActivitySeriesService>();
 // Phase 36: in-app notification service (platform-level, user-scoped).
 builder.Services.AddScoped<AppNotificationService>();
 
+// Phase 38: player check-in, attendance, and no-show tracking.
+builder.Services.AddScoped<IPlayerCheckInService, PlayerCheckInService>();
+
 // Platform-level settings (AllowTenantRegistration toggle etc.)
 builder.Services.AddScoped<PlatformSettingsService>();
 

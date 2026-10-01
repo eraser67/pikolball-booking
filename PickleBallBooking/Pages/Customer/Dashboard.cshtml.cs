@@ -20,19 +20,22 @@ public class DashboardModel : PageModel
     private readonly PlayerProfileService _profileService;
     private readonly ActivityRsvpService _rsvpService;
     private readonly ICourtImageStorage _storage;
+    private readonly IPlayerCheckInService _checkInService;
 
     public DashboardModel(
         UserManager<IdentityUser> userManager,
         ApplicationDbContext context,
         PlayerProfileService profileService,
         ActivityRsvpService rsvpService,
-        ICourtImageStorage storage)
+        ICourtImageStorage storage,
+        IPlayerCheckInService checkInService)
     {
         _userManager    = userManager;
         _context        = context;
         _profileService = profileService;
         _rsvpService    = rsvpService;
         _storage        = storage;
+        _checkInService = checkInService;
     }
 
     public string DisplayName { get; private set; } = string.Empty;
@@ -42,6 +45,7 @@ public class DashboardModel : PageModel
     public string? SkillLevelLabel { get; private set; }
     public string? AvatarUrl { get; private set; }
     public bool HasProfile { get; private set; }
+    public PlayerAttendanceStats? AttendanceStats { get; private set; }
 
     public IReadOnlyList<BookingSummary> RecentBookings { get; private set; } = [];
     public IReadOnlyList<UserActivityItem> UserActivities { get; private set; } = [];
@@ -93,16 +97,20 @@ public class DashboardModel : PageModel
                 Id        = b.Id,
                 CourtName = b.Court != null ? b.Court.Name : "Court",
                 Date      = b.BookingDate,
-                StartTime = b.StartTime,
-                EndTime   = b.EndTime,
-                Status    = b.BookingStatus,
-                Price     = b.Price,
-                Reference = b.BookingReference,
-                CreatedAt = b.CreatedAt
+                StartTime   = b.StartTime,
+                EndTime     = b.EndTime,
+                Status      = b.BookingStatus,
+                Price       = b.Price,
+                Reference   = b.BookingReference,
+                CreatedAt   = b.CreatedAt,
+                IsCheckedIn = b.CheckedInAt.HasValue && !b.IsNoShow,
+                CheckedInAt = b.CheckedInAt,
+                IsNoShow    = b.IsNoShow
             })
             .ToListAsync();
 
         UserActivities = await _rsvpService.GetUserActivitiesAsync(user.Id);
+        AttendanceStats = await _checkInService.GetPlayerAttendanceStatsAsync(user.Id);
 
         return Page();
     }
@@ -136,5 +144,8 @@ public class DashboardModel : PageModel
         public decimal Price { get; init; }
         public string Reference { get; init; } = string.Empty;
         public DateTime CreatedAt { get; init; }
+        public bool IsCheckedIn { get; init; }
+        public DateTime? CheckedInAt { get; init; }
+        public bool IsNoShow { get; init; }
     }
 }

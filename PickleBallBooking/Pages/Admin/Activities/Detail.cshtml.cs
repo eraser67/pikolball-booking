@@ -10,15 +10,18 @@ public class DetailModel : PageModel
     private readonly ActivityService _activityService;
     private readonly ActivityRsvpService _rsvpService;
     private readonly BookingTelegramService _telegram;
+    private readonly IPlayerCheckInService _checkInService;
 
     public DetailModel(
         ActivityService activityService,
         ActivityRsvpService rsvpService,
-        BookingTelegramService telegram)
+        BookingTelegramService telegram,
+        IPlayerCheckInService checkInService)
     {
         _activityService = activityService;
         _rsvpService     = rsvpService;
         _telegram        = telegram;
+        _checkInService  = checkInService;
     }
 
     public Activity? Activity { get; private set; }
@@ -87,6 +90,36 @@ public class DetailModel : PageModel
         var (success, msg) = await _rsvpService.MoveWaitlistPositionAsync(rsvpId, moveUp);
         if (success) StatusMessage = msg;
         else ErrorMessage = msg;
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostCheckInRsvpAsync(int id, int rsvpId)
+    {
+        var staffUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "admin";
+        var result = await _checkInService.CheckInRsvpAsync(rsvpId, CheckInMethod.AdminManual, staffUserId);
+        if (result.Success) StatusMessage = result.Message;
+        else ErrorMessage = result.Message;
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostMarkNoShowAsync(int id, int rsvpId)
+    {
+        var staffUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "admin";
+        var result = await _checkInService.MarkRsvpNoShowAsync(rsvpId, staffUserId);
+        if (result.Success) StatusMessage = result.Message;
+        else ErrorMessage = result.Message;
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostUndoCheckInAsync(int id, int rsvpId)
+    {
+        var staffUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "admin";
+        var result = await _checkInService.UndoRsvpCheckInAsync(rsvpId, staffUserId);
+        if (result.Success) StatusMessage = result.Message;
+        else ErrorMessage = result.Message;
 
         return RedirectToPage(new { id });
     }

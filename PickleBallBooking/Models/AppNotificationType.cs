@@ -32,5 +32,10 @@ public enum AppNotificationType
 
     /// <summary>A player cancelled their RSVP for an activity (admin/staff alert).</summary>
     ActivityRsvpCancelledAdmin = 8,
+
+    // ── Phase 38 Check-In ─────────────────────────────────────────────────────
+
+    /// <summary>Player attendance was checked in on the day of the activity.</summary>
+    ActivityCheckedIn = 9,
 }
 

@@ -46,6 +46,19 @@ public class Booking
 
     public BookingStatus BookingStatus { get; set; } = BookingStatus.Pending;
 
+    /// <summary>Phase 38: Timestamp when the booking party checked in at the venue.</summary>
+    public DateTime? CheckedInAt { get; set; }
+
+    /// <summary>Phase 38: User ID of the staff member who recorded the check-in.</summary>
+    [MaxLength(450)]
+    public string? CheckedInByUserId { get; set; }
+
+    /// <summary>Phase 38: Method used for check-in.</summary>
+    public CheckInMethod? CheckInMethod { get; set; }
+
+    /// <summary>Phase 38: True if the booking party was marked as a no-show.</summary>
+    public bool IsNoShow { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
