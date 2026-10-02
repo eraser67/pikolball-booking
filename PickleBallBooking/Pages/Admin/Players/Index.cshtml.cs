@@ -6,7 +6,7 @@ using PickleBallBooking.Services;
 
 namespace PickleBallBooking.Pages.Admin.Players;
 
-[Authorize(Policy = "RequireTenantAdmin")]
+[Authorize(Policy = TenantAdminAuthorization.TenantAdminPolicy)]
 public class IndexModel : PageModel
 {
     private readonly ITenantPlayerService _playerService;
