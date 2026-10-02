@@ -1805,19 +1805,27 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.1rem;
+  height: 2.1rem;
   border-radius: 50%;
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.75);
-  font-size: 1rem;
+  background: #ffffff;
+  color: var(--pb-green-900, #0d3829);
+  font-size: 1.05rem;
   text-decoration: none;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 .pb-social-link:hover {
-  background: var(--pb-primary, #16a34a);
-  color: #fff;
+  background: #ffffff;
+  color: var(--pb-primary, #16a34a);
   transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.28);
+}
+.pb-social-link .bi-facebook {
+  color: #1877f2;
+}
+.pb-social-link:hover .bi-facebook {
+  color: #0d65d9;
 }
 
 /* -------- Home Activity Cards -------- */
