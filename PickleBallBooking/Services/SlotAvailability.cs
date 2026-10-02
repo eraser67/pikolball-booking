@@ -14,4 +14,10 @@ public class SlotAvailability
     public bool IsAvailable { get; set; }
 
     public bool IsMaintenance { get; set; }
+
+    /// <summary>
+    /// Privacy-safe display name of the customer who booked this slot (e.g. "John D." or "Reserved").
+    /// Populated when IsAvailable is false due to an active booking.
+    /// </summary>
+    public string? BookedBy { get; set; }
 }

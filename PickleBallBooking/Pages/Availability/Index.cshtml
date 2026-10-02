@@ -4,165 +4,303 @@
     ViewData["Title"] = "Court Availability";
 }
 
-<h1>Court Availability</h1>
-<p class="text-muted">Choose a date to review the current booking status and available time ranges before starting a reservation.</p>
-
-<form method="get" class="row row-cols-lg-auto g-2 align-items-end mb-4">
-    <div class="col-12">
-        <label asp-for="Date" class="form-label">Date</label>
-        <input asp-for="Date" type="date" class="form-control" />
+<div class="container-xl px-2 px-md-3 py-3">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
+        <div>
+            <h1 class="h3 fw-bold mb-1">Court Availability</h1>
+            <p class="text-muted small mb-0">Check live court schedules, see who is playing, and reserve your slot.</p>
+        </div>
+        <div>
+            <a asp-page="/Booking/Index" class="btn btn-primary btn-sm px-3 shadow-sm">
+                <i class="bi bi-calendar-plus me-1"></i>Start New Booking
+            </a>
+        </div>
     </div>
-    <div class="col-12">
-        <button type="submit" class="btn btn-primary">Go</button>
-        <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(-1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">&laquo; Previous Day</a>
-        <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">Next Day &raquo;</a>
-        <a asp-page="Index" asp-route-Date="@PickleBallBooking.Services.AppClock.TodayLocal.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">Today</a>
+
+    <!-- Date Selection Toolbar -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-3">
+            <form method="get" class="row g-2 align-items-center">
+                <div class="col-12 col-sm-auto">
+                    <label asp-for="Date" class="visually-hidden">Date</label>
+                    <input asp-for="Date" type="date" class="form-control form-control-sm" />
+                </div>
+                <div class="col-12 col-sm-auto d-flex flex-wrap gap-1">
+                    <button type="submit" class="btn btn-primary btn-sm px-3">Go</button>
+                    <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(-1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary btn-sm" title="Previous Day">
+                        <i class="bi bi-chevron-left"></i> Prev
+                    </a>
+                    <a asp-page="Index" asp-route-Date="@PickleBallBooking.Services.AppClock.TodayLocal.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary btn-sm">
+                        Today
+                    </a>
+                    <a asp-page="Index" asp-route-Date="@Model.Date.AddDays(1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary btn-sm" title="Next Day">
+                        Next <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
-</form>
 
-@if (Model.IsPastDate)
-{
-    <div class="alert alert-warning">This date is in the past. Please choose today or a future date to book.</div>
-}
+    @if (Model.IsPastDate)
+    {
+        <div class="alert alert-warning d-flex align-items-center gap-2 mb-4 py-2" role="alert">
+            <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+            <div>This date is in the past. Select today or an upcoming date to reserve a court.</div>
+        </div>
+    }
 
-@if (Model.Courts.Count == 0)
-{
-    <div class="alert alert-info">No active courts are currently available.</div>
-}
-else if (Model.TimeSlotAvailabilities.Count == 0)
-{
-    <div class="alert alert-info">No selectable time ranges are currently available.</div>
-}
-else
-{
-    <!-- Court Availability Status Section -->
-    <div class="mb-5">
-        <h3 class="mb-3">Court Availability Status</h3>
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-            @foreach (var availability in Model.CourtAvailabilities)
-            {
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h5 class="card-title mb-0">@availability.Court.Name</h5>
-                                <span class="badge bg-@availability.StatusBadge">@availability.Status</span>
-                            </div>
-                            <p class="card-text text-muted small mb-3">@availability.Court.Description</p>
-
-                            <div class="mb-2">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span class="small">Available Slots</span>
-                                    <strong>@availability.AvailableSlots/@availability.TotalSlots</strong>
+    @if (Model.Courts.Count == 0)
+    {
+        <div class="alert alert-info py-3 text-center">
+            <i class="bi bi-info-circle me-1"></i> No active courts are currently configured.
+        </div>
+    }
+    else if (Model.TimeSlotAvailabilities.Count == 0)
+    {
+        <div class="alert alert-info py-3 text-center">
+            <i class="bi bi-info-circle me-1"></i> No active time slots are available for the selected day.
+        </div>
+    }
+    else
+    {
+        <!-- Court Availability Summary Status Section -->
+        <div class="mb-4">
+            <h2 class="h5 fw-bold mb-2">Court Availability Summary</h2>
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-2 g-md-3">
+                @foreach (var availability in Model.CourtAvailabilities)
+                {
+                    <div class="col">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <h3 class="h6 fw-bold mb-0 text-truncate me-2">@availability.Court.Name</h3>
+                                    <span class="badge bg-@availability.StatusBadge-subtle text-@availability.StatusBadge border border-@availability.StatusBadge-subtle px-2 py-1 small">
+                                        @availability.Status
+                                    </span>
                                 </div>
-                                <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar" role="progressbar" 
-                                         style="width: @availability.AvailabilityPercentage%"
-                                         aria-valuenow="@availability.AvailableSlots" 
-                                         aria-valuemin="0" 
-                                         aria-valuemax="@availability.TotalSlots">
+                                @if (!string.IsNullOrWhiteSpace(availability.Court.Description))
+                                {
+                                    <p class="text-muted small text-truncate mb-2" style="font-size: 0.75rem;">@availability.Court.Description</p>
+                                }
+
+                                <div class="mb-2 mt-2">
+                                    <div class="d-flex justify-content-between mb-1" style="font-size: 0.75rem;">
+                                        <span class="text-muted">Available Slots</span>
+                                        <span class="fw-semibold">@availability.AvailableSlots / @availability.TotalSlots</span>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-@availability.StatusBadge" role="progressbar" 
+                                             style="width: @availability.AvailabilityPercentage%"
+                                             aria-valuenow="@availability.AvailableSlots" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="@availability.TotalSlots">
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <small class="text-muted">
-                                @if (availability.AvailableSlots > 0)
-                                {
-                                    <span>✓ @availability.AvailableSlots @(availability.AvailableSlots == 1 ? "slot" : "slots") available</span>
-                                }
-                                else
-                                {
-                                    <span>✗ Fully booked</span>
-                                }
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
-
-    <!-- Available Time Slots Section -->
-    <div class="mb-4">
-        <h3 class="mb-3">Available Time Slots for @Model.Date.ToString("dddd, MMMM d, yyyy")</h3>
-        <div class="d-flex flex-wrap gap-2 mb-4">
-            @foreach (var dateOption in Model.DateOptions)
-            {
-                var buttonClass = dateOption.IsSelected ? "btn btn-primary" : "btn btn-outline-primary";
-
-                <a asp-page="Index"
-                   asp-route-Date="@dateOption.Date.ToString("yyyy-MM-dd")"
-                   class="@buttonClass">
-                    <strong class="d-block">@dateOption.DayLabel</strong>
-                    <span>@dateOption.DateLabel</span>
-                </a>
-            }
-        </div>
-    </div>
-
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-        @foreach (var slot in Model.TimeSlotAvailabilities)
-        {
-            var hasAvailable = slot.HasAvailableSlots;
-            var cardClass = hasAvailable ? "border-success" : "border-secondary bg-light";
-            var badgeClass = hasAvailable ? "badge bg-success" : "badge bg-secondary";
-
-            <div class="col">
-                @if (hasAvailable)
-                {
-                    <a asp-page="/Booking/Index"
-                       asp-route-date="@Model.Date.ToString("yyyy-MM-dd")"
-                       asp-route-startTime="@slot.StartTime.ToString("c")"
-                       asp-route-endTime="@slot.EndTime.ToString("c")"
-                       class="card text-decoration-none text-dark @cardClass h-100">
-                        <div class="card-body">
-                            <div class="mb-2">
-                                <h5 class="card-title mb-1">@slot.FormattedLabel</h5>
-                                <span class="@badgeClass">@slot.CourtStatusText</span>
-                            </div>
-
-                            <div class="mt-3 mb-2">
-                                <small class="text-muted d-block mb-2"><strong>Available Courts:</strong></small>
-                                <div class="available-courts">
-                                    @foreach (var court in slot.AvailableCourts)
+                                <div class="small" style="font-size: 0.75rem;">
+                                    @if (availability.AvailableSlots > 0)
                                     {
-                                        <span class="badge bg-info me-1">@court.Name</span>
+                                        <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>@availability.AvailableSlots @(availability.AvailableSlots == 1 ? "slot" : "slots") open</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Fully booked</span>
                                     }
                                 </div>
                             </div>
-
-                            @if (slot.Price.HasValue)
-                            {
-                                <p class="card-text mb-0 fw-bold text-success mt-3">@slot.Price.Value.ToString("C2")</p>
-                            }
-                        </div>
-                    </a>
-                }
-                else
-                {
-                    <div class="card @cardClass h-100">
-                        <div class="card-body">
-                            <div class="mb-2">
-                                <h5 class="card-title mb-1">@slot.FormattedLabel</h5>
-                                <span class="@badgeClass">Fully Booked</span>
-                            </div>
-
-                            @if (slot.BookedCourts.Count > 0)
-                            {
-                                <div class="mt-3">
-                                    <small class="text-muted d-block mb-2"><strong>All Courts Booked:</strong></small>
-                                    <div class="booked-courts">
-                                        @foreach (var court in slot.BookedCourts)
-                                        {
-                                            <span class="badge bg-danger me-1">@court.Name</span>
-                                        }
-                                    </div>
-                                </div>
-                            }
                         </div>
                     </div>
                 }
             </div>
+        </div>
+
+        <!-- 7-Day Date Quick Selector Strip -->
+        <div class="mb-3">
+            <h2 class="h5 fw-bold mb-2">Available Time Slots for @Model.Date.ToString("dddd, MMMM d, yyyy")</h2>
+            <div class="pb-date-strip">
+                @foreach (var dateOption in Model.DateOptions)
+                {
+                    var isSelected = dateOption.IsSelected;
+                    var btnClass = isSelected ? "btn-primary shadow-sm" : "btn-outline-secondary";
+
+                    <a asp-page="Index"
+                       asp-route-Date="@dateOption.Date.ToString("yyyy-MM-dd")"
+                       class="btn @btnClass btn-sm d-flex flex-column align-items-center py-2 px-3 text-nowrap flex-shrink-0"
+                       style="min-width: 72px;">
+                        <strong class="small">@dateOption.DayLabel</strong>
+                        <span style="font-size: 0.75rem;">@dateOption.DateLabel</span>
+                    </a>
+                }
+            </div>
+        </div>
+
+        <!-- Filter & View Controls -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 bg-light p-2 rounded-3 border">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Filter by time of day" id="timePeriodFilters">
+                <button type="button" class="btn btn-outline-primary active" data-period="all">All Day</button>
+                <button type="button" class="btn btn-outline-primary" data-period="morning"><i class="bi bi-sunrise me-1"></i>Morning</button>
+                <button type="button" class="btn btn-outline-primary" data-period="afternoon"><i class="bi bi-sun me-1"></i>Afternoon</button>
+                <button type="button" class="btn btn-outline-primary" data-period="evening"><i class="bi bi-moon-stars me-1"></i>Evening</button>
+            </div>
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="onlyAvailableToggle" role="switch">
+                <label class="form-check-label small fw-semibold" for="onlyAvailableToggle">Open slots only</label>
+            </div>
+        </div>
+
+        <!-- Time Slots Grid (2 cards per row on mobile, 3 on tablet, 4 on desktop) -->
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-2 g-md-3" id="slotsGrid">
+            @foreach (var slot in Model.TimeSlotAvailabilities)
+            {
+                var hasAvailable = slot.HasAvailableSlots;
+
+                <div class="col slot-col" data-period="@slot.TimePeriod" data-available="@(hasAvailable ? "true" : "false")">
+                    @if (hasAvailable)
+                    {
+                        <a asp-page="/Booking/Index"
+                           asp-route-date="@Model.Date.ToString("yyyy-MM-dd")"
+                           asp-route-startTime="@slot.StartTime.ToString("c")"
+                           asp-route-endTime="@slot.EndTime.ToString("c")"
+                           class="pb-avail-card available"
+                           aria-label="Book time slot @slot.FormattedLabel">
+                            <!-- Time Header & Status Badge -->
+                            <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom border-light-subtle">
+                                <span class="pb-avail-time text-truncate me-1">@slot.FormattedLabel</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-1 py-0 small flex-shrink-0" style="font-size: 0.68rem;">
+                                    @slot.AvailableCourts.Count Open
+                                </span>
+                            </div>
+
+                            <!-- Courts Breakdown & Booker Display -->
+                            <div class="my-1 flex-grow-1">
+                                @foreach (var court in slot.AvailableCourts)
+                                {
+                                    <div class="pb-court-chip pb-court-chip-avail text-truncate" title="@court.Name is available">
+                                        <i class="bi bi-check-circle-fill text-success flex-shrink-0"></i>
+                                        <span class="text-truncate">@court.Name</span>
+                                    </div>
+                                }
+                                @foreach (var court in slot.BookedCourts)
+                                {
+                                    var booker = slot.GetBookerForCourt(court.Id);
+                                    <div class="pb-court-chip pb-court-chip-booked text-truncate" title="@court.Name: Booked by @booker">
+                                        <i class="bi bi-person-fill text-muted flex-shrink-0"></i>
+                                        <span class="text-truncate">@court.Name: <strong>@booker</strong></span>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Price & Action CTA -->
+                            <div class="d-flex justify-content-between align-items-center mt-auto pt-1 border-top border-light-subtle">
+                                @if (slot.Price.HasValue)
+                                {
+                                    <span class="pb-avail-price">@slot.Price.Value.ToString("C0")</span>
+                                }
+                                else
+                                {
+                                    <span class="small text-muted">-</span>
+                                }
+                                <span class="btn btn-sm btn-success py-0 px-2 fw-semibold" style="font-size: 0.72rem; line-height: 1.5;">
+                                    Book &raquo;
+                                </span>
+                            </div>
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="pb-avail-card booked">
+                            <!-- Time Header & Booked Badge -->
+                            <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom border-light-subtle">
+                                <span class="pb-avail-time text-muted text-truncate me-1">@slot.FormattedLabel</span>
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-1 py-0 small flex-shrink-0" style="font-size: 0.68rem;">
+                                    Full
+                                </span>
+                            </div>
+
+                            <!-- Courts Breakdown & Booker Display -->
+                            <div class="my-1 flex-grow-1">
+                                @foreach (var court in slot.BookedCourts)
+                                {
+                                    var booker = slot.GetBookerForCourt(court.Id);
+                                    <div class="pb-court-chip pb-court-chip-booked text-truncate" title="@court.Name: Booked by @booker">
+                                        <i class="bi bi-person-fill text-muted flex-shrink-0"></i>
+                                        <span class="text-truncate">@court.Name: <strong>@booker</strong></span>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Price & Unavailable Status -->
+                            <div class="d-flex justify-content-between align-items-center mt-auto pt-1 border-top border-light-subtle">
+                                <span class="small text-muted" style="font-size: 0.72rem;">Unavailable</span>
+                                <span class="badge bg-light text-muted border py-0 px-1" style="font-size: 0.68rem;">
+                                    Booked
+                                </span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Filter Empty State Alert -->
+        <div id="noMatchingSlotsAlert" class="alert alert-info d-none text-center my-4 py-3">
+            <i class="bi bi-info-circle me-1"></i> No time slots match your current filter settings.
+        </div>
+    }
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const periodButtons = document.querySelectorAll('#timePeriodFilters button');
+        const availableToggle = document.getElementById('onlyAvailableToggle');
+        const slotCols = document.querySelectorAll('.slot-col');
+        const noSlotsAlert = document.getElementById('noMatchingSlotsAlert');
+
+        let activePeriod = 'all';
+
+        function applyFilters() {
+            const onlyAvailable = availableToggle ? availableToggle.checked : false;
+            let visibleCount = 0;
+
+            slotCols.forEach(function (col) {
+                const colPeriod = col.getAttribute('data-period');
+                const isAvailable = col.getAttribute('data-available') === 'true';
+
+                const matchesPeriod = (activePeriod === 'all' || colPeriod === activePeriod);
+                const matchesAvailability = (!onlyAvailable || isAvailable);
+
+                if (matchesPeriod && matchesAvailability) {
+                    col.classList.remove('d-none');
+                    visibleCount++;
+                } else {
+                    col.classList.add('d-none');
+                }
+            });
+
+            if (noSlotsAlert) {
+                if (visibleCount === 0) {
+                    noSlotsAlert.classList.remove('d-none');
+                } else {
+                    noSlotsAlert.classList.add('d-none');
+                }
+            }
         }
-    </div>
+
+        periodButtons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                periodButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                activePeriod = this.getAttribute('data-period') || 'all';
+                applyFilters();
+            });
+        });
+
+        if (availableToggle) {
+            availableToggle.addEventListener('change', applyFilters);
+        }
+    });
+</script>
 }

@@ -249,6 +249,127 @@ body {
   margin-bottom: 1.5rem;
 }
 
+/* ==========================================================================
+   Modern Availability Page Styles
+   ========================================================================== */
+.pb-avail-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background-color: var(--bs-card-bg, #ffffff);
+  border: 1.5px solid var(--bs-border-color, #e2e8f0);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+@media (min-width: 768px) {
+  .pb-avail-card {
+    padding: 1rem;
+    border-radius: 1rem;
+  }
+}
+
+.pb-avail-card.available {
+  border-color: rgba(25, 135, 84, 0.4);
+  background: linear-gradient(180deg, rgba(25, 135, 84, 0.03) 0%, rgba(25, 135, 84, 0.01) 100%);
+}
+
+.pb-avail-card.available:hover {
+  transform: translateY(-2px);
+  border-color: #198754;
+  box-shadow: 0 8px 20px rgba(25, 135, 84, 0.15);
+  color: inherit;
+}
+
+.pb-avail-card.booked {
+  border-color: var(--bs-border-color, #e2e8f0);
+  background-color: var(--bs-tertiary-bg, #f8fafc);
+  opacity: 0.88;
+}
+
+.pb-avail-time {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--bs-heading-color, #1e293b);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+@media (min-width: 768px) {
+  .pb-avail-time {
+    font-size: 1rem;
+  }
+}
+
+.pb-court-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+  word-break: break-word;
+}
+
+@media (min-width: 768px) {
+  .pb-court-chip {
+    font-size: 0.8125rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+.pb-court-chip-avail {
+  background-color: rgba(25, 135, 84, 0.1);
+  color: #0f5132;
+  border: 1px solid rgba(25, 135, 84, 0.2);
+}
+
+.pb-court-chip-booked {
+  background-color: rgba(108, 117, 125, 0.08);
+  color: var(--bs-secondary-color, #64748b);
+  border: 1px solid rgba(108, 117, 125, 0.15);
+}
+
+.pb-court-chip-booked strong {
+  color: var(--bs-body-color, #334155);
+}
+
+.pb-avail-price {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #198754;
+}
+
+@media (min-width: 768px) {
+  .pb-avail-price {
+    font-size: 1rem;
+  }
+}
+
+.pb-date-strip {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pb-date-strip::-webkit-scrollbar {
+  height: 4px;
+}
+
+.pb-date-strip::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
 @media (max-width: 576px) {
   .time-selection-controls {
     grid-template-columns: 1fr;

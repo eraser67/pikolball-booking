@@ -425,11 +425,16 @@ public class BookingService : IBookingService
             .OrderBy(ts => ts.StartTime)
             .ToListAsync();
 
-        // Get booked slot IDs for this court on this date (IsActive = true)
-        var bookedSlotIds = await _context.BookingTimeSlots
+        // Get booked slot IDs and customer names for this court on this date (IsActive = true)
+        var bookedSlots = await _context.BookingTimeSlots
             .Where(bts => bts.CourtId == courtId && bts.BookingDate == bookingDate && bts.IsActive)
-            .Select(bts => bts.TimeSlotId)
+            .Select(bts => new { bts.TimeSlotId, bts.Booking.CustomerName })
             .ToListAsync();
+
+        var bookedSlotIds = bookedSlots.Select(bts => bts.TimeSlotId).ToList();
+        var bookedNames = bookedSlots
+            .GroupBy(bts => bts.TimeSlotId)
+            .ToDictionary(g => g.Key, g => FormatBookerDisplayName(g.First().CustomerName));
 
         // Get maintenance slot data for this court
         var maintenanceSlots = await _context.CourtTimeSlots
@@ -437,7 +442,7 @@ public class BookingService : IBookingService
             .Select(cts => cts.TimeSlotId)
             .ToListAsync();
 
-        return BuildAvailability(timeSlots, bookedSlotIds, maintenanceSlots);
+        return BuildAvailability(timeSlots, bookedSlotIds, maintenanceSlots, bookedNames);
     }
 
     public async Task<Dictionary<int, List<SlotAvailability>>> GetAvailabilityForAllCourtsAsync(
@@ -451,15 +456,18 @@ public class BookingService : IBookingService
             .OrderBy(ts => ts.StartTime)
             .ToListAsync();
 
-        // Booked slots for all requested courts in a single query.
+        // Booked slots for all requested courts in a single query with customer display name.
         var bookedByCourt = (await _context.BookingTimeSlots
                 .Where(bts => courtIdList.Contains(bts.CourtId)
                     && bts.BookingDate == bookingDate
                     && bts.IsActive)
-                .Select(bts => new { bts.CourtId, bts.TimeSlotId })
+                .Select(bts => new { bts.CourtId, bts.TimeSlotId, bts.Booking.CustomerName })
                 .ToListAsync())
             .GroupBy(x => x.CourtId)
-            .ToDictionary(g => g.Key, g => g.Select(x => x.TimeSlotId).ToList());
+            .ToDictionary(
+                g => g.Key,
+                g => g.GroupBy(x => x.TimeSlotId)
+                      .ToDictionary(x => x.Key, x => FormatBookerDisplayName(x.First().CustomerName)));
 
         // Maintenance slots for all requested courts in a single query.
         var maintenanceByCourt = (await _context.CourtTimeSlots
@@ -473,31 +481,70 @@ public class BookingService : IBookingService
         var result = new Dictionary<int, List<SlotAvailability>>();
         foreach (var courtId in courtIdList)
         {
-            bookedByCourt.TryGetValue(courtId, out var booked);
+            bookedByCourt.TryGetValue(courtId, out var bookedDict);
+            var bookedSlotIds = bookedDict?.Keys.ToList() ?? new List<int>();
             maintenanceByCourt.TryGetValue(courtId, out var maintenance);
 
-            result[courtId] = BuildAvailability(timeSlots, booked ?? new List<int>(), maintenance ?? new List<int>());
+            result[courtId] = BuildAvailability(timeSlots, bookedSlotIds, maintenance ?? new List<int>(), bookedDict);
         }
 
         return result;
     }
 
+    public static string FormatBookerDisplayName(string? fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+            return "Reserved";
+
+        var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+            return "Reserved";
+
+        if (parts.Length == 1)
+            return parts[0];
+
+        var first = parts[0];
+        var last = parts[^1];
+        if (last.Length > 0 && char.IsLetter(last[0]))
+        {
+            return $"{first} {char.ToUpperInvariant(last[0])}.";
+        }
+
+        return first;
+    }
+
     private static List<SlotAvailability> BuildAvailability(
         List<TimeSlot> timeSlots,
         ICollection<int> bookedSlotIds,
-        ICollection<int> maintenanceSlotIds)
+        ICollection<int> maintenanceSlotIds,
+        IDictionary<int, string>? bookedCustomerNames = null)
     {
         return timeSlots
             .Select(slot =>
             {
                 var isMaintenance = maintenanceSlotIds.Contains(slot.Id);
+                var isBooked = bookedSlotIds.Contains(slot.Id);
+                string? bookedBy = null;
+                if (isBooked)
+                {
+                    if (bookedCustomerNames != null && bookedCustomerNames.TryGetValue(slot.Id, out var name) && !string.IsNullOrWhiteSpace(name))
+                    {
+                        bookedBy = name;
+                    }
+                    else
+                    {
+                        bookedBy = "Reserved";
+                    }
+                }
+
                 return new SlotAvailability
                 {
                     TimeSlotId = slot.Id,
                     StartTime = slot.StartTime,
                     EndTime = slot.EndTime,
                     IsMaintenance = isMaintenance,
-                    IsAvailable = !bookedSlotIds.Contains(slot.Id) && !isMaintenance
+                    IsAvailable = !isBooked && !isMaintenance,
+                    BookedBy = bookedBy
                 };
             })
             .ToList();

@@ -97,10 +97,83 @@ public class AvailabilityIndexModelTests
         await using var context = await SeedAsync();
         var model = CreateModel(context);
 
-                model.Date = AppClock.TodayLocal.AddDays(-1);
+        model.Date = AppClock.TodayLocal.AddDays(-1);
         await model.OnGetAsync();
 
         Assert.True(model.IsPastDate);
         Assert.All(model.TimeSlotAvailabilities, slot => Assert.False(slot.HasAvailableSlots));
+    }
+
+    [Theory]
+    [InlineData("John Doe", "John D.")]
+    [InlineData("Maria Clara Santos", "Maria S.")]
+    [InlineData("Alex", "Alex")]
+    [InlineData("", "Reserved")]
+    [InlineData("   ", "Reserved")]
+    [InlineData(null, "Reserved")]
+    public void FormatBookerDisplayName_FormatsNamesCorrectly(string? input, string expected)
+    {
+        var result = BookingService.FormatBookerDisplayName(input);
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public async Task OnGetAsync_PopulatesBookerDisplayName_WhenCourtIsBooked()
+    {
+        await using var context = await SeedAsync();
+
+        var today = AppClock.TodayLocal;
+        var booking = new Booking
+        {
+            Id = 10,
+            OrganizationId = 1,
+            BookingReference = "PB-TEST-001",
+            CustomerName = "Michael Jordan",
+            CustomerPhone = "09123456789",
+            CustomerEmail = "mj@example.com",
+            CourtId = 1,
+            BookingDate = today,
+            StartTime = new TimeSpan(9, 0, 0),
+            EndTime = new TimeSpan(10, 0, 0),
+            Price = 100m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+        context.Bookings.Add(booking);
+
+        var bookingSlot = new BookingTimeSlot
+        {
+            Id = 1,
+            OrganizationId = 1,
+            BookingId = 10,
+            CourtId = 1,
+            BookingDate = today,
+            TimeSlotId = 1,
+            SlotOrder = 0,
+            IsActive = true
+        };
+        context.BookingTimeSlots.Add(bookingSlot);
+        await context.SaveChangesAsync();
+
+        var model = CreateModel(context);
+        model.Date = today;
+        await model.OnGetAsync();
+
+        var slot9am = model.TimeSlotAvailabilities.FirstOrDefault(s => s.StartTime == new TimeSpan(9, 0, 0));
+        Assert.NotNull(slot9am);
+        Assert.Contains(slot9am.BookedCourts, c => c.Id == 1);
+        Assert.Contains(slot9am.AvailableCourts, c => c.Id == 2);
+        Assert.Equal("Michael J.", slot9am.GetBookerForCourt(1));
+    }
+
+    [Fact]
+    public void TimePeriod_CategorizesCorrectly()
+    {
+        var morningSlot = new TimeSlotAvailability { StartTime = new TimeSpan(9, 0, 0) };
+        var afternoonSlot = new TimeSlotAvailability { StartTime = new TimeSpan(14, 0, 0) };
+        var eveningSlot = new TimeSlotAvailability { StartTime = new TimeSpan(18, 0, 0) };
+
+        Assert.Equal("morning", morningSlot.TimePeriod);
+        Assert.Equal("afternoon", afternoonSlot.TimePeriod);
+        Assert.Equal("evening", eveningSlot.TimePeriod);
     }
 }
