@@ -404,21 +404,38 @@ body {
 }
 
 .pb-date-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.375rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 576px) {
+  .pb-date-strip {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+  }
+}
+
+.pb-date-btn {
   display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-  padding-bottom: 0.5rem;
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.25rem;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  text-align: center;
+  min-width: 0;
+  width: 100%;
+  transition: all 0.15s ease;
 }
 
-.pb-date-strip::-webkit-scrollbar {
-  height: 4px;
-}
-
-.pb-date-strip::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 4px;
+@media (min-width: 768px) {
+  .pb-date-btn {
+    padding: 0.5rem;
+    border-radius: 0.625rem;
+  }
 }
 
 @media (max-width: 576px) {

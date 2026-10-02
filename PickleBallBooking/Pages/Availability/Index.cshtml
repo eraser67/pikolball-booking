@@ -127,10 +127,10 @@
 
                     <a asp-page="Index"
                        asp-route-Date="@dateOption.Date.ToString("yyyy-MM-dd")"
-                       class="btn @btnClass btn-sm d-flex flex-column align-items-center py-2 px-3 text-nowrap flex-shrink-0"
-                       style="min-width: 72px;">
+                       class="btn @btnClass pb-date-btn"
+                       aria-current="@(isSelected ? "date" : null)">
                         <strong class="small">@dateOption.DayLabel</strong>
-                        <span style="font-size: 0.75rem;">@dateOption.DateLabel</span>
+                        <span style="font-size: 0.72rem;">@dateOption.DateLabel</span>
                     </a>
                 }
             </div>
@@ -204,7 +204,7 @@
                             <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top border-light-subtle">
                                 @if (slot.Price.HasValue)
                                 {
-                                    <span class="pb-avail-price">@slot.Price.Value.ToString("C0") <small class="text-muted fw-normal" style="font-size: 0.68rem;">/ hr</small></span>
+                                    <span class="pb-avail-price">@slot.Price.Value.ToString("C0")</span>
                                 }
                                 else
                                 {
