@@ -533,19 +533,26 @@ public class PlayerCheckInService : IPlayerCheckInService
                         ? $"{prof.FirstName} {prof.LastName}".Trim()
                         : u?.UserName ?? "Player";
 
+                var isGuest = prof?.IsGuest ?? false;
+                var rawEmail = u?.Email ?? string.Empty;
+                var email = isGuest && rawEmail.EndsWith("@guest.punitbola.tech", StringComparison.OrdinalIgnoreCase)
+                    ? string.Empty
+                    : rawEmail;
+
                 var avatarUrl = _storage.GetPublicUrl(prof?.AvatarPath);
 
                 return new TodayActivityPlayerItem(
                     r.Id,
                     r.UserId,
                     name,
-                    u?.Email ?? string.Empty,
+                    email,
                     prof?.Mobile ?? u?.PhoneNumber,
                     avatarUrl,
                     prof?.SkillLevel,
                     r.Status,
                     r.CheckedInAt,
-                    r.CheckInMethod);
+                    r.CheckInMethod,
+                    isGuest);
             }).OrderBy(p => p.Status != RsvpStatus.CheckedIn).ThenBy(p => p.PlayerName).ToList();
 
             var checkedInCount = actRsvps.Count(r => r.Status == RsvpStatus.CheckedIn);

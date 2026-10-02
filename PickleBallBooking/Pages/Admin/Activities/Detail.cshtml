@@ -161,8 +161,17 @@
                         <span class="badge bg-danger ms-1 small">@roster!.NoShowCount No-Show</span>
                     }
                 </h2>
-                <div class="small text-muted">
-                    @(a.MaxCapacity == 0 ? "Unlimited" : $"{a.MaxCapacity - (roster?.ConfirmedCount ?? 0)} spots left")
+                <div class="d-flex align-items-center gap-2">
+                    <div class="small text-muted me-2">
+                        @(a.MaxCapacity == 0 ? "Unlimited" : $"{a.MaxCapacity - (roster?.ConfirmedCount ?? 0)} spots left")
+                    </div>
+                    @if (a.Status == ActivityStatus.Published || a.Status == ActivityStatus.InProgress)
+                    {
+                        <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1 shadow-sm px-3 py-1 fw-semibold"
+                                data-bs-toggle="modal" data-bs-target="#addPlayerToActivityModal">
+                            <i class="bi bi-person-plus-fill"></i> Add Player
+                        </button>
+                    }
                 </div>
             </div>
             <div class="card-body px-3 px-md-4 pb-3 pb-md-4">
@@ -210,16 +219,29 @@
                                                     </div>
                                                 }
                                                 <span class="fw-semibold">@p.PlayerName</span>
+                                                @if (p.IsGuest)
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill small" style="font-size:0.65rem; font-weight:600;">
+                                                        <i class="bi bi-person-walking me-1"></i>Walk-in
+                                                    </span>
+                                                }
                                             </div>
                                         </td>
                                         <td>
                                             <span class="small">@SkillIcon(p.SkillLevel) @(p.SkillLevel?.ToString() ?? "—")</span>
                                         </td>
                                         <td class="small">
-                                            <div>@p.Email</div>
+                                            @if (!string.IsNullOrEmpty(p.Email))
+                                            {
+                                                <div>@p.Email</div>
+                                            }
                                             @if (!string.IsNullOrEmpty(p.Mobile))
                                             {
-                                                <div class="text-muted" style="font-size:0.75rem;">@p.Mobile</div>
+                                                <div class="text-muted" style="font-size:0.75rem;"><i class="bi bi-telephone text-muted me-1"></i>@p.Mobile</div>
+                                            }
+                                            @if (string.IsNullOrEmpty(p.Email) && string.IsNullOrEmpty(p.Mobile))
+                                            {
+                                                <span class="text-muted small">No contact</span>
                                             }
                                         </td>
                                         <td>
@@ -320,7 +342,13 @@
                                             </div>
                                         }
                                         <div class="min-w-0">
-                                            <div class="fw-bold small text-truncate">@(i + 1). @p.PlayerName</div>
+                                            <div class="fw-bold small text-truncate d-flex align-items-center gap-1">
+                                                <span>@(i + 1). @p.PlayerName</span>
+                                                @if (p.IsGuest)
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill" style="font-size:0.6rem;">Walk-in</span>
+                                                }
+                                            </div>
                                             <div class="small text-muted">@SkillIcon(p.SkillLevel) @(p.SkillLevel?.ToString() ?? "Open")</div>
                                         </div>
                                     </div>
@@ -712,6 +740,134 @@
                         <i class="bi bi-trash me-1"></i>Delete Activity
                     </button>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Player to Activity -->
+<div class="modal fade" id="addPlayerToActivityModal" tabindex="-1" aria-labelledby="addPlayerToActivityModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold" id="addPlayerToActivityModalLabel">
+                    <i class="bi bi-person-plus-fill text-primary me-2"></i>Add Player to Activity
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs nav-fill bg-light px-3 pt-2" id="addPlayerTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-semibold" id="existing-tab" data-bs-toggle="tab" data-bs-target="#existing-panel" type="button" role="tab">
+                            <i class="bi bi-people me-1"></i>Existing Venue Player
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-semibold" id="new-tab" data-bs-toggle="tab" data-bs-target="#new-panel" type="button" role="tab">
+                            <i class="bi bi-person-walking me-1"></i>New Walk-in
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content p-4" id="addPlayerTabContent">
+                    <!-- Tab 1: Existing Player -->
+                    <div class="tab-pane fade show active" id="existing-panel" role="tabpanel">
+                        <form method="post" asp-page-handler="AddExistingPlayer">
+                            <input type="hidden" name="id" value="@a.Id" />
+                            @if (Model.AvailableVenuePlayers.Count == 0)
+                            {
+                                <div class="text-center py-3 text-muted">
+                                    <i class="bi bi-check-all fs-2 text-success d-block mb-2"></i>
+                                    <div class="fw-semibold">All venue players are already on this roster!</div>
+                                    <div class="small">Switch to the "New Walk-in" tab to register someone new.</div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small">Select Player</label>
+                                    <select name="userId" class="form-select" required>
+                                        <option value="">-- Choose a player --</option>
+                                        @foreach (var vp in Model.AvailableVenuePlayers)
+                                        {
+                                            <option value="@vp.UserId">
+                                                @vp.DisplayName (@vp.SkillLevel.ToString()) @(vp.IsGuest ? "[Walk-in]" : "[Member]")
+                                            </option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="form-check mb-4">
+                                    <input class="form-check-input" type="checkbox" name="bypassCapacity" value="true" id="bypassCap1" />
+                                    <label class="form-check-label small text-muted" for="bypassCap1">
+                                        <strong>Admin Override:</strong> Add as Confirmed even if activity is full
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 fw-semibold py-2">
+                                    Add Player to Roster
+                                </button>
+                            }
+                        </form>
+                    </div>
+
+                    <!-- Tab 2: New Walk-in Player -->
+                    <div class="tab-pane fade" id="new-panel" role="tabpanel">
+                        <form method="post" asp-page-handler="RegisterWalkInAndAdd">
+                            <input type="hidden" name="id" value="@a.Id" />
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold small">First Name <span class="text-danger">*</span></label>
+                                    <input type="text" name="FirstName" class="form-control" required placeholder="e.g. Maria" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold small">Last Name <span class="text-danger">*</span></label>
+                                    <input type="text" name="LastName" class="form-control" required placeholder="e.g. Santos" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold small">Display Name <span class="text-muted fw-normal">(Optional)</span></label>
+                                    <input type="text" name="DisplayName" class="form-control" placeholder="Leave blank to use First + Last" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold small">Skill Rating</label>
+                                    <select name="SkillLevel" class="form-select">
+                                        <option value="Beginner">🟢 Beginner (1.0 - 2.5)</option>
+                                        <option value="Intermediate" selected>🟡 Intermediate (3.0 - 3.5)</option>
+                                        <option value="Advanced">🔴 Advanced (4.0+)</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold small">Playing Hand</label>
+                                    <select name="PlayingHand" class="form-select">
+                                        <option value="Right" selected>Right Hand</option>
+                                        <option value="Left">Left Hand</option>
+                                        <option value="Both">Ambidextrous</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold small">Mobile Phone <span class="text-muted fw-normal">(Optional)</span></label>
+                                    <input type="tel" name="Mobile" class="form-control" placeholder="0912 345 6789" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold small">Admin Notes <span class="text-muted fw-normal">(Optional)</span></label>
+                                    <input type="text" name="AdminNotes" class="form-control" placeholder="e.g. Walk-in drop in player" />
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="bypassCapacity" value="true" id="bypassCap2" />
+                                        <label class="form-check-label small text-muted" for="bypassCap2">
+                                            <strong>Admin Override:</strong> Add as Confirmed even if activity is full
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary w-100 fw-semibold py-2">
+                                        Register & Add to Roster
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

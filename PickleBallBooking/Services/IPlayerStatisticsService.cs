@@ -91,7 +91,8 @@ public record PlayerStatisticsProfileDto(
     PlayerOverallStatsDto Overall,
     IReadOnlyList<PartnerStatsDto> Partners,
     IReadOnlyList<OpponentStatsDto> Opponents,
-    IReadOnlyList<PlayerMatchHistoryItemDto> Matches
+    IReadOnlyList<PlayerMatchHistoryItemDto> Matches,
+    bool IsGuest = false
 );
 
 public interface IPlayerStatisticsService

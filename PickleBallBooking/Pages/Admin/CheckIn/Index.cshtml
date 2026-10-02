@@ -273,16 +273,29 @@
                                                                         </div>
                                                                     }
                                                                     <div>
-                                                                        <div class="fw-semibold">@p.PlayerName</div>
+                                                                        <div class="fw-semibold d-flex align-items-center gap-1">
+                                                                            <span>@p.PlayerName</span>
+                                                                            @if (p.IsGuest)
+                                                                            {
+                                                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill" style="font-size:0.65rem;">Walk-in</span>
+                                                                            }
+                                                                        </div>
                                                                         <div class="text-muted small" style="font-size:0.75rem;">RSVP #@p.RsvpId</div>
                                                                     </div>
                                                                 </div>
                                                             </td>
                                                             <td class="small">
-                                                                <div>@p.Email</div>
+                                                                @if (!string.IsNullOrEmpty(p.Email))
+                                                                {
+                                                                    <div>@p.Email</div>
+                                                                }
                                                                 @if (!string.IsNullOrEmpty(p.Mobile))
                                                                 {
-                                                                    <div class="text-muted" style="font-size:0.75rem;">@p.Mobile</div>
+                                                                    <div class="text-muted" style="font-size:0.75rem;"><i class="bi bi-telephone text-muted me-1"></i>@p.Mobile</div>
+                                                                }
+                                                                @if (string.IsNullOrEmpty(p.Email) && string.IsNullOrEmpty(p.Mobile))
+                                                                {
+                                                                    <span class="text-muted small">No contact</span>
                                                                 }
                                                             </td>
                                                             <td class="small">
@@ -380,7 +393,13 @@
                                                                 </div>
                                                             }
                                                             <div class="min-w-0">
-                                                                <div class="fw-semibold small text-truncate">@p.PlayerName</div>
+                                                                <div class="fw-semibold small text-truncate d-flex align-items-center gap-1">
+                                                                    <span>@p.PlayerName</span>
+                                                                    @if (p.IsGuest)
+                                                                    {
+                                                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill" style="font-size:0.6rem;">Walk-in</span>
+                                                                    }
+                                                                </div>
                                                                 <div class="text-muted small" style="font-size:0.75rem;">RSVP #@p.RsvpId &bull; @(p.SkillLevel?.ToString() ?? "Open")</div>
                                                             </div>
                                                         </div>

@@ -13,13 +13,19 @@ public class DetailModel : PageModel
     private readonly IPlayerCheckInService _checkInService;
     private readonly ICourtAssignmentService _courtAssignmentService;
 
+    private readonly ITenantPlayerService _playerService;
+    private readonly ITenantContext _tenantContext;
+    private readonly IRoundRobinService _roundRobinService;
+
     public DetailModel(
         ActivityService activityService,
         ActivityRsvpService rsvpService,
         BookingTelegramService telegram,
         IPlayerCheckInService checkInService,
         ICourtAssignmentService courtAssignmentService,
-        IRoundRobinService roundRobinService)
+        IRoundRobinService roundRobinService,
+        ITenantPlayerService playerService,
+        ITenantContext tenantContext)
     {
         _activityService        = activityService;
         _rsvpService            = rsvpService;
@@ -27,14 +33,15 @@ public class DetailModel : PageModel
         _checkInService         = checkInService;
         _courtAssignmentService = courtAssignmentService;
         _roundRobinService      = roundRobinService;
+        _playerService          = playerService;
+        _tenantContext          = tenantContext;
     }
-
-    private readonly IRoundRobinService _roundRobinService;
 
     public Activity? Activity { get; private set; }
     public ActivityRosterResult? Roster { get; private set; }
     public ActivityCourtAssignmentOverviewDto? CourtOverview { get; private set; }
     public RoundRobinEventOverviewDto? RoundRobinOverview { get; private set; }
+    public List<VenuePlayerListItemDto> AvailableVenuePlayers { get; private set; } = new();
 
     [TempData]
     public string? StatusMessage { get; set; }
@@ -50,6 +57,18 @@ public class DetailModel : PageModel
         Roster = await _rsvpService.GetRosterAsync(id);
         CourtOverview = await _courtAssignmentService.GetOverviewAsync(id);
         RoundRobinOverview = await _roundRobinService.GetEventOverviewAsync(id);
+
+        var orgId = _tenantContext.OrganizationId;
+        if (orgId.HasValue && Roster != null)
+        {
+            var existingUserIds = Roster.ConfirmedPlayers.Select(r => r.UserId)
+                .Concat(Roster.WaitlistedPlayers.Select(w => w.UserId))
+                .ToHashSet();
+
+            var allPlayers = await _playerService.GetVenuePlayersAsync(orgId.Value);
+            AvailableVenuePlayers = allPlayers.Where(p => !existingUserIds.Contains(p.UserId)).ToList();
+        }
+
         return Page();
     }
 
@@ -129,6 +148,36 @@ public class DetailModel : PageModel
     {
         var staffUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "admin";
         var result = await _checkInService.UndoRsvpCheckInAsync(rsvpId, staffUserId);
+        if (result.Success) StatusMessage = result.Message;
+        else ErrorMessage = result.Message;
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostAddExistingPlayerAsync(int id, string userId, bool bypassCapacity)
+    {
+        var orgId = _tenantContext.OrganizationId;
+        if (!orgId.HasValue) return Forbid();
+
+        var result = await _playerService.AddPlayerToActivityAsync(orgId.Value, id, userId, bypassCapacity);
+        if (result.Success) StatusMessage = result.Message;
+        else ErrorMessage = result.Message;
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostRegisterWalkInAndAddAsync(int id, CreateGuestPlayerDto input, bool bypassCapacity)
+    {
+        var orgId = _tenantContext.OrganizationId;
+        if (!orgId.HasValue) return Forbid();
+
+        if (string.IsNullOrWhiteSpace(input.FirstName) || string.IsNullOrWhiteSpace(input.LastName))
+        {
+            ErrorMessage = "First name and last name are required for walk-in player.";
+            return RedirectToPage(new { id });
+        }
+
+        var result = await _playerService.RegisterAndAddToActivityAsync(orgId.Value, id, input, bypassCapacity);
         if (result.Success) StatusMessage = result.Message;
         else ErrorMessage = result.Message;
 

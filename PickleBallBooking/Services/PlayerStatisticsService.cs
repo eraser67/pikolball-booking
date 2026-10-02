@@ -57,6 +57,7 @@ public class PlayerStatisticsService : IPlayerStatisticsService
         var bio = profile?.Bio;
         var location = profile?.Location;
         var privacyLevel = profile?.PrivacyMatchHistory ?? MatchHistoryPrivacyLevel.Public;
+        var isGuest = profile?.IsGuest ?? false;
 
         // 2. Evaluate Privacy Access
         bool isSelf = !string.IsNullOrEmpty(viewerUserId) &&
@@ -109,7 +110,8 @@ public class PlayerStatisticsService : IPlayerStatisticsService
                 Overall: emptyOverall,
                 Partners: [],
                 Opponents: [],
-                Matches: []
+                Matches: [],
+                IsGuest: isGuest
             );
         }
 
@@ -454,7 +456,8 @@ public class PlayerStatisticsService : IPlayerStatisticsService
             Overall: overallStats,
             Partners: partnerList,
             Opponents: opponentList,
-            Matches: matchItems
+            Matches: matchItems,
+            IsGuest: isGuest
         );
     }
 

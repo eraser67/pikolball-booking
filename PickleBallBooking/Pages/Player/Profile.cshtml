@@ -72,6 +72,12 @@
                                     {
                                         <span class="badge bg-white text-dark rounded-pill px-2 py-1 small fw-semibold shadow-sm">You</span>
                                     }
+                                    @if (stats.IsGuest)
+                                    {
+                                        <span class="badge bg-warning text-dark rounded-pill px-2 py-1 small fw-semibold shadow-sm">
+                                            <i class="bi bi-person-walking me-1"></i>Walk-in
+                                        </span>
+                                    }
                                 </div>
 
                                 <!-- Quick Tags / Badges -->

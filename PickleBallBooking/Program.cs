@@ -204,6 +204,9 @@ builder.Services.AddScoped<IStandingsService, StandingsService>();
 // Phase 43: player statistics and match history.
 builder.Services.AddScoped<IPlayerStatisticsService, PlayerStatisticsService>();
 
+// Tenant-managed / walk-in players.
+builder.Services.AddScoped<ITenantPlayerService, TenantPlayerService>();
+
 // Platform-level settings (AllowTenantRegistration toggle etc.)
 builder.Services.AddScoped<PlatformSettingsService>();
 

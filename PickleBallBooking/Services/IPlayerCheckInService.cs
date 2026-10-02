@@ -69,7 +69,8 @@ public record TodayActivityPlayerItem(
     PlayerSkillLevel? SkillLevel,
     RsvpStatus Status,
     DateTime? CheckedInAt,
-    CheckInMethod? CheckInMethod);
+    CheckInMethod? CheckInMethod,
+    bool IsGuest = false);
 
 public record TodayBookingItem(
     int BookingId,

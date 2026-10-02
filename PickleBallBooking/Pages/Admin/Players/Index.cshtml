@@ -1,0 +1,445 @@
+@page "/Admin/Players"
+@model PickleBallBooking.Pages.Admin.Players.IndexModel
+@using PickleBallBooking.Models
+@{
+    ViewData["Title"] = "Venue Players & Roster";
+}
+
+@functions {
+    static string SkillBadge(PlayerSkillLevel sk) => sk switch {
+        PlayerSkillLevel.Beginner => "🟢 Beginner",
+        PlayerSkillLevel.Intermediate => "🟡 Intermediate",
+        PlayerSkillLevel.Advanced => "🔴 Advanced",
+        _ => sk.ToString()
+    };
+}
+
+<div class="container-fluid px-3 px-md-4 py-4 max-w-7xl">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a asp-page="/Admin/Index" class="text-decoration-none">Admin</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Players</li>
+        </ol>
+    </nav>
+
+    <!-- Header & Action -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-people-fill text-primary"></i> Venue Players & Roster
+            </h1>
+            <p class="text-muted mb-0">Manage registered members and walk-in guest players participating at your venue.</p>
+        </div>
+        <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2 shadow-sm px-3 py-2 fw-semibold"
+                data-bs-toggle="modal" data-bs-target="#registerGuestModal">
+            <i class="bi bi-person-plus-fill"></i> Register Walk-in Player
+        </button>
+    </div>
+
+    <!-- Alert Messages -->
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill fs-5"></i>
+            <div>@Model.StatusMessage</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            <div>@Model.ErrorMessage</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Metric Stat Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-4">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="p-3 rounded-circle bg-primary-subtle text-primary fs-4">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Total Players</div>
+                        <div class="fs-3 fw-bold text-dark">@Model.TotalCount</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-4">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="p-3 rounded-circle bg-warning-subtle text-warning-emphasis fs-4">
+                        <i class="bi bi-person-badge"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Walk-in Players</div>
+                        <div class="fs-3 fw-bold text-dark">@Model.GuestCount</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-4">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="p-3 rounded-circle bg-success-subtle text-success fs-4">
+                        <i class="bi bi-person-check"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Registered Accounts</div>
+                        <div class="fs-3 fw-bold text-dark">@Model.RegisteredCount</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
+        <div class="card-body p-3">
+            <form method="get" class="row g-2 align-items-center">
+                <div class="col-12 col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" name="Search" value="@Model.Search" class="form-control border-start-0"
+                               placeholder="Search by player name, phone, or notes..." />
+                    </div>
+                </div>
+                <div class="col-12 col-md-5">
+                    <div class="btn-group w-100" role="group">
+                        <a asp-page="./Index" asp-route-Search="@Model.Search" asp-route-Filter="all"
+                           class="btn btn-outline-secondary btn-sm py-2 @(Model.Filter == "all" ? "active" : "")">
+                            All (@Model.TotalCount)
+                        </a>
+                        <a asp-page="./Index" asp-route-Search="@Model.Search" asp-route-Filter="guests"
+                           class="btn btn-outline-secondary btn-sm py-2 @(Model.Filter == "guests" ? "active" : "")">
+                            Walk-Ins (@Model.GuestCount)
+                        </a>
+                        <a asp-page="./Index" asp-route-Search="@Model.Search" asp-route-Filter="registered"
+                           class="btn btn-outline-secondary btn-sm py-2 @(Model.Filter == "registered" ? "active" : "")">
+                            Registered (@Model.RegisteredCount)
+                        </a>
+                    </div>
+                </div>
+                <div class="col-12 col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-outline-primary btn-sm py-2 w-100">Filter</button>
+                    @if (!string.IsNullOrEmpty(Model.Search) || Model.Filter != "all")
+                    {
+                        <a asp-page="./Index" class="btn btn-outline-secondary btn-sm py-2" title="Clear Filters">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Players Table -->
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-3 py-3" style="min-width: 220px;">Player</th>
+                        <th style="min-width: 130px;">Skill Rating</th>
+                        <th style="min-width: 140px;">Contact</th>
+                        <th class="text-center" style="min-width: 100px;">Activities</th>
+                        <th class="text-center" style="min-width: 100px;">Matches</th>
+                        <th style="min-width: 130px;">Last Active</th>
+                        <th class="text-end pe-3" style="min-width: 140px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Players.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-person-x fs-1 d-block mb-2 text-secondary"></i>
+                                <div class="fw-semibold">No players found</div>
+                                <div class="small">Try adjusting your search or register a new walk-in player.</div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var player in Model.Players)
+                        {
+                            var initial = !string.IsNullOrEmpty(player.DisplayName) ? player.DisplayName.Substring(0, 1).ToUpper() : "P";
+                            <tr>
+                                <td class="ps-3 py-3">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar-circle rounded-circle d-flex align-items-center justify-content-center fw-bold @(player.IsGuest ? "bg-warning-subtle text-warning-emphasis" : "bg-primary-subtle text-primary")"
+                                             style="width: 40px; height: 40px; font-size: 1.1rem; flex-shrink: 0;">
+                                            @initial
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                                                <span>@player.DisplayName</span>
+                                                @if (player.IsGuest)
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill small"
+                                                          style="font-size: 0.7rem; font-weight: 600;">
+                                                        <i class="bi bi-person-walking me-1"></i>Walk-in
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small"
+                                                          style="font-size: 0.7rem; font-weight: 600;">
+                                                        <i class="bi bi-shield-check me-1"></i>Member
+                                                    </span>
+                                                }
+                                            </div>
+                                            @if (!string.Equals(player.DisplayName, player.FullName, StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <div class="small text-muted">@player.FullName</div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(player.AdminNotes))
+                                            {
+                                                <div class="small text-muted fst-italic text-truncate" style="max-width: 250px;" title="@player.AdminNotes">
+                                                    <i class="bi bi-sticky me-1"></i>@player.AdminNotes
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border px-2 py-1 rounded-2">
+                                        @SkillBadge(player.SkillLevel)
+                                    </span>
+                                    <div class="small text-muted mt-1">@player.PlayingHand hand</div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(player.Mobile))
+                                    {
+                                        <div class="small"><i class="bi bi-telephone text-muted me-1"></i>@player.Mobile</div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(player.Email))
+                                    {
+                                        <div class="small text-truncate" style="max-width: 180px;" title="@player.Email">
+                                            <i class="bi bi-envelope text-muted me-1"></i>@player.Email
+                                        </div>
+                                    }
+                                    @if (string.IsNullOrEmpty(player.Mobile) && string.IsNullOrEmpty(player.Email))
+                                    {
+                                        <span class="text-muted small">None recorded</span>
+                                    }
+                                </td>
+                                <td class="text-center fw-semibold">
+                                    @player.ActivitiesAttended
+                                </td>
+                                <td class="text-center fw-semibold">
+                                    @player.MatchesPlayed
+                                </td>
+                                <td>
+                                    @if (player.LastActiveDate.HasValue)
+                                    {
+                                        <div class="small fw-semibold text-dark">@player.LastActiveDate.Value.ToString("MMM d, yyyy")</div>
+                                        <div class="small text-muted">@player.LastActiveDate.Value.ToString("h:mm tt")</div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">No events yet</span>
+                                    }
+                                </td>
+                                <td class="text-end pe-3">
+                                    <div class="d-inline-flex gap-1">
+                                        <a asp-page="/Player/Profile" asp-route-userId="@player.UserId"
+                                           class="btn btn-outline-secondary btn-sm py-1 px-2" title="View Statistics & Match History">
+                                            <i class="bi bi-bar-chart-line text-primary me-1"></i>Stats
+                                        </a>
+                                        @if (player.IsGuest)
+                                        {
+                                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2 edit-guest-btn"
+                                                    data-bs-toggle="modal" data-bs-target="#editGuestModal"
+                                                    data-userid="@player.UserId"
+                                                    data-firstname="@player.FullName.Split(' ').FirstOrDefault()"
+                                                    data-lastname="@(player.FullName.Contains(' ') ? player.FullName.Substring(player.FullName.IndexOf(' ') + 1) : "")"
+                                                    data-displayname="@player.DisplayName"
+                                                    data-skill="@((int)player.SkillLevel)"
+                                                    data-hand="@((int)player.PlayingHand)"
+                                                    data-mobile="@player.Mobile"
+                                                    data-email="@player.Email"
+                                                    data-notes="@player.AdminNotes"
+                                                    title="Edit Walk-in Player">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Register Walk-In Player -->
+<div class="modal fade" id="registerGuestModal" tabindex="-1" aria-labelledby="registerGuestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="RegisterGuest">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold" id="registerGuestModalLabel">
+                        <i class="bi bi-person-plus-fill text-primary me-2"></i>Register Walk-in Player
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        Register a walk-in or offline player without creating a login account. They can be scheduled into Open Play, assigned courts, paired in Round Robin, and scored.
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">First Name <span class="text-danger">*</span></label>
+                            <input type="text" name="FirstName" class="form-control" required placeholder="e.g. John" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" name="LastName" class="form-control" required placeholder="e.g. Doe" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold small">Display / Nickname <span class="text-muted fw-normal">(Optional)</span></label>
+                            <input type="text" name="DisplayName" class="form-control" placeholder="Leave blank to use First + Last" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Skill Rating</label>
+                            <select name="SkillLevel" class="form-select">
+                                <option value="Beginner">🟢 Beginner (1.0 - 2.5)</option>
+                                <option value="Intermediate" selected>🟡 Intermediate (3.0 - 3.5)</option>
+                                <option value="Advanced">🔴 Advanced (4.0+)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Playing Hand</label>
+                            <select name="PlayingHand" class="form-select">
+                                <option value="Right" selected>Right Hand</option>
+                                <option value="Left">Left Hand</option>
+                                <option value="Both">Ambidextrous</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Mobile Number <span class="text-muted fw-normal">(Optional)</span></label>
+                            <input type="tel" name="Mobile" class="form-control" placeholder="0912 345 6789" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Email Address <span class="text-muted fw-normal">(Optional)</span></label>
+                            <input type="email" name="Email" class="form-control" placeholder="john@example.com" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold small">Internal Staff Notes <span class="text-muted fw-normal">(Optional)</span></label>
+                            <textarea name="AdminNotes" class="form-control" rows="2" placeholder="e.g. Regular morning player, plays with Tito Jun"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-semibold px-4">Register Player</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Edit Walk-In Player -->
+<div class="modal fade" id="editGuestModal" tabindex="-1" aria-labelledby="editGuestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="UpdateGuest">
+                <input type="hidden" name="userId" id="editGuestUserId" />
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold" id="editGuestModalLabel">
+                        <i class="bi bi-pencil-square text-primary me-2"></i>Edit Walk-in Player
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">First Name <span class="text-danger">*</span></label>
+                            <input type="text" name="FirstName" id="editGuestFirstName" class="form-control" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" name="LastName" id="editGuestLastName" class="form-control" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold small">Display / Nickname</label>
+                            <input type="text" name="DisplayName" id="editGuestDisplayName" class="form-control" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Skill Rating</label>
+                            <select name="SkillLevel" id="editGuestSkill" class="form-select">
+                                <option value="Beginner">🟢 Beginner (1.0 - 2.5)</option>
+                                <option value="Intermediate">🟡 Intermediate (3.0 - 3.5)</option>
+                                <option value="Advanced">🔴 Advanced (4.0+)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Playing Hand</label>
+                            <select name="PlayingHand" id="editGuestHand" class="form-select">
+                                <option value="Right">Right Hand</option>
+                                <option value="Left">Left Hand</option>
+                                <option value="Both">Ambidextrous</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Mobile Number</label>
+                            <input type="tel" name="Mobile" id="editGuestMobile" class="form-control" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Email Address</label>
+                            <input type="email" name="Email" id="editGuestEmail" class="form-control" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold small">Internal Staff Notes</label>
+                            <textarea name="AdminNotes" id="editGuestNotes" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-semibold px-4">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const editButtons = document.querySelectorAll('.edit-guest-btn');
+        editButtons.forEach(btn => {
+            btn.addEventListener('click', function () {
+                document.getElementById('editGuestUserId').value = this.dataset.userid || '';
+                document.getElementById('editGuestFirstName').value = this.dataset.firstname || '';
+                document.getElementById('editGuestLastName').value = this.dataset.lastname || '';
+                document.getElementById('editGuestDisplayName').value = this.dataset.displayname || '';
+                
+                const skillVal = parseInt(this.dataset.skill, 10);
+                const skillSelect = document.getElementById('editGuestSkill');
+                if (!isNaN(skillVal) && skillSelect.options[skillVal]) {
+                    skillSelect.selectedIndex = skillVal;
+                }
+
+                const handVal = parseInt(this.dataset.hand, 10);
+                const handSelect = document.getElementById('editGuestHand');
+                if (!isNaN(handVal) && handSelect.options[handVal]) {
+                    handSelect.selectedIndex = handVal;
+                }
+
+                document.getElementById('editGuestMobile').value = this.dataset.mobile || '';
+                document.getElementById('editGuestEmail').value = this.dataset.email || '';
+                document.getElementById('editGuestNotes').value = this.dataset.notes || '';
+            });
+        });
+    });
+</script>
+}

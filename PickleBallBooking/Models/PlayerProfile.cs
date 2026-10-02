@@ -78,6 +78,25 @@ public class PlayerProfile
     /// <summary>Phase 43: Controls who can view this player's match history and statistics.</summary>
     public MatchHistoryPrivacyLevel PrivacyMatchHistory { get; set; } = MatchHistoryPrivacyLevel.Public;
 
+    // ── Tenant-Managed / Walk-in Player ─────────────────────────────────
+    /// <summary>
+    /// True when this player was registered as a walk-in / guest player by a venue admin
+    /// without creating their own customer account with password.
+    /// </summary>
+    public bool IsGuest { get; set; } = false;
+
+    /// <summary>
+    /// When IsGuest is true, tracks the tenant that created and manages this player.
+    /// Null for self-registered platform players.
+    /// </summary>
+    public int? CreatedByOrganizationId { get; set; }
+
+    /// <summary>
+    /// Optional internal venue notes visible only to staff of CreatedByOrganizationId.
+    /// </summary>
+    [MaxLength(500)]
+    public string? AdminNotes { get; set; }
+
     // ── Timestamps ───────────────────────────────────────────────────────
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

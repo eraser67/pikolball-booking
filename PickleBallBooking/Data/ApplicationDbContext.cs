@@ -535,15 +535,24 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             entity.Property(p => p.Mobile).HasMaxLength(20);
             entity.Property(p => p.Bio).HasMaxLength(500);
             entity.Property(p => p.Location).HasMaxLength(100);
+            entity.Property(p => p.AdminNotes).HasMaxLength(500);
 
             entity.HasIndex(p => p.UserId)
                 .IsUnique()
                 .HasDatabaseName("IX_PlayerProfile_UserId");
 
+            entity.HasIndex(p => p.CreatedByOrganizationId)
+                .HasDatabaseName("IX_PlayerProfile_CreatedByOrganizationId");
+
             entity.HasOne<IdentityUser>()
                 .WithMany()
                 .HasForeignKey(p => p.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(p => p.CreatedByOrganizationId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Phase 33: Activity — tenant-owned.

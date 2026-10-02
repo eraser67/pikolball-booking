@@ -498,9 +498,12 @@ public sealed class ActivityRsvpService
                     ? $"{p.FirstName} {p.LastName}".Trim()
                     : r.User?.UserName ?? "Player";
 
-            var email = r.User?.Email ?? string.Empty;
+            var email = r.User?.Email != null && !r.User.Email.EndsWith("@guest.punitbola.tech")
+                ? r.User.Email
+                : string.Empty;
             var mobile = p?.Mobile ?? r.User?.PhoneNumber;
             var avatarUrl = _storage.GetPublicUrl(p?.AvatarPath);
+            var isGuest = p?.IsGuest ?? false;
 
             return new RsvpPlayerItem(
                 r.Id,
@@ -514,7 +517,8 @@ public sealed class ActivityRsvpService
                 r.WaitlistPosition,
                 r.CreatedAt,
                 r.CheckedInAt,
-                r.CheckInMethod);
+                r.CheckInMethod,
+                isGuest);
         }).ToList();
 
         var confirmed = playerItems.Where(p => p.Status is RsvpStatus.Confirmed or RsvpStatus.CheckedIn or RsvpStatus.NoShow).ToList();
@@ -1035,7 +1039,8 @@ public record RsvpPlayerItem(
     int? WaitlistPosition,
     DateTime CreatedAt,
     DateTime? CheckedInAt = null,
-    CheckInMethod? CheckInMethod = null);
+    CheckInMethod? CheckInMethod = null,
+    bool IsGuest = false);
 
 public record ActivityRosterResult(
     Activity Activity,
