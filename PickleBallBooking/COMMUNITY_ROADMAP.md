@@ -1,10 +1,10 @@
 # Punit Bola -- Community & Competitive Feature Roadmap
 
-**Status:** Phases 31–36 COMPLETE (Release 1: Community Foundation in progress)
+**Status:** Releases 1, 2, and 3 COMPLETE (Phases 31–36, 38–43). Release 4: Tournaments & Leagues is NEXT.
 
-**Roadmap Continues From:** Phase 36 (Notifications -- Complete)
+**Roadmap Continues From:** Phase 43 (Player Statistics & Match History -- Complete)
 
-**Next Available Phase:** Phase 37 (Calendar Integration)
+**Next Available Phase:** Phase 44 (Tournament Foundation)
 
 > **Note on Phase Numbering:** Phases 1-30 are documented in `DEVELOPMENT_PLAN.md` and are complete.
 > Phases 26-30 in the existing plan cover Subscription Management, Platform Administration, Security Audit,
@@ -59,16 +59,16 @@ Phase descriptions capture **requirements, goals, dependencies, constraints, and
 
 ## Priority Summary Table
 
-| Release               | Phases | Purpose                                    | Status  |
-|-----------------------|--------|--------------------------------------------|---------|
-| Community Foundation  | 31-37  | Customer accounts, players, activities     | PLANNED |
-| Venue Operations      | 38-39  | Attendance and court management            | PLANNED |
-| Competitive           | 40-43  | Matches and rankings                       | PLANNED |
-| Tournaments & Leagues | 44-48  | Competitions and leagues                   | PLANNED |
-| Community             | 49-53  | Social engagement                          | PLANNED |
-| Integrations          | 54-55  | DUPR and advanced notifications            | PLANNED |
-| Discovery & SaaS      | 56-60  | Platform-wide expansion                    | PLANNED |
-| Mobile                | 61     | PWA / mobile experience                    | PLANNED |
+| Release               | Phases | Purpose                                    | Status      |
+|-----------------------|--------|--------------------------------------------|-------------|
+| Community Foundation  | 31-36  | Customer accounts, players, activities     | COMPLETE    |
+| Venue Operations      | 38-39  | Attendance (Check-in) and court management | COMPLETE    |
+| Competitive           | 40-43  | Matches, scoring, standings, statistics    | COMPLETE    |
+| Tournaments & Leagues | 44-48  | Competitions and leagues                   | NEXT (PLANNED) |
+| Community             | 49-53  | Social engagement                          | PLANNED     |
+| Integrations          | 54-55  | DUPR and advanced notifications            | PLANNED     |
+| Discovery & SaaS      | 56-60  | Platform-wide expansion                    | PLANNED     |
+| Mobile                | 61     | PWA / mobile experience                    | PLANNED     |
 
 ---
 
