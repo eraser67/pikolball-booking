@@ -57,6 +57,15 @@
                 <span asp-validation-for="Court.Description" class="text-danger"></span>
             </div>
 
+            <div class="mb-3">
+                <label asp-for="Court.MaintenanceNote" class="form-label fw-semibold"></label>
+                <textarea asp-for="Court.MaintenanceNote" class="form-control" rows="2" placeholder="e.g. Closed for resurfacing until Oct 10th..."></textarea>
+                <div class="form-text">
+                    Optional reason or schedule note shown to players if this court is deactivated or undergoing maintenance.
+                </div>
+                <span asp-validation-for="Court.MaintenanceNote" class="text-danger"></span>
+            </div>
+
             <hr class="my-3" />
             <h5 class="mb-3">
                 @(Model.CurrentImageUrl is not null ? "Replace Image" : "Upload Image")

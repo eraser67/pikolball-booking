@@ -86,6 +86,20 @@ public class CourtManagementTests
     }
 
     [Fact]
+    public async Task UpdateAsync_WithMaintenanceNote_UpdatesNote()
+    {
+        using var ctx = TestDbContextFactory.CreateInMemory("update_court_note", organizationId: 10);
+        var service = new CourtService(ctx);
+        var court = await service.CreateAsync("Court 1", "Outdoor");
+
+        var result = await service.UpdateAsync(court.Id, "Court 1", "Outdoor", "Resurfacing until Oct 15");
+
+        Assert.True(result);
+        var updated = await ctx.Courts.FirstAsync();
+        Assert.Equal("Resurfacing until Oct 15", updated.MaintenanceNote);
+    }
+
+    [Fact]
     public async Task UpdateAsync_UnknownId_ReturnsFalse()
     {
         using var ctx = TestDbContextFactory.CreateInMemory("update_unknown", organizationId: 10);
@@ -114,6 +128,24 @@ public class CourtManagementTests
         await service.SetStatusAsync(court.Id, CourtStatus.Active);
         var active = await ctx.Courts.FirstAsync();
         Assert.Equal(CourtStatus.Active, active.Status);
+    }
+
+    [Fact]
+    public async Task SetStatusAsync_WithMaintenanceNote_SavesNote()
+    {
+        using var ctx = TestDbContextFactory.CreateInMemory("status_with_note", organizationId: 10);
+        var service = new CourtService(ctx);
+        var court = await service.CreateAsync("Court", null);
+
+        await service.SetStatusAsync(court.Id, CourtStatus.Inactive, "Heavy rain flooding");
+        var inactive = await ctx.Courts.FirstAsync();
+        Assert.Equal(CourtStatus.Inactive, inactive.Status);
+        Assert.Equal("Heavy rain flooding", inactive.MaintenanceNote);
+
+        await service.SetStatusAsync(court.Id, CourtStatus.Active);
+        var active = await ctx.Courts.FirstAsync();
+        Assert.Equal(CourtStatus.Active, active.Status);
+        Assert.Null(active.MaintenanceNote);
     }
 
     [Fact]

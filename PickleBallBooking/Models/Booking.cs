@@ -56,6 +56,13 @@ public class Booking
     /// <summary>Phase 38: Method used for check-in.</summary>
     public CheckInMethod? CheckInMethod { get; set; }
 
+    /// <summary>Optional Facebook account name provided by the customer at booking time.</summary>
+    [MaxLength(100)]
+    public string? FacebookName { get; set; }
+
+    /// <summary>Payment method chosen by the customer during booking.</summary>
+    public PaymentMethod? SelectedPaymentMethod { get; set; }
+
     /// <summary>Phase 38: True if the booking party was marked as a no-show.</summary>
     public bool IsNoShow { get; set; }
 

@@ -40,38 +40,88 @@ else if (Model.TimeSlots.Count == 0)
 }
 else
 {
-    <p class="text-muted mb-3">Click a cell to toggle maintenance status (Green = Active, Red = Maintenance)</p>
+    <p class="text-muted mb-3">
+        Manage court availability and maintenance schedules. Click a slot button to toggle or click the note icon to add/edit a reason note.
+    </p>
 
     <div class="table-responsive">
         <table class="table table-bordered text-center align-middle">
             <thead>
                 <tr>
-                    <th>Time</th>
+                    <th style="min-width: 140px;">Time</th>
                     @foreach (var court in Model.Courts)
                     {
-                        <th>@court.Name</th>
+                        <th style="min-width: 160px;">
+                            <div>@court.Name</div>
+                            @if (court.Status == PickleBallBooking.Models.CourtStatus.Inactive)
+                            {
+                                <span class="badge bg-secondary small mt-1">Inactive</span>
+                                @if (!string.IsNullOrWhiteSpace(court.MaintenanceNote))
+                                {
+                                    <div class="small text-muted fw-normal mt-1" style="font-size:0.75rem;" title="@court.MaintenanceNote">
+                                        <i class="bi bi-tools text-warning me-1"></i>@court.MaintenanceNote
+                                    </div>
+                                }
+                            }
+                        </th>
                     }
                 </tr>
             </thead>
             <tbody>
                 @foreach (var timeSlot in Model.TimeSlots)
                 {
+                    var slotLabel = PickleBallBooking.Services.AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime);
                     <tr>
-                        <td>@PickleBallBooking.Services.AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime)</td>
+                        <td class="fw-semibold">@slotLabel</td>
                         @foreach (var court in Model.Courts)
                         {
                             var status = Model.MaintenanceMatrix.TryGetValue((court.Id, timeSlot.Id), out var value)
                                 ? value
                                 : PickleBallBooking.Models.CourtTimeSlotStatus.Active;
-                            var bgClass = status == PickleBallBooking.Models.CourtTimeSlotStatus.Maintenance ? "bg-danger" : "bg-success";
+                            var note = Model.MaintenanceNotes.TryGetValue((court.Id, timeSlot.Id), out var n)
+                                ? n
+                                : null;
+                            var isMaint = status == PickleBallBooking.Models.CourtTimeSlotStatus.Maintenance;
+                            var bgClass = isMaint ? "btn-danger" : "btn-success";
+
                             <td>
-                                <form method="post" asp-page-handler="ToggleMaintenance" style="display:inline;">
-                                    <input type="hidden" name="courtId" value="@court.Id" />
-                                    <input type="hidden" name="timeSlotId" value="@timeSlot.Id" />
-                                    <button type="submit" class="btn btn-sm @bgClass text-white w-100">
-                                        @status
-                                    </button>
-                                </form>
+                                <div class="d-flex flex-column gap-1">
+                                    <div class="btn-group btn-group-sm w-100">
+                                        <form method="post" asp-page-handler="ToggleMaintenance" style="display:inline; flex-grow:1;">
+                                            <input type="hidden" name="courtId" value="@court.Id" />
+                                            <input type="hidden" name="timeSlotId" value="@timeSlot.Id" />
+                                            <button type="submit" class="btn btn-sm @bgClass text-white w-100" title="Click to toggle status">
+                                                @if (isMaint)
+                                                {
+                                                    <i class="bi bi-tools me-1"></i><span>Maintenance</span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-check-circle me-1"></i><span>Active</span>
+                                                }
+                                            </button>
+                                        </form>
+                                        <button type="button"
+                                                class="btn btn-sm @(isMaint ? "btn-outline-danger" : "btn-outline-secondary")"
+                                                title="Edit maintenance note"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editSlotModal"
+                                                data-court-id="@court.Id"
+                                                data-court-name="@court.Name"
+                                                data-slot-id="@timeSlot.Id"
+                                                data-slot-label="@slotLabel"
+                                                data-status="@status"
+                                                data-note="@note">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                    </div>
+                                    @if (isMaint && !string.IsNullOrWhiteSpace(note))
+                                    {
+                                        <div class="small text-danger text-start px-1" style="font-size: 0.72rem; line-height: 1.2;">
+                                            <i class="bi bi-chat-left-text me-1"></i>@note
+                                        </div>
+                                    }
+                                </div>
                             </td>
                         }
                     </tr>
@@ -79,4 +129,76 @@ else
             </tbody>
         </table>
     </div>
+
+    <!-- Modal for editing slot status and maintenance note -->
+    <div class="modal fade" id="editSlotModal" tabindex="-1" aria-labelledby="editSlotModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" asp-page-handler="SaveSlotStatus">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editSlotModalLabel">Edit Slot Maintenance</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-start">
+                        <input type="hidden" name="courtId" id="modalCourtId" />
+                        <input type="hidden" name="timeSlotId" id="modalSlotId" />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Court</label>
+                            <input type="text" class="form-control" id="modalCourtName" readonly disabled />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Time Slot</label>
+                            <input type="text" class="form-control" id="modalSlotLabel" readonly disabled />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold" for="modalStatus">Status</label>
+                            <select name="status" id="modalStatus" class="form-select">
+                                <option value="Active">Active (Open for Booking)</option>
+                                <option value="Maintenance">Maintenance (Unavailable)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold" for="modalNote">Maintenance Note</label>
+                            <textarea name="note" id="modalNote" class="form-control" rows="3" placeholder="Reason (e.g., Net replacement, light fixture repair, tournament prep)..."></textarea>
+                            <div class="form-text">This note will be visible to users checking court schedules.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var editModal = document.getElementById('editSlotModal');
+                if (editModal) {
+                    editModal.addEventListener('show.bs.modal', function (event) {
+                        var button = event.relatedTarget;
+                        var courtId = button.getAttribute('data-court-id');
+                        var courtName = button.getAttribute('data-court-name');
+                        var slotId = button.getAttribute('data-slot-id');
+                        var slotLabel = button.getAttribute('data-slot-label');
+                        var status = button.getAttribute('data-status');
+                        var note = button.getAttribute('data-note') || '';
+
+                        document.getElementById('modalCourtId').value = courtId;
+                        document.getElementById('modalSlotId').value = slotId;
+                        document.getElementById('modalCourtName').value = courtName;
+                        document.getElementById('modalSlotLabel').value = slotLabel;
+                        document.getElementById('modalStatus').value = status;
+                        document.getElementById('modalNote').value = note;
+                    });
+                }
+            });
+        </script>
+    }
 }

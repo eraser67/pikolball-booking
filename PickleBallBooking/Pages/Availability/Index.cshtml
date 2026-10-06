@@ -84,6 +84,13 @@
                                     <p class="text-muted small text-truncate mb-2" style="font-size: 0.75rem;">@availability.Court.Description</p>
                                 }
 
+                                @if (availability.IsInactive && !string.IsNullOrWhiteSpace(availability.Court.MaintenanceNote))
+                                {
+                                    <div class="small text-dark bg-warning-subtle border border-warning-subtle p-1 px-2 rounded mb-2" style="font-size: 0.75rem;">
+                                        <i class="bi bi-tools me-1 text-warning"></i>@availability.Court.MaintenanceNote
+                                    </div>
+                                }
+
                                 <div class="mb-2 mt-2">
                                     <div class="d-flex justify-content-between mb-1" style="font-size: 0.75rem;">
                                         <span class="text-muted">Available Slots</span>
@@ -100,7 +107,11 @@
                                 </div>
 
                                 <div class="small" style="font-size: 0.75rem;">
-                                    @if (availability.AvailableSlots > 0)
+                                    @if (availability.IsInactive)
+                                    {
+                                        <span class="text-secondary"><i class="bi bi-slash-circle me-1"></i>Under maintenance</span>
+                                    }
+                                    else if (availability.AvailableSlots > 0)
                                     {
                                         <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>@availability.AvailableSlots @(availability.AvailableSlots == 1 ? "slot" : "slots") open</span>
                                     }
@@ -191,11 +202,30 @@
                                     else
                                     {
                                         var booker = slot.GetBookerForCourt(court.Id);
-                                        <div class="pb-court-row pb-court-booker-text text-truncate" title="@court.Name: Booked by @booker">
-                                            <span class="text-truncate">
-                                                @court.Name: <i class="bi bi-person-fill text-secondary"></i> <strong>@booker</strong>
-                                            </span>
-                                        </div>
+                                        var note = slot.GetMaintenanceNoteForCourt(court.Id);
+                                        var isInactive = court.Status == PickleBallBooking.Models.CourtStatus.Inactive;
+                                        var isMaintenance = booker == "Maintenance" || isInactive;
+
+                                        if (isMaintenance)
+                                        {
+                                            <div class="pb-court-row pb-court-booker-text text-truncate" title="@court.Name: @(isInactive ? "Unavailable" : "Maintenance") @(!string.IsNullOrWhiteSpace(note) ? $" - {note}" : "")">
+                                                <span class="text-truncate text-muted">
+                                                    @court.Name: <span class="badge @(isInactive ? "bg-secondary-subtle text-secondary" : "bg-warning-subtle text-warning-emphasis") border px-1" style="font-size:0.68rem;"><i class="bi bi-tools me-1"></i>@(isInactive ? "Unavailable" : "Maintenance")</span>
+                                                    @if (!string.IsNullOrWhiteSpace(note))
+                                                    {
+                                                        <span class="small text-muted ms-1" style="font-size: 0.72rem;">@note</span>
+                                                    }
+                                                </span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="pb-court-row pb-court-booker-text text-truncate" title="@court.Name: Booked by @booker">
+                                                <span class="text-truncate">
+                                                    @court.Name: <i class="bi bi-person-fill text-secondary"></i> <strong>@booker</strong>
+                                                </span>
+                                            </div>
+                                        }
                                     }
                                 }
                             </div>
@@ -233,11 +263,30 @@
                                 @foreach (var court in Model.Courts)
                                 {
                                     var booker = slot.GetBookerForCourt(court.Id);
-                                    <div class="pb-court-row pb-court-booker-text text-truncate" title="@court.Name: Booked by @booker">
-                                        <span class="text-truncate">
-                                            @court.Name: <i class="bi bi-person-fill text-secondary"></i> <strong>@booker</strong>
-                                        </span>
-                                    </div>
+                                    var note = slot.GetMaintenanceNoteForCourt(court.Id);
+                                    var isInactive = court.Status == PickleBallBooking.Models.CourtStatus.Inactive;
+                                    var isMaintenance = booker == "Maintenance" || isInactive;
+
+                                    if (isMaintenance)
+                                    {
+                                        <div class="pb-court-row pb-court-booker-text text-truncate" title="@court.Name: @(isInactive ? "Unavailable" : "Maintenance") @(!string.IsNullOrWhiteSpace(note) ? $" - {note}" : "")">
+                                            <span class="text-truncate text-muted">
+                                                @court.Name: <span class="badge @(isInactive ? "bg-secondary-subtle text-secondary" : "bg-warning-subtle text-warning-emphasis") border px-1" style="font-size:0.68rem;"><i class="bi bi-tools me-1"></i>@(isInactive ? "Unavailable" : "Maintenance")</span>
+                                                @if (!string.IsNullOrWhiteSpace(note))
+                                                {
+                                                    <span class="small text-muted ms-1" style="font-size: 0.72rem;">@note</span>
+                                                }
+                                            </span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="pb-court-row pb-court-booker-text text-truncate" title="@court.Name: Booked by @booker">
+                                            <span class="text-truncate">
+                                                @court.Name: <i class="bi bi-person-fill text-secondary"></i> <strong>@booker</strong>
+                                            </span>
+                                        </div>
+                                    }
                                 }
                             </div>
 

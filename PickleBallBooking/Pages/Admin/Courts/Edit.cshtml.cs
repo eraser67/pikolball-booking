@@ -38,15 +38,16 @@ public class EditModel : PageModel
         Id    = court.Id;
         Court = new CourtInput
         {
-            Name        = court.Name,
-            Description = court.Description,
+            Name            = court.Name,
+            Description     = court.Description,
+            MaintenanceNote = court.MaintenanceNote,
         };
         CurrentImageUrl = _imageStorage.GetPublicUrl(court.ImagePath);
 
         return Page();
     }
 
-    /// <summary>Saves court name/description and optionally replaces the image.</summary>
+    /// <summary>Saves court name/description/maintenance note and optionally replaces the image.</summary>
     public async Task<IActionResult> OnPostAsync()
     {
         if (!ModelState.IsValid)
@@ -54,7 +55,7 @@ public class EditModel : PageModel
             return Page();
         }
 
-        var updated = await _courtService.UpdateAsync(Id, Court.Name, Court.Description);
+        var updated = await _courtService.UpdateAsync(Id, Court.Name, Court.Description, Court.MaintenanceNote);
         if (!updated)
         {
             return NotFound();
@@ -145,6 +146,10 @@ public class EditModel : PageModel
         [MaxLength(500)]
         [Display(Name = "Description")]
         public string? Description { get; set; }
+
+        [MaxLength(500)]
+        [Display(Name = "Maintenance / Closure Note")]
+        public string? MaintenanceNote { get; set; }
 
         /// <summary>Optional replacement image. If null/empty, existing image is kept.</summary>
         [Display(Name = "Replace Image")]

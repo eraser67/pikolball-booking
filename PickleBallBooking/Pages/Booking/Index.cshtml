@@ -1,36 +1,23 @@
 @page "/Booking"
 @model PickleBallBooking.Pages.Booking.IndexModel
+@using PickleBallBooking.Models
+@using PickleBallBooking.Services
 @{
     ViewData["Title"] = "Book a Court";
     var hasSlots = Model.TimeSlotAvailabilities.Count > 0;
+    var todayStr = AppClock.TodayLocal.ToString("yyyy-MM-dd");
 }
 
-<div class="container my-5">
+<div class="container my-4 my-lg-5">
 
     <header class="mb-4">
-        <h1 class="mb-2">Book a Court</h1>
+        <h1 class="mb-1">
+            <i class="bi bi-calendar-plus me-2 text-primary"></i>Book a Court
+        </h1>
         <p class="text-muted mb-0">
-            Select a court, date, and one or more continuous time slots to complete your booking.
+            Select a court, date, and time slots — then fill in your details to complete your booking.
         </p>
     </header>
-
-    <!-- Progress indicator (decorative guidance) -->
-    <nav aria-label="Booking progress">
-        <ol class="pb-steps">
-            <li class="pb-step is-active" id="stepIndicator1">
-                <span class="pb-step-index">1</span> Court &amp; Date
-            </li>
-            <li class="pb-step" id="stepIndicator2">
-                <span class="pb-step-index">2</span> Time Slots
-            </li>
-            <li class="pb-step" id="stepIndicator3">
-                <span class="pb-step-index">3</span> Details
-            </li>
-            <li class="pb-step" id="stepIndicator4">
-                <span class="pb-step-index">4</span> Confirm
-            </li>
-        </ol>
-    </nav>
 
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
@@ -40,11 +27,7 @@
                 <strong>We couldn't complete that.</strong>
                 <div>@Model.ErrorMessage</div>
             </div>
-            <button type="button"
-                    class="btn-close"
-                    data-bs-dismiss="alert"
-                    aria-label="Close">
-            </button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
@@ -52,11 +35,7 @@
     {
         <div class="alert alert-success alert-dismissible fade show" role="status">
             <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>@Model.StatusMessage
-            <button type="button"
-                    class="btn-close"
-                    data-bs-dismiss="alert"
-                    aria-label="Close">
-            </button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
@@ -67,9 +46,7 @@
              role="alert"
              id="validationSummary"
              style="display: none;">
-
             <strong>Please correct the following errors:</strong>
-
         </div>
 
         <!-- Hidden container to hold selected slot IDs from other dates across midnight -->
@@ -94,52 +71,97 @@
             <!-- ================= LEFT: SELECTION ================= -->
             <div class="col-lg-7">
 
-                <!-- STEP 1: COURT -->
-                <section class="booking-form-section card mb-4" aria-labelledby="step1Heading">
+                <!-- ─── STEP 1: COURT ─── -->
+                <section class="booking-form-section card mb-4 shadow-sm" aria-labelledby="step1Heading">
                     <div class="card-body">
-                        <h2 class="h5 card-title" id="step1Heading">
-                            <span class="pb-step-index me-1" aria-hidden="true">1</span>
+                        <h2 class="h5 card-title d-flex align-items-center gap-2" id="step1Heading">
+                            <span class="pb-step-index" aria-hidden="true">1</span>
                             Select a Court
                         </h2>
 
-                        <div class="mb-1">
-                            <label for="courtSelect" class="form-label">Court</label>
-                            <select asp-for="Input.CourtId"
-                                    asp-items="Model.Courts"
-                                    class="form-select form-select-lg"
-                                    id="courtSelect">
-                                <option value="">-- Select a court --</option>
-                            </select>
-                            <span asp-validation-for="Input.CourtId" class="text-danger"></span>
+                        <!-- Visual court cards -->
+                        <div class="court-card-grid mb-2" id="courtCardGrid" role="group" aria-label="Available courts">
+                            @foreach (var court in Model.Courts)
+                            {
+                                var isDisabled = court.Disabled;
+                                var courtId = court.Value;
+                                var isSelected = courtId == Model.Input.CourtId.ToString();
+                                <button type="button"
+                                        class="court-card-btn @(isSelected ? "selected" : "") @(isDisabled ? "disabled-court" : "")"
+                                        data-court-id="@courtId"
+                                        @(isDisabled ? "disabled" : "")
+                                        aria-pressed="@(isSelected ? "true" : "false")">
+                                    <i class="bi bi-geo-alt-fill court-card-icon"></i>
+                                    <span class="court-card-name">@court.Text</span>
+                                    @if (isSelected)
+                                    {
+                                        <i class="bi bi-check-circle-fill court-card-check text-success"></i>
+                                    }
+                                </button>
+                            }
                         </div>
+                        <!-- Hidden select kept for model binding -->
+                        <select asp-for="Input.CourtId"
+                                asp-items="Model.Courts"
+                                id="courtSelect"
+                                class="d-none">
+                            <option value="">-- Select a court --</option>
+                        </select>
+                        <span asp-validation-for="Input.CourtId" class="text-danger"></span>
+
+                        @if (Model.SelectedCourt != null && Model.SelectedCourt.Status == CourtStatus.Inactive)
+                        {
+                            <div class="alert alert-warning py-2 px-3 small mt-3 mb-0 d-flex align-items-start gap-2" role="status">
+                                <i class="bi bi-tools text-warning-emphasis fs-6 flex-shrink-0 mt-1"></i>
+                                <div>
+                                    <strong>@Model.SelectedCourt.Name is Temporarily Unavailable</strong>
+                                    <p class="mb-0 text-muted">
+                                        @(string.IsNullOrWhiteSpace(Model.SelectedCourt.MaintenanceNote)
+                                            ? "This court is undergoing maintenance and cannot be reserved at this time."
+                                            : Model.SelectedCourt.MaintenanceNote)
+                                    </p>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </section>
 
-                <!-- STEP 2: DATE -->
-                <section class="booking-form-section card mb-4" aria-labelledby="step2Heading">
+                <!-- ─── STEP 2: DATE ─── -->
+                <section class="booking-form-section card mb-4 shadow-sm" aria-labelledby="step2Heading">
                     <div class="card-body">
-                        <h2 class="h5 card-title" id="step2Heading">
-                            <span class="pb-step-index me-1" aria-hidden="true">2</span>
-                            Select a Booking Date
+                        <h2 class="h5 card-title d-flex align-items-center gap-2" id="step2Heading">
+                            <span class="pb-step-index" aria-hidden="true">2</span>
+                            Select a Date
                         </h2>
 
-                        <div class="mb-1">
-                            <label for="bookingDate" class="form-label">Booking Date</label>
-                            <input asp-for="Input.BookingDate"
-                                   type="date"
-                                   id="bookingDate"
-                                   class="form-control form-control-lg"
-                                   required />
-                            <span asp-validation-for="Input.BookingDate" class="text-danger"></span>
+                        <!-- Date chip strip (7-day scrollable) -->
+                        <div class="date-chip-strip" id="dateChipStrip" role="group" aria-label="Select booking date">
+                            @foreach (var opt in Model.DateOptions)
+                            {
+                                <button type="button"
+                                        class="date-chip @(opt.IsSelected ? "selected" : "")"
+                                        data-date="@opt.Date.ToString("yyyy-MM-dd")"
+                                        aria-pressed="@(opt.IsSelected ? "true" : "false")">
+                                    <span class="date-chip-day">@opt.DayLabel</span>
+                                    <span class="date-chip-num">@opt.DateLabel</span>
+                                </button>
+                            }
                         </div>
+                        <!-- Hidden input kept for model binding -->
+                        <input asp-for="Input.BookingDate"
+                               type="date"
+                               id="bookingDate"
+                               class="d-none"
+                               required />
+                        <span asp-validation-for="Input.BookingDate" class="text-danger"></span>
                     </div>
                 </section>
 
-                <!-- STEP 3: TIMESLOTS -->
-                <section class="booking-form-section card mb-4" aria-labelledby="step3Heading">
+                <!-- ─── STEP 3: TIME SLOTS ─── -->
+                <section class="booking-form-section card mb-4 shadow-sm" aria-labelledby="step3Heading">
                     <div class="card-body">
-                        <h2 class="h5 card-title" id="step3Heading">
-                            <span class="pb-step-index me-1" aria-hidden="true">3</span>
+                        <h2 class="h5 card-title d-flex align-items-center gap-2" id="step3Heading">
+                            <span class="pb-step-index" aria-hidden="true">3</span>
                             Select Time Slots
                         </h2>
 
@@ -154,8 +176,8 @@
 
                         <div id="timeslotContent" style="@(hasSlots ? "" : "display: none;")">
                             <p class="text-muted small mb-2">
-                                Tap the available (green) slots to select them.
-                                Multiple slots must be continuous with no gaps.
+                                Tap the <span class="text-success fw-semibold">green</span> slots to select them.
+                                Selected slots must be <strong>continuous</strong> with no gaps.
                             </p>
 
                             <div class="pb-legend mb-3" aria-hidden="true">
@@ -180,7 +202,7 @@
                                 <button type="button" class="btn-close" id="overnightContinueAlertClose" aria-label="Close"></button>
                             </div>
 
-                            <!-- Dedicated Gap Alert directly above timeslot grid -->
+                            <!-- Gap Alert -->
                             <div id="timeslotGapAlert"
                                  class="alert alert-danger alert-dismissible fade show d-none align-items-center mb-3"
                                  role="alert">
@@ -211,11 +233,8 @@
                                     };
 
                                     var isDisabled = slot.Status != "available";
-
                                     var displayStatus = slot.IsPast ? "passed" : slot.Status;
-
                                     var ariaLabel = $"{slot.DisplayTime} - {displayStatus}";
-
                                     var startMinutes = (int)slot.StartTime.TotalMinutes;
                                     var endMinutes = (int)(slot.EndTime == TimeSpan.Zero ? 1440 : slot.EndTime.TotalMinutes);
 
@@ -255,25 +274,150 @@
                                             <span class="status-text">@(slot.IsSelected ? "selected" : displayStatus)</span>
                                         </span>
 
+                                        @if (slot.Status == "maintenance" && !string.IsNullOrWhiteSpace(slot.MaintenanceNote))
+                                        {
+                                            <span class="small text-danger d-block text-truncate mt-1 px-1" style="font-size:0.68rem; max-width: 100%;" title="@slot.MaintenanceNote">
+                                                @slot.MaintenanceNote
+                                            </span>
+                                        }
+
                                     </label>
                                 }
 
+                            </div>
+
+                            <!-- AJAX Calculate Price button (within slots section) -->
+                            <div class="d-grid mt-3" id="calculateButtonContainer">
+                                <button type="button"
+                                        class="btn btn-info btn-lg"
+                                        id="btnCalculatePrice">
+                                    <span class="pb-btn-spinner spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>
+                                    <i class="bi bi-calculator me-1"></i>
+                                    Calculate Price &amp; Continue
+                                </button>
+                            </div>
+
+                            <!-- AJAX error -->
+                            <div id="priceCalcError" class="alert alert-danger mt-2 d-none" role="alert"></div>
+
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- ─── STEP 4: YOUR INFORMATION (revealed after price calc) ─── -->
+                <section class="booking-form-section card mb-4 shadow-sm step4-panel"
+                         id="step4Card"
+                         aria-labelledby="step4Heading"
+                         style="@(Model.CalculatedPrice.HasValue ? "" : "display:none;")">
+                    <div class="card-body">
+                        <h2 class="h5 card-title d-flex align-items-center gap-2" id="step4Heading">
+                            <span class="pb-step-index" aria-hidden="true">4</span>
+                            Your Details
+                        </h2>
+
+                        <!-- Estimated price banner -->
+                        <div class="price-alert mb-4" id="step4PriceAlert">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-semibold">Estimated total</span>
+                                <span class="price-alert-value" id="step4PriceValue">
+                                    @(Model.CalculatedPrice.HasValue ? $"₱{Model.CalculatedPrice.Value:N2}" : "")
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label asp-for="Input.CustomerName" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.CustomerName"
+                                       class="form-control"
+                                       id="Input_CustomerName"
+                                       placeholder="Enter your full name"
+                                       autocomplete="name" />
+                                <span asp-validation-for="Input.CustomerName" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label asp-for="Input.CustomerPhone" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.CustomerPhone"
+                                       class="form-control"
+                                       id="Input_CustomerPhone"
+                                       inputmode="tel"
+                                       placeholder="e.g., +63 9XX XXXX XXX"
+                                       autocomplete="tel" />
+                                <span asp-validation-for="Input.CustomerPhone" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label asp-for="Input.CustomerEmail" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.CustomerEmail"
+                                       class="form-control"
+                                       id="Input_CustomerEmail"
+                                       inputmode="email"
+                                       placeholder="email@example.com"
+                                       autocomplete="email" />
+                                <span asp-validation-for="Input.CustomerEmail" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label asp-for="Input.FacebookName" class="form-label fw-semibold">
+                                    <i class="bi bi-facebook text-primary me-1"></i>Facebook Name
+                                    <span class="badge bg-secondary fw-normal ms-1" style="font-size:0.7rem;">Optional</span>
+                                </label>
+                                <input asp-for="Input.FacebookName"
+                                       class="form-control"
+                                       id="Input_FacebookName"
+                                       placeholder="Your Facebook name for easy contact"
+                                       autocomplete="off" />
+                                <div class="form-text">Helps the venue contact you if needed.</div>
+                                <span asp-validation-for="Input.FacebookName" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Payment Method Selection -->
+                        <div class="mt-4">
+                            <p class="fw-semibold mb-2">
+                                <i class="bi bi-credit-card me-1 text-primary"></i>
+                                How would you like to pay?
+                            </p>
+                            <input type="hidden" asp-for="Input.SelectedPaymentMethod" id="Input_SelectedPaymentMethod" value="0" />
+                            <div class="payment-method-grid" id="paymentMethodGrid" role="group" aria-label="Payment method">
+                                <!-- GCash QR card -->
+                                <button type="button"
+                                        class="payment-method-card selected"
+                                        data-method="0"
+                                        aria-pressed="true"
+                                        id="pmCardGCash">
+                                    <i class="bi bi-qr-code payment-method-icon"></i>
+                                    <div class="payment-method-label">GCash QR</div>
+                                    <div class="payment-method-sub">Scan &amp; upload receipt</div>
+                                    <i class="bi bi-check-circle-fill payment-method-check text-success"></i>
+                                </button>
+                                <!-- Future payment methods can be added here -->
+                            </div>
+                            <div class="form-text mt-2">
+                                <i class="bi bi-info-circle me-1"></i>
+                                After booking, you'll be shown the QR code to scan and pay. Upload your receipt to confirm.
                             </div>
                         </div>
 
                     </div>
                 </section>
 
-            </div>
+            </div><!-- /col-lg-7 -->
 
             <!-- ================= RIGHT: SUMMARY ================= -->
             <div class="col-lg-5">
                 <div class="pb-sticky-summary">
 
-                    <div id="bookingSummaryContainer" style="@(Model.CalculatedPrice.HasValue || (Model.SelectedSlotIds != null && Model.SelectedSlotIds.Length > 0) ? "" : "display: none;")">
-                        <div class="booking-form-section card mb-4 bg-light" aria-live="polite">
+                    <!-- Booking Summary Card (always rendered, shown by JS) -->
+                    <div id="bookingSummaryContainer"
+                         style="@(Model.CalculatedPrice.HasValue || (Model.SelectedSlotIds != null && Model.SelectedSlotIds.Length > 0) ? "" : "display: none;")">
+                        <div class="booking-form-section card mb-4 bg-light shadow-sm" aria-live="polite">
                             <div class="card-body">
-                                <h2 class="h5 card-title">Booking Summary</h2>
+                                <h2 class="h5 card-title">
+                                    <i class="bi bi-receipt me-1"></i>Booking Summary
+                                </h2>
 
                                 <div class="booking-summary-item">
                                     <span class="booking-summary-label">Court</span>
@@ -296,77 +440,21 @@
                                     <span class="booking-summary-value" id="summaryDuration">-</span>
                                 </div>
 
-                                <div id="priceContainer" style="@(Model.CalculatedPrice.HasValue ? "" : "display: none;")" class="booking-summary-item">
+                                <div id="priceContainer"
+                                     style="@(Model.CalculatedPrice.HasValue ? "" : "display: none;")"
+                                     class="booking-summary-item">
                                     <span class="booking-summary-label">Price</span>
-                                    <span class="booking-summary-value text-success" id="summaryPrice">@(Model.CalculatedPrice.HasValue ? $"₱{Model.CalculatedPrice.Value:N2}" : "-")</span>
-                                </div>
-
-                                <div id="calculateButtonContainer" class="mt-3 d-grid">
-                                    <button type="submit"
-                                            asp-page-handler="Calculate"
-                                            class="btn btn-info btn-lg"
-                                            id="btnCalculatePrice">
-                                        <span class="pb-btn-spinner spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                                        <i class="bi bi-calculator pb-btn-label"></i>
-                                        <span class="pb-btn-label">Calculate Price</span>
-                                    </button>
+                                    <span class="booking-summary-value text-success fw-bold" id="summaryPrice">
+                                        @(Model.CalculatedPrice.HasValue ? $"₱{Model.CalculatedPrice.Value:N2}" : "-")
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Confirm Action (only after price is known) -->
                     @if (Model.CalculatedPrice.HasValue)
                     {
-                        <div class="booking-form-section card mb-4"
-                             aria-labelledby="step4Heading"
-                             id="step4Card">
-                            <div class="card-body">
-                                <h2 class="h5 card-title" id="step4Heading">
-                                    <span class="pb-step-index me-1" aria-hidden="true">4</span>
-                                    Your Information
-                                </h2>
-
-                                <div class="price-alert mb-3" id="step4PriceAlert">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fw-semibold">Estimated total</span>
-                                        <span class="price-alert-value" id="step4PriceValue">₱@Model.CalculatedPrice.Value.ToString("N2")</span>
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label asp-for="Input.CustomerName" class="form-label">Full Name</label>
-                                    <input asp-for="Input.CustomerName"
-                                           class="form-control"
-                                           id="Input_CustomerName"
-                                           placeholder="Enter your full name"
-                                           autocomplete="name" />
-                                    <span asp-validation-for="Input.CustomerName" class="text-danger"></span>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label asp-for="Input.CustomerPhone" class="form-label">Mobile Number</label>
-                                    <input asp-for="Input.CustomerPhone"
-                                           class="form-control"
-                                           id="Input_CustomerPhone"
-                                           inputmode="tel"
-                                           placeholder="e.g., +63 9XX XXXX XXX"
-                                           autocomplete="tel" />
-                                    <span asp-validation-for="Input.CustomerPhone" class="text-danger"></span>
-                                </div>
-
-                                <div class="mb-1">
-                                    <label asp-for="Input.CustomerEmail" class="form-label">Email Address</label>
-                                    <input asp-for="Input.CustomerEmail"
-                                           class="form-control"
-                                           id="Input_CustomerEmail"
-                                           inputmode="email"
-                                           placeholder="email@example.com"
-                                           autocomplete="email" />
-                                    <span asp-validation-for="Input.CustomerEmail" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </div>
-
                         <div class="booking-actions d-grid gap-2 mb-4" id="confirmActionsContainer">
                             <button type="submit"
                                     asp-page-handler="Confirm"
@@ -383,15 +471,30 @@
                         </div>
                     }
 
-                </div>
-            </div>
+                    <!-- Confirm actions rendered by JS after AJAX price calc -->
+                    <div id="ajaxConfirmActions" class="d-grid gap-2 mb-4" style="display:none !important;">
+                        <button type="submit"
+                                asp-page-handler="Confirm"
+                                class="btn btn-success btn-lg"
+                                id="btnConfirmBookingAjax">
+                            <span class="pb-btn-spinner spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>
+                            <i class="bi bi-check-circle me-1"></i>
+                            Confirm Booking
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-lg" id="btnEditBooking">
+                            <i class="bi bi-pencil me-1"></i>Edit Slots
+                        </button>
+                    </div>
 
-        </div>
+                </div>
+            </div><!-- /col-lg-5 -->
+
+        </div><!-- /row -->
 
     </form>
 
-    <!-- Mobile Responsive Sticky Summary Bar -->
-    <div class="mobile-sticky-summary d-lg-none" id="mobileStickySummary" style="display: none;">
+    <!-- Mobile Sticky Summary Bar — fixed bottom, shown once slots are selected -->
+    <div class="mobile-sticky-summary d-lg-none" id="mobileStickySummary">
         <div class="container-fluid px-3 py-1">
             <div class="d-flex justify-content-between align-items-center">
                 <div class="mobile-summary-info">
@@ -412,4 +515,162 @@
 
 @section Scripts {
     <script src="~/js/booking.js" asp-append-version="true"></script>
+    <script>
+    (function () {
+        'use strict';
+
+        // ─── Court card selection ───────────────────────────────────────────
+        const courtCards = document.querySelectorAll('.court-card-btn:not([disabled])');
+        const courtSelect = document.getElementById('courtSelect');
+        courtCards.forEach(card => {
+            card.addEventListener('click', function () {
+                courtCards.forEach(c => {
+                    c.classList.remove('selected');
+                    c.setAttribute('aria-pressed', 'false');
+                    c.querySelector('.court-card-check')?.remove();
+                });
+                this.classList.add('selected');
+                this.setAttribute('aria-pressed', 'true');
+                // Add check icon if not present
+                if (!this.querySelector('.court-card-check')) {
+                    const icon = document.createElement('i');
+                    icon.className = 'bi bi-check-circle-fill court-card-check text-success';
+                    this.appendChild(icon);
+                }
+                courtSelect.value = this.dataset.courtId;
+                courtSelect.dispatchEvent(new Event('change'));
+            });
+        });
+
+        // ─── Date chip selection ────────────────────────────────────────────
+        const dateChips = document.querySelectorAll('.date-chip');
+        const bookingDateInput = document.getElementById('bookingDate');
+        dateChips.forEach(chip => {
+            chip.addEventListener('click', function () {
+                dateChips.forEach(c => {
+                    c.classList.remove('selected');
+                    c.setAttribute('aria-pressed', 'false');
+                });
+                this.classList.add('selected');
+                this.setAttribute('aria-pressed', 'true');
+                bookingDateInput.value = this.dataset.date;
+                bookingDateInput.dispatchEvent(new Event('change'));
+            });
+        });
+
+        // ─── Payment method card selection ──────────────────────────────────
+        const pmCards = document.querySelectorAll('.payment-method-card');
+        const pmInput = document.getElementById('Input_SelectedPaymentMethod');
+        pmCards.forEach(card => {
+            card.addEventListener('click', function () {
+                pmCards.forEach(c => {
+                    c.classList.remove('selected');
+                    c.setAttribute('aria-pressed', 'false');
+                });
+                this.classList.add('selected');
+                this.setAttribute('aria-pressed', 'true');
+                if (pmInput) pmInput.value = this.dataset.method;
+            });
+        });
+
+        // ─── AJAX Calculate Price ───────────────────────────────────────────
+        const btnCalc = document.getElementById('btnCalculatePrice');
+        const priceCalcError = document.getElementById('priceCalcError');
+        const step4Card = document.getElementById('step4Card');
+        const ajaxConfirmActions = document.getElementById('ajaxConfirmActions');
+        const priceContainer = document.getElementById('priceContainer');
+        const summaryPrice = document.getElementById('summaryPrice');
+        const step4PriceValue = document.getElementById('step4PriceValue');
+        const mobileSummaryPrice = document.getElementById('mobileSummaryPrice');
+
+        if (btnCalc) {
+            btnCalc.addEventListener('click', async function () {
+                const spinner = btnCalc.querySelector('.pb-btn-spinner');
+                // Get court & date
+                const courtId = courtSelect?.value;
+                const date = bookingDateInput?.value;
+                // Get selected slot IDs
+                const checked = Array.from(document.querySelectorAll('.timeslot-checkbox:checked'));
+                const slotIds = checked.map(c => c.value);
+
+                if (!courtId || courtId === '' || !date) {
+                    showPriceError('Please select a court and a date first.');
+                    return;
+                }
+                if (slotIds.length === 0) {
+                    showPriceError('Please select at least one time slot.');
+                    return;
+                }
+
+                // Show spinner
+                spinner?.classList.remove('d-none');
+                btnCalc.disabled = true;
+                priceCalcError?.classList.add('d-none');
+
+                try {
+                    const params = new URLSearchParams({ courtId, date });
+                    slotIds.forEach(id => params.append('slotIds', id));
+                    const res = await fetch(`/Booking?handler=Price&${params.toString()}`);
+                    const data = await res.json();
+
+                    if (!data.success) {
+                        showPriceError(data.message || 'Unable to calculate price.');
+                        return;
+                    }
+
+                    // Update price display
+                    const formatted = data.formattedPrice;
+                    if (summaryPrice) { summaryPrice.textContent = formatted; }
+                    if (step4PriceValue) { step4PriceValue.textContent = formatted; }
+                    if (mobileSummaryPrice) {
+                        mobileSummaryPrice.textContent = formatted;
+                        mobileSummaryPrice.style.display = '';
+                    }
+                    if (priceContainer) priceContainer.style.display = '';
+
+                    // Reveal Step 4
+                    if (step4Card) {
+                        step4Card.style.display = '';
+                        step4Card.classList.add('step4-animate-in');
+                        step4Card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+
+                    // Show confirm button
+                    if (ajaxConfirmActions) {
+                        ajaxConfirmActions.style.setProperty('display', 'grid', 'important');
+                    }
+
+                    // Update booking summary container visibility
+                    const summaryContainer = document.getElementById('bookingSummaryContainer');
+                    if (summaryContainer) summaryContainer.style.display = '';
+
+                } catch (err) {
+                    showPriceError('Network error. Please try again.');
+                } finally {
+                    spinner?.classList.add('d-none');
+                    btnCalc.disabled = false;
+                }
+            });
+        }
+
+        function showPriceError(msg) {
+            if (priceCalcError) {
+                priceCalcError.textContent = msg;
+                priceCalcError.classList.remove('d-none');
+                priceCalcError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        // ─── Edit Slots (collapse step 4 back) ─────────────────────────────
+        const btnEdit = document.getElementById('btnEditBooking');
+        if (btnEdit) {
+            btnEdit.addEventListener('click', function () {
+                if (step4Card) step4Card.style.display = 'none';
+                if (ajaxConfirmActions) ajaxConfirmActions.style.setProperty('display', 'none', 'important');
+                document.getElementById('timeslotGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+
+    }());
+    </script>
 }

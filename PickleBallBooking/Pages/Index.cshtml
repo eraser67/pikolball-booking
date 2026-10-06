@@ -105,7 +105,13 @@
                             <img src="@c.ImageUrl"
                                  alt="@c.Court.Name court at @Model.OrgName"
                                  loading="lazy" />
-                            @if (c.HasAvailabilityData)
+                            @if (c.Court.Status == PickleBallBooking.Models.CourtStatus.Inactive)
+                            {
+                                <span class="pb-court-badge" style="background: rgba(108, 117, 125, 0.9); color: #fff;" role="status" aria-label="Under Maintenance">
+                                    <span class="pb-dot" style="background:#ffc107;" aria-hidden="true"></span>Under Maintenance
+                                </span>
+                            }
+                            else if (c.HasAvailabilityData)
                             {
                                 if (c.HasLiveAvailability && isLimited)
                                 {
@@ -140,27 +146,49 @@
                                 <p class="pb-court-desc text-muted">Quality court ready for your next game.</p>
                             }
 
-                            @if (c.HasAvailabilityData)
+                            @if (c.Court.Status == PickleBallBooking.Models.CourtStatus.Inactive)
                             {
-                                <p class="pb-court-preview">
-                                    <i class="bi bi-clock-history" aria-hidden="true"></i>
-                                    Preview for @Model.PreviewDate.ToString("MMM d") &mdash; check exact slots below.
-                                </p>
+                                <div class="alert alert-secondary py-2 px-3 small my-2 d-flex align-items-start gap-2" role="status">
+                                    <i class="bi bi-tools text-warning fs-6 flex-shrink-0 mt-1"></i>
+                                    <div>
+                                        <strong class="d-block text-dark">Temporarily Unavailable</strong>
+                                        <span class="text-muted">
+                                            @(string.IsNullOrWhiteSpace(c.Court.MaintenanceNote)
+                                                ? "This court is temporarily closed for maintenance or improvements."
+                                                : c.Court.MaintenanceNote)
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="d-grid gap-2 mt-auto">
+                                    <button type="button" class="btn btn-outline-secondary disabled" disabled aria-disabled="true">
+                                        <i class="bi bi-slash-circle me-1" aria-hidden="true"></i>Unavailable for Booking
+                                    </button>
+                                </div>
                             }
+                            else
+                            {
+                                @if (c.HasAvailabilityData)
+                                {
+                                    <p class="pb-court-preview">
+                                        <i class="bi bi-clock-history" aria-hidden="true"></i>
+                                        Preview for @Model.PreviewDate.ToString("MMM d") &mdash; check exact slots below.
+                                    </p>
+                                }
 
-                            <div class="d-grid gap-2 mt-auto">
-                                <a asp-page="/Availability/Index"
-                                   class="btn btn-outline-primary"
-                                   aria-label="View availability for @c.Court.Name">
-                                    <i class="bi bi-calendar3 me-1" aria-hidden="true"></i>View Availability
-                                </a>
-                                <a asp-page="/Booking/Index"
-                                   asp-route-courtId="@c.Court.Id"
-                                   class="btn btn-primary"
-                                   aria-label="Book @c.Court.Name now">
-                                    <i class="bi bi-lightning-charge-fill me-1" aria-hidden="true"></i>Book Now
-                                </a>
-                            </div>
+                                <div class="d-grid gap-2 mt-auto">
+                                    <a asp-page="/Availability/Index"
+                                       class="btn btn-outline-primary"
+                                       aria-label="View availability for @c.Court.Name">
+                                        <i class="bi bi-calendar3 me-1" aria-hidden="true"></i>View Availability
+                                    </a>
+                                    <a asp-page="/Booking/Index"
+                                       asp-route-courtId="@c.Court.Id"
+                                       class="btn btn-primary"
+                                       aria-label="Book @c.Court.Name now">
+                                        <i class="bi bi-lightning-charge-fill me-1" aria-hidden="true"></i>Book Now
+                                    </a>
+                                </div>
+                            }
                         </div>
                     </article>
                 </div>

@@ -72,11 +72,12 @@ public class AvailabilityIndexModelTests
 
         await model.OnGetAsync();
 
-        Assert.Equal(2, model.Courts.Count);
-        Assert.DoesNotContain(model.Courts, c => c.Status == CourtStatus.Inactive);
-        // Now we only show predefined time slots (2), not all combinations (3)
+        Assert.Equal(3, model.Courts.Count);
+        Assert.Contains(model.Courts, c => c.Status == CourtStatus.Inactive);
         Assert.Equal(2, model.TimeSlotAvailabilities.Count);
         Assert.All(model.TimeSlotAvailabilities, slot => Assert.True(slot.HasAvailableSlots));
+        var inactiveAvailability = model.CourtAvailabilities.First(ca => ca.Court.Id == 3);
+        Assert.Equal("Unavailable", inactiveAvailability.Status);
     }
 
     [Fact]

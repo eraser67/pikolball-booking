@@ -12,21 +12,38 @@ public class DetailsModel : PageModel
     private readonly ICourtService _courtService;
     private readonly ITimeSlotService _timeSlotService;
     private readonly ApplicationDbContext _context;
+    private readonly IPaymentService _paymentService;
+    private readonly IPaymentProofStorage _proofStorage;
 
-    public DetailsModel(IBookingService bookingService, ICourtService courtService, ITimeSlotService timeSlotService, ApplicationDbContext context)
+    public DetailsModel(
+        IBookingService bookingService,
+        ICourtService courtService,
+        ITimeSlotService timeSlotService,
+        ApplicationDbContext context,
+        IPaymentService paymentService,
+        IPaymentProofStorage proofStorage)
     {
         _bookingService = bookingService;
         _courtService = courtService;
         _timeSlotService = timeSlotService;
         _context = context;
+        _paymentService = paymentService;
+        _proofStorage = proofStorage;
     }
 
     public Models.Booking? Booking { get; set; }
 
-    /// <summary>
-    /// Slot details for fixed-slot bookings (if any).
-    /// </summary>
+    /// <summary>Slot details for fixed-slot bookings (if any).</summary>
     public List<(BookingTimeSlot Slot, TimeSlot TimeSlot)> BookingSlots { get; set; } = new();
+
+    /// <summary>Associated Payment record, if any.</summary>
+    public Payment? BookingPayment { get; set; }
+
+    /// <summary>Time-limited signed URL for the proof image (5 min TTL).</summary>
+    public string? ProofSignedUrl { get; set; }
+
+    /// <summary>Raw proof path — used to detect when signing fails vs no proof uploaded.</summary>
+    public string? ProofImagePath { get; set; }
 
     [TempData]
     public string? StatusMessage { get; set; }
@@ -57,6 +74,21 @@ public class DetailsModel : PageModel
             if (timeSlot is not null)
             {
                 BookingSlots.Add((slot, timeSlot));
+            }
+        }
+
+        // Load associated payment record + resolve proof URL if available
+        BookingPayment = _context.Payments
+            .Where(p => p.BookingId == id)
+            .OrderByDescending(p => p.CreatedAt)
+            .FirstOrDefault();
+
+        if (BookingPayment is not null)
+        {
+            ProofImagePath = BookingPayment.ProofImagePath;
+            if (!string.IsNullOrEmpty(BookingPayment.ProofImagePath))
+            {
+                ProofSignedUrl = await _proofStorage.GetProofSignedUrlAsync(BookingPayment.ProofImagePath);
             }
         }
 

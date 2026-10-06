@@ -12,9 +12,9 @@ public interface ICourtService
 
     Task<Court> CreateAsync(string name, string? description);
 
-    Task<bool> UpdateAsync(int id, string name, string? description);
+    Task<bool> UpdateAsync(int id, string name, string? description, string? maintenanceNote = null);
 
-    Task<bool> SetStatusAsync(int id, CourtStatus status);
+    Task<bool> SetStatusAsync(int id, CourtStatus status, string? maintenanceNote = null);
 
     /// <summary>
     /// Updates the image storage path for a court that belongs to the current tenant.

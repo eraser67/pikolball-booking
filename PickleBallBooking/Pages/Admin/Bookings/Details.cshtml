@@ -1,5 +1,6 @@
 @page "/Admin/Bookings/{id:int}"
 @model PickleBallBooking.Pages.Admin.Bookings.DetailsModel
+@using PickleBallBooking.Models
 @{
     ViewData["Title"] = "Booking Details";
 }
@@ -21,80 +22,264 @@
     </div>
 }
 
-<dl class="row">
-    <dt class="col-sm-3">Booking Reference</dt>
-    <dd class="col-sm-9">@Model.Booking!.BookingReference</dd>
+<div class="row g-4">
 
-    <dt class="col-sm-3">Customer Name</dt>
-    <dd class="col-sm-9">@Model.Booking.CustomerName</dd>
+    <!-- ── Booking Info ───────────────────────────────────────────── -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">
+                <i class="bi bi-calendar-check me-1"></i> Booking Information
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Reference</dt>
+                    <dd class="col-sm-7 font-monospace fw-bold">@Model.Booking!.BookingReference</dd>
 
-    <dt class="col-sm-3">Customer Phone</dt>
-    <dd class="col-sm-9">@Model.Booking.CustomerPhone</dd>
+                    <dt class="col-sm-5">Court</dt>
+                    <dd class="col-sm-7">@Model.Booking.Court?.Name</dd>
 
-    <dt class="col-sm-3">Customer Email</dt>
-    <dd class="col-sm-9">@Model.Booking.CustomerEmail</dd>
+                    <dt class="col-sm-5">Date</dt>
+                    <dd class="col-sm-7">@Model.Booking.BookingDate.ToString("D")</dd>
 
-    <dt class="col-sm-3">Court</dt>
-    <dd class="col-sm-9">@Model.Booking.Court?.Name</dd>
+                    <dt class="col-sm-5">Time</dt>
+                    <dd class="col-sm-7">@PickleBallBooking.Services.AppClock.To12HourRange(Model.Booking.StartTime, Model.Booking.EndTime)</dd>
 
-    <dt class="col-sm-3">Date</dt>
-    <dd class="col-sm-9">@Model.Booking.BookingDate.ToString("yyyy-MM-dd")</dd>
+                    @if (Model.BookingSlots.Count > 0)
+                    {
+                        <dt class="col-sm-5">Booked Slots</dt>
+                        <dd class="col-sm-7">
+                            <ul class="mb-0 ps-3">
+                                @foreach (var (slot, timeSlot) in Model.BookingSlots)
+                                {
+                                    <li>@PickleBallBooking.Services.AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime)</li>
+                                }
+                            </ul>
+                        </dd>
+                    }
 
-        <dt class="col-sm-3">Time</dt>
-    <dd class="col-sm-9">@PickleBallBooking.Services.AppClock.To12HourRange(Model.Booking.StartTime, Model.Booking.EndTime)</dd>
+                    <dt class="col-sm-5">Price</dt>
+                    <dd class="col-sm-7 fw-bold text-success">@Model.Booking.Price.ToString("C")</dd>
 
-    @if (Model.BookingSlots.Count > 0)
+                    <dt class="col-sm-5">Status</dt>
+                    <dd class="col-sm-7">
+                        @switch (Model.Booking.BookingStatus)
+                        {
+                            case BookingStatus.Pending:
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                break;
+                            case BookingStatus.Confirmed:
+                                <span class="badge bg-success">Confirmed</span>
+                                break;
+                            case BookingStatus.Cancelled:
+                                <span class="badge bg-danger">Cancelled</span>
+                                break;
+                            case BookingStatus.Completed:
+                                <span class="badge bg-secondary">Completed</span>
+                                break;
+                        }
+                    </dd>
+
+                    <dt class="col-sm-5">Created</dt>
+                    <dd class="col-sm-7">@Model.Booking.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+
+                    <dt class="col-sm-5">Updated</dt>
+                    <dd class="col-sm-7">@Model.Booking.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Customer Info ─────────────────────────────────────────── -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">
+                <i class="bi bi-person-fill me-1"></i> Customer Information
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Full Name</dt>
+                    <dd class="col-sm-7">@Model.Booking.CustomerName</dd>
+
+                    <dt class="col-sm-5">Mobile</dt>
+                    <dd class="col-sm-7">
+                        <a href="tel:@Model.Booking.CustomerPhone">@Model.Booking.CustomerPhone</a>
+                    </dd>
+
+                    <dt class="col-sm-5">Email</dt>
+                    <dd class="col-sm-7">
+                        <a href="mailto:@Model.Booking.CustomerEmail">@Model.Booking.CustomerEmail</a>
+                    </dd>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Booking.FacebookName))
+                    {
+                        <dt class="col-sm-5">
+                            <i class="bi bi-facebook text-primary me-1"></i>Facebook
+                        </dt>
+                        <dd class="col-sm-7">@Model.Booking.FacebookName</dd>
+                    }
+
+                    @if (Model.Booking.SelectedPaymentMethod.HasValue)
+                    {
+                        <dt class="col-sm-5">Payment Method</dt>
+                        <dd class="col-sm-7">
+                            @switch (Model.Booking.SelectedPaymentMethod.Value)
+                            {
+                                case PaymentMethod.GCash:
+                                    <span><i class="bi bi-qr-code me-1 text-success"></i>GCash QR</span>
+                                    break;
+                                default:
+                                    <span>@Model.Booking.SelectedPaymentMethod.Value</span>
+                                    break;
+                            }
+                        </dd>
+                    }
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Payment Info & Proof ──────────────────────────────────── -->
+    @if (Model.BookingPayment is not null)
     {
-        <dt class="col-sm-3">Booked Slots</dt>
-        <dd class="col-sm-9">
-            <ul>
-                @foreach (var (slot, timeSlot) in Model.BookingSlots)
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-credit-card me-1"></i>Payment Record</span>
+                    @{
+                        var (badgeClass, badgeLabel) = Model.BookingPayment.PaymentStatus switch
+                        {
+                            PaymentStatus.Pending   => ("bg-warning text-dark", "Pending"),
+                            PaymentStatus.Submitted => ("bg-info text-dark",    "Submitted"),
+                            PaymentStatus.Verified  => ("bg-success",           "Verified"),
+                            PaymentStatus.Rejected  => ("bg-danger",            "Rejected"),
+                            PaymentStatus.Cancelled => ("bg-secondary",         "Cancelled"),
+                            _                       => ("bg-light text-dark",   Model.BookingPayment.PaymentStatus.ToString())
+                        };
+                    }
+                    <span class="badge @badgeClass">@badgeLabel</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-6">Amount</dt>
+                                <dd class="col-sm-6 fw-bold text-success">@Model.BookingPayment.Amount.ToString("C")</dd>
+
+                                <dt class="col-sm-6">Method</dt>
+                                <dd class="col-sm-6">
+                                    @switch (Model.BookingPayment.PaymentMethod)
+                                    {
+                                        case PaymentMethod.GCash:
+                                            <span><i class="bi bi-qr-code me-1 text-success"></i>GCash</span>
+                                            break;
+                                        default:
+                                            <span>@Model.BookingPayment.PaymentMethod</span>
+                                            break;
+                                    }
+                                </dd>
+
+                                @if (!string.IsNullOrWhiteSpace(Model.BookingPayment.ReferenceNumber))
+                                {
+                                    <dt class="col-sm-6">GCash Ref #</dt>
+                                    <dd class="col-sm-6 font-monospace">@Model.BookingPayment.ReferenceNumber</dd>
+                                }
+
+                                @if (Model.BookingPayment.SubmittedAt.HasValue)
+                                {
+                                    <dt class="col-sm-6">Submitted</dt>
+                                    <dd class="col-sm-6">@Model.BookingPayment.SubmittedAt.Value.ToString("yyyy-MM-dd HH:mm")</dd>
+                                }
+
+                                @if (Model.BookingPayment.VerifiedAt.HasValue)
+                                {
+                                    <dt class="col-sm-6">Verified At</dt>
+                                    <dd class="col-sm-6">@Model.BookingPayment.VerifiedAt.Value.ToString("yyyy-MM-dd HH:mm")</dd>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(Model.BookingPayment.Notes))
+                                {
+                                    <dt class="col-sm-6">Admin Notes</dt>
+                                    <dd class="col-sm-6">@Model.BookingPayment.Notes</dd>
+                                }
+                            </dl>
+                        </div>
+
+                        <!-- Proof of Payment image -->
+                        <div class="col-md-6">
+                            @if (!string.IsNullOrWhiteSpace(Model.ProofImagePath))
+                            {
+                                <p class="fw-semibold mb-2">
+                                    <i class="bi bi-image me-1"></i>Proof of Payment
+                                </p>
+                                @if (!string.IsNullOrWhiteSpace(Model.ProofSignedUrl))
+                                {
+                                    <button type="button"
+                                            class="btn p-0 border-0 bg-transparent"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#proofZoomModal"
+                                            id="proofThumbnailBtn">
+                                        <img src="@Model.ProofSignedUrl"
+                                             alt="Payment proof screenshot"
+                                             class="img-fluid rounded shadow-sm"
+                                             style="max-width:260px;width:100%;border:2px solid #0dcaf0;cursor:zoom-in;" />
+                                    </button>
+                                    <div class="mt-2">
+                                        <a href="@Model.ProofSignedUrl"
+                                           download="payment-proof"
+                                           class="btn btn-outline-info btn-sm">
+                                            <i class="bi bi-download me-1"></i>Download Proof
+                                        </a>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-warning py-2 px-3 small mb-0">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                        Proof was uploaded but the signed URL could not be generated. Check Supabase storage configuration.
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-muted small mb-0">
+                                    <i class="bi bi-image me-1"></i>No proof of payment uploaded yet.
+                                </p>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @if (Model.BookingPayment.PaymentStatus == PaymentStatus.Submitted)
                 {
-                    <li>@PickleBallBooking.Services.AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime) (#@slot.SlotOrder)</li>
+                    <div class="card-footer d-flex gap-2">
+                        <a asp-page="/Admin/Payments/Details"
+                           asp-route-id="@Model.BookingPayment.Id"
+                           class="btn btn-success btn-sm">
+                            <i class="bi bi-check-circle me-1"></i>Verify / Reject Payment
+                        </a>
+                    </div>
                 }
-            </ul>
-        </dd>
+            </div>
+        </div>
     }
 
-    <dt class="col-sm-3">Price</dt>
-    <dd class="col-sm-9">@Model.Booking.Price.ToString("C")</dd>
+</div>
 
-    <dt class="col-sm-3">Status</dt>
-    <dd class="col-sm-9">
-        @switch (Model.Booking.BookingStatus)
-        {
-            case PickleBallBooking.Models.BookingStatus.Pending:
-                <span class="badge bg-warning text-dark">Pending</span>
-                break;
-            case PickleBallBooking.Models.BookingStatus.Confirmed:
-                <span class="badge bg-success">Confirmed</span>
-                break;
-            case PickleBallBooking.Models.BookingStatus.Cancelled:
-                <span class="badge bg-danger">Cancelled</span>
-                break;
-            case PickleBallBooking.Models.BookingStatus.Completed:
-                <span class="badge bg-secondary">Completed</span>
-                break;
-        }
-    </dd>
-
-    <dt class="col-sm-3">Created At</dt>
-    <dd class="col-sm-9">@Model.Booking.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
-
-    <dt class="col-sm-3">Updated At</dt>
-    <dd class="col-sm-9">@Model.Booking.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
-</dl>
-
-<div class="btn-group" role="group">
-    <a asp-page="Index" class="btn btn-secondary">Back to Bookings</a>
-    @if (Model.Booking.BookingStatus == PickleBallBooking.Models.BookingStatus.Pending)
+<!-- ── Action Buttons ─────────────────────────────────────────── -->
+<div class="btn-group mt-4" role="group">
+    <a asp-page="Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to Bookings
+    </a>
+    @if (Model.Booking!.BookingStatus == BookingStatus.Pending)
     {
         <form method="post" asp-page-handler="Confirm" style="display:inline;">
             <input type="hidden" name="id" value="@Model.Booking.Id" />
-            <button type="submit" class="btn btn-success">Confirm Booking</button>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle me-1"></i>Confirm Booking
+            </button>
         </form>
     }
-    @if (Model.Booking.BookingStatus is PickleBallBooking.Models.BookingStatus.Pending or PickleBallBooking.Models.BookingStatus.Confirmed)
+    @if (Model.Booking.BookingStatus is BookingStatus.Pending or BookingStatus.Confirmed)
     {
         <form method="post" asp-page-handler="Cancel" style="display:inline;"
               data-pb-confirm="Cancel booking @Model.Booking.BookingReference for @Model.Booking.CustomerName? This will release the booked time slot(s) and cannot be undone."
@@ -102,16 +287,49 @@
               data-pb-confirm-ok="Cancel booking">
             <input type="hidden" name="id" value="@Model.Booking.Id" />
             <button type="submit" class="btn btn-danger">
-                Cancel Booking
+                <i class="bi bi-x-circle me-1"></i>Cancel Booking
             </button>
         </form>
     }
-    @if (Model.Booking.BookingStatus == PickleBallBooking.Models.BookingStatus.Confirmed)
+    @if (Model.Booking.BookingStatus == BookingStatus.Confirmed)
     {
         <form method="post" asp-page-handler="Complete" style="display:inline;">
             <input type="hidden" name="id" value="@Model.Booking.Id" />
-            <button type="submit" class="btn btn-success">Complete Booking</button>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check2-all me-1"></i>Complete Booking
+            </button>
         </form>
     }
 </div>
 
+@if (!string.IsNullOrWhiteSpace(Model.ProofSignedUrl))
+{
+    <!-- Proof Zoom Modal -->
+    <div class="modal fade" id="proofZoomModal" tabindex="-1"
+         aria-labelledby="proofZoomModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width:min(95vw,640px)">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-1">
+                    <h5 class="modal-title" id="proofZoomModalLabel">
+                        <i class="bi bi-image me-2 text-info"></i>Proof of Payment
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center pt-0">
+                    <img src="@Model.ProofSignedUrl"
+                         alt="Payment proof screenshot"
+                         class="img-fluid rounded"
+                         style="width:100%;max-width:600px;border:2px solid #0dcaf0;" />
+                </div>
+                <div class="modal-footer border-0 justify-content-center pt-0">
+                    <a href="@Model.ProofSignedUrl"
+                       download="payment-proof"
+                       class="btn btn-info">
+                        <i class="bi bi-download me-1"></i>Download
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

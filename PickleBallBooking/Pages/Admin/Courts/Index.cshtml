@@ -65,6 +65,12 @@ else
                         else
                         {
                             <span class="badge bg-secondary">Inactive</span>
+                            @if (!string.IsNullOrWhiteSpace(court.MaintenanceNote))
+                            {
+                                <div class="small text-muted mt-1" style="max-width: 200px;">
+                                    <i class="bi bi-tools me-1 text-warning"></i>@court.MaintenanceNote
+                                </div>
+                            }
                         }
                     </td>
                     <td class="pb-actions-cell">

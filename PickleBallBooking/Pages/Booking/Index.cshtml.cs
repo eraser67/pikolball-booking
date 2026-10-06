@@ -30,6 +30,8 @@ public class IndexModel : PageModel
 
     public List<SelectListItem> Courts { get; set; } = new();
 
+    public Court? SelectedCourt { get; set; }
+
     public List<CalendarDateOption> DateOptions { get; set; } = new();
 
     /// <summary>
@@ -197,7 +199,9 @@ public class IndexModel : PageModel
             orderedSlotIds,
             Input.CustomerName,
             Input.CustomerPhone,
-            Input.CustomerEmail);
+            Input.CustomerEmail,
+            string.IsNullOrWhiteSpace(Input.FacebookName) ? null : Input.FacebookName.Trim(),
+            Input.SelectedPaymentMethod);
 
         if (!result.Success)
         {
@@ -302,6 +306,16 @@ public class IndexModel : PageModel
             }
         }
 
+        // Reject booking if court is inactive / in maintenance
+        var court = await _courtService.GetByIdAsync(Input.CourtId);
+        if (court == null || court.Status == CourtStatus.Inactive)
+        {
+            var note = court?.MaintenanceNote;
+            return (false, string.IsNullOrWhiteSpace(note)
+                ? "This court is temporarily unavailable for maintenance."
+                : $"This court is unavailable: {note}");
+        }
+
         // Check availability using the booking service
         var startTime = selectedSlots.First().StartTime;
         var endTime = selectedSlots.Last().EndTime;
@@ -317,15 +331,22 @@ public class IndexModel : PageModel
 
     private async Task LoadOptionsAsync()
     {
-        var courts = await _courtService.GetActiveAsync();
+        var courts = await _courtService.GetAllAsync();
         Courts = courts
-            .Select(c => new SelectListItem(c.Name, c.Id.ToString()))
+            .Select(c => new SelectListItem
+            {
+                Text = c.Status == CourtStatus.Active ? c.Name : $"{c.Name} (Unavailable)",
+                Value = c.Id.ToString(),
+                Disabled = c.Status != CourtStatus.Active
+            })
             .ToList();
 
-        if (Input.CourtId == 0 && Courts.Count > 0)
+        if (Input.CourtId == 0 && Courts.Any(c => !c.Disabled))
         {
-            Input.CourtId = int.Parse(Courts[0].Value!);
+            Input.CourtId = int.Parse(Courts.First(c => !c.Disabled).Value!);
         }
+
+        SelectedCourt = courts.FirstOrDefault(c => c.Id == Input.CourtId);
     }
 
     private async Task LoadCalendarAsync()
@@ -404,12 +425,22 @@ public class IndexModel : PageModel
             }
         }
 
+        if (SelectedCourt is null && Input.CourtId > 0)
+        {
+            SelectedCourt = await _courtService.GetByIdAsync(Input.CourtId);
+        }
+
+        var isCourtInactive = SelectedCourt?.Status == CourtStatus.Inactive;
+
         foreach (var slot in timeSlots.OrderBy(ts => ts.StartTime))
         {
             var availability = availableSlots.FirstOrDefault(a => a.TimeSlotId == slot.Id);
             var isSelected = selectedDay1Ids.Contains(slot.Id);
-            var isAvailable = availability?.IsAvailable ?? false;
-            var isMaintenance = availability?.IsMaintenance ?? false;
+            var isAvailable = !isCourtInactive && (availability?.IsAvailable ?? false);
+            var isMaintenance = isCourtInactive || (availability?.IsMaintenance ?? false);
+            var maintNote = isCourtInactive 
+                ? SelectedCourt?.MaintenanceNote 
+                : availability?.MaintenanceNote;
 
             // A slot is "past" when the date is before today, or when the booking is for today and the slot
             // has already started. Past slots can never be selected or booked.
@@ -433,7 +464,8 @@ public class IndexModel : PageModel
                 IsMaintenance = isMaintenance,
                 IsPast = isPast,
                 IsSelected = isSelected,
-                Status = status
+                Status = status,
+                MaintenanceNote = maintNote
             });
         }
     }
@@ -442,7 +474,7 @@ public class IndexModel : PageModel
     {
         [Required(ErrorMessage = "Please select a booking date.")]
         [DataType(DataType.Date)]
-                [Display(Name = "Booking Date")]
+        [Display(Name = "Booking Date")]
         public DateOnly BookingDate { get; set; } = AppClock.TodayLocal;
 
         [Range(1, int.MaxValue, ErrorMessage = "Please select a court.")]
@@ -465,6 +497,15 @@ public class IndexModel : PageModel
         [MaxLength(256)]
         [Display(Name = "Email")]
         public string CustomerEmail { get; set; } = string.Empty;
+
+        /// <summary>Optional Facebook account name for easy venue follow-up.</summary>
+        [MaxLength(100)]
+        [Display(Name = "Facebook Name (optional)")]
+        public string? FacebookName { get; set; }
+
+        /// <summary>Payment method selected by the customer during booking.</summary>
+        [Display(Name = "Payment Method")]
+        public PaymentMethod SelectedPaymentMethod { get; set; } = PaymentMethod.GCash;
     }
 
     public class TimeSlotAvailabilityView
@@ -473,11 +514,12 @@ public class IndexModel : PageModel
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
         public string DisplayTime { get; set; } = "";
-                public bool IsAvailable { get; set; }
+        public bool IsAvailable { get; set; }
         public bool IsMaintenance { get; set; }
         public bool IsPast { get; set; }
         public bool IsSelected { get; set; }
         public string Status { get; set; } = ""; // "available", "booked", "maintenance", "past"
+        public string? MaintenanceNote { get; set; }
     }
 
     public class SelectedOvernightSlotView

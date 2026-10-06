@@ -61,7 +61,7 @@ public class CourtService : ICourtService
         return court;
     }
 
-    public async Task<bool> UpdateAsync(int id, string name, string? description)
+    public async Task<bool> UpdateAsync(int id, string name, string? description, string? maintenanceNote = null)
     {
         var court = await _context.Courts.FirstOrDefaultAsync(c => c.Id == id);
         if (court is null)
@@ -69,15 +69,16 @@ public class CourtService : ICourtService
             return false;
         }
 
-        court.Name        = name;
-        court.Description = description;
-        court.UpdatedAt   = DateTime.UtcNow;
+        court.Name            = name;
+        court.Description     = description;
+        court.MaintenanceNote = maintenanceNote;
+        court.UpdatedAt       = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
         return true;
     }
 
-    public async Task<bool> SetStatusAsync(int id, CourtStatus status)
+    public async Task<bool> SetStatusAsync(int id, CourtStatus status, string? maintenanceNote = null)
     {
         var court = await _context.Courts.FirstOrDefaultAsync(c => c.Id == id);
         if (court is null)
@@ -85,8 +86,16 @@ public class CourtService : ICourtService
             return false;
         }
 
-        court.Status    = status;
-        court.UpdatedAt = DateTime.UtcNow;
+        court.Status          = status;
+        if (status == CourtStatus.Active)
+        {
+            court.MaintenanceNote = null;
+        }
+        else if (maintenanceNote != null)
+        {
+            court.MaintenanceNote = maintenanceNote;
+        }
+        court.UpdatedAt       = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
         return true;

@@ -36,15 +36,21 @@ public class MaintenanceModel : PageModel
     /// </summary>
     public Dictionary<(int CourtId, int TimeSlotId), CourtTimeSlotStatus> MaintenanceMatrix { get; set; } = new();
 
+    /// <summary>
+    /// Maintenance notes per court and time slot.
+    /// </summary>
+    public Dictionary<(int CourtId, int TimeSlotId), string?> MaintenanceNotes { get; set; } = new();
+
     [TempData]
     public string? StatusMessage { get; set; }
 
     public async Task OnGetAsync()
     {
-        Courts = await _courtService.GetActiveAsync();
+        // Load all courts (active and deactivated) so maintenance can be managed for all courts
+        Courts = await _courtService.GetAllAsync();
         TimeSlots = await _timeSlotService.GetActiveAsync();
 
-                if (Date == default)
+        if (Date == default)
         {
             Date = AppClock.TodayLocal;
         }
@@ -57,10 +63,11 @@ public class MaintenanceModel : PageModel
         foreach (var cts in courtTimeSlots)
         {
             MaintenanceMatrix[(cts.CourtId, cts.TimeSlotId)] = cts.AvailabilityStatus;
+            MaintenanceNotes[(cts.CourtId, cts.TimeSlotId)] = cts.MaintenanceNote;
         }
     }
 
-    public async Task<IActionResult> OnPostToggleMaintenanceAsync(int courtId, int timeSlotId)
+    public async Task<IActionResult> OnPostToggleMaintenanceAsync(int courtId, int timeSlotId, string? note = null)
     {
         var courtTimeSlot = _context.CourtTimeSlots
             .FirstOrDefault(cts => cts.CourtId == courtId && cts.TimeSlotId == timeSlotId);
@@ -73,6 +80,7 @@ public class MaintenanceModel : PageModel
                 CourtId = courtId,
                 TimeSlotId = timeSlotId,
                 AvailabilityStatus = CourtTimeSlotStatus.Maintenance,
+                MaintenanceNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -81,9 +89,16 @@ public class MaintenanceModel : PageModel
         else
         {
             // Toggle between Active and Maintenance
-            courtTimeSlot.AvailabilityStatus = courtTimeSlot.AvailabilityStatus == CourtTimeSlotStatus.Active
-                ? CourtTimeSlotStatus.Maintenance
-                : CourtTimeSlotStatus.Active;
+            if (courtTimeSlot.AvailabilityStatus == CourtTimeSlotStatus.Active)
+            {
+                courtTimeSlot.AvailabilityStatus = CourtTimeSlotStatus.Maintenance;
+                courtTimeSlot.MaintenanceNote = string.IsNullOrWhiteSpace(note) ? courtTimeSlot.MaintenanceNote : note.Trim();
+            }
+            else
+            {
+                courtTimeSlot.AvailabilityStatus = CourtTimeSlotStatus.Active;
+                // Keep or clear note on returning to active
+            }
             courtTimeSlot.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -96,6 +111,46 @@ public class MaintenanceModel : PageModel
             ? "(unknown)"
             : AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime);
         StatusMessage = $"{court?.Name} at {slotLabel} is now {courtTimeSlot.AvailabilityStatus}.";
+
+        return RedirectToPage(new { selectedCourtId = SelectedCourtId, date = Date.ToString("yyyy-MM-dd") });
+    }
+
+    public async Task<IActionResult> OnPostSaveSlotStatusAsync(int courtId, int timeSlotId, CourtTimeSlotStatus status, string? note = null)
+    {
+        var courtTimeSlot = _context.CourtTimeSlots
+            .FirstOrDefault(cts => cts.CourtId == courtId && cts.TimeSlotId == timeSlotId);
+
+        var cleanedNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+
+        if (courtTimeSlot is null)
+        {
+            courtTimeSlot = new CourtTimeSlot
+            {
+                CourtId = courtId,
+                TimeSlotId = timeSlotId,
+                AvailabilityStatus = status,
+                MaintenanceNote = cleanedNote,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.CourtTimeSlots.Add(courtTimeSlot);
+        }
+        else
+        {
+            courtTimeSlot.AvailabilityStatus = status;
+            courtTimeSlot.MaintenanceNote = cleanedNote;
+            courtTimeSlot.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        var court = await _courtService.GetByIdAsync(courtId);
+        var timeSlot = await _timeSlotService.GetByIdAsync(timeSlotId);
+
+        var slotLabel = timeSlot is null
+            ? "(unknown)"
+            : AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime);
+        StatusMessage = $"{court?.Name} at {slotLabel} updated to {courtTimeSlot.AvailabilityStatus}.";
 
         return RedirectToPage(new { selectedCourtId = SelectedCourtId, date = Date.ToString("yyyy-MM-dd") });
     }

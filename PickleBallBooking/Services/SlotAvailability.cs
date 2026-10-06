@@ -16,6 +16,11 @@ public class SlotAvailability
     public bool IsMaintenance { get; set; }
 
     /// <summary>
+    /// Optional note explaining why this slot is in maintenance (e.g. "Net repair", "Court resurfacing").
+    /// </summary>
+    public string? MaintenanceNote { get; set; }
+
+    /// <summary>
     /// Privacy-safe display name of the customer who booked this slot (e.g. "John D." or "Reserved").
     /// Populated when IsAvailable is false due to an active booking.
     /// </summary>

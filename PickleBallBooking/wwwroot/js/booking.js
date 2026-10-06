@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (totalHours === 0) {
             if (bookingSummaryContainer) bookingSummaryContainer.style.display = 'none';
-            if (mobileStickySummary) mobileStickySummary.style.display = 'none';
+            if (mobileStickySummary) mobileStickySummary.classList.remove('is-visible');
             document.body.classList.remove('has-mobile-summary');
             updateStepIndicator();
             return;
@@ -526,7 +526,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Mobile Sticky Summary bar sync
         if (mobileStickySummary) {
-            mobileStickySummary.style.display = 'block';
+            mobileStickySummary.classList.add('is-visible');
             document.body.classList.add('has-mobile-summary');
 
             const summaryPrice = document.getElementById('summaryPrice');

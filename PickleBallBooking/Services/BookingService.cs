@@ -134,7 +134,9 @@ public class BookingService : IBookingService
         List<int> timeSlotIds,
         string customerName,
         string customerPhone,
-        string customerEmail)
+        string customerEmail,
+        string? facebookName = null,
+        PaymentMethod? selectedPaymentMethod = null)
     {
         // Validate input
         if (timeSlotIds == null || timeSlotIds.Count == 0)
@@ -219,6 +221,7 @@ public class BookingService : IBookingService
                 courtId, court.OrganizationId, bookingDate, chronologicalSlots,
                 customerName, customerPhone, customerEmail,
                 startTime, endTime, durationHours, priceResult.Price,
+                facebookName, selectedPaymentMethod,
                 manageTransaction: true));
         }
 
@@ -226,6 +229,7 @@ public class BookingService : IBookingService
             courtId, court.OrganizationId, bookingDate, chronologicalSlots,
             customerName, customerPhone, customerEmail,
             startTime, endTime, durationHours, priceResult.Price,
+            facebookName, selectedPaymentMethod,
             manageTransaction: false);
     }
 
@@ -241,6 +245,8 @@ public class BookingService : IBookingService
         TimeSpan endTime,
         int durationHours,
         decimal price,
+        string? facebookName,
+        PaymentMethod? selectedPaymentMethod,
         bool manageTransaction)
     {
         IDbContextTransaction? transaction = null;
@@ -288,6 +294,8 @@ public class BookingService : IBookingService
                     CustomerName = customerName,
                     CustomerPhone = customerPhone,
                     CustomerEmail = customerEmail,
+                    FacebookName = facebookName,
+                    SelectedPaymentMethod = selectedPaymentMethod,
                     CourtId = courtId,
                     BookingDate = bookingDate,
                     StartTime = startTime,
@@ -437,10 +445,11 @@ public class BookingService : IBookingService
             .ToDictionary(g => g.Key, g => FormatBookerDisplayName(g.First().CustomerName));
 
         // Get maintenance slot data for this court
-        var maintenanceSlots = await _context.CourtTimeSlots
+        var maintenanceSlots = (await _context.CourtTimeSlots
             .Where(cts => cts.CourtId == courtId && cts.AvailabilityStatus == CourtTimeSlotStatus.Maintenance)
-            .Select(cts => cts.TimeSlotId)
-            .ToListAsync();
+            .Select(cts => new { cts.TimeSlotId, cts.MaintenanceNote })
+            .ToListAsync())
+            .ToDictionary(cts => cts.TimeSlotId, cts => cts.MaintenanceNote);
 
         return BuildAvailability(timeSlots, bookedSlotIds, maintenanceSlots, bookedNames);
     }
@@ -473,19 +482,19 @@ public class BookingService : IBookingService
         var maintenanceByCourt = (await _context.CourtTimeSlots
                 .Where(cts => courtIdList.Contains(cts.CourtId)
                     && cts.AvailabilityStatus == CourtTimeSlotStatus.Maintenance)
-                .Select(cts => new { cts.CourtId, cts.TimeSlotId })
+                .Select(cts => new { cts.CourtId, cts.TimeSlotId, cts.MaintenanceNote })
                 .ToListAsync())
             .GroupBy(x => x.CourtId)
-            .ToDictionary(g => g.Key, g => g.Select(x => x.TimeSlotId).ToList());
+            .ToDictionary(g => g.Key, g => g.ToDictionary(x => x.TimeSlotId, x => x.MaintenanceNote));
 
         var result = new Dictionary<int, List<SlotAvailability>>();
         foreach (var courtId in courtIdList)
         {
             bookedByCourt.TryGetValue(courtId, out var bookedDict);
             var bookedSlotIds = bookedDict?.Keys.ToList() ?? new List<int>();
-            maintenanceByCourt.TryGetValue(courtId, out var maintenance);
+            maintenanceByCourt.TryGetValue(courtId, out var maintenanceDict);
 
-            result[courtId] = BuildAvailability(timeSlots, bookedSlotIds, maintenance ?? new List<int>(), bookedDict);
+            result[courtId] = BuildAvailability(timeSlots, bookedSlotIds, maintenanceDict ?? new Dictionary<int, string?>(), bookedDict);
         }
 
         return result;
@@ -516,13 +525,14 @@ public class BookingService : IBookingService
     private static List<SlotAvailability> BuildAvailability(
         List<TimeSlot> timeSlots,
         ICollection<int> bookedSlotIds,
-        ICollection<int> maintenanceSlotIds,
+        IDictionary<int, string?> maintenanceSlotsWithNotes,
         IDictionary<int, string>? bookedCustomerNames = null)
     {
         return timeSlots
             .Select(slot =>
             {
-                var isMaintenance = maintenanceSlotIds.Contains(slot.Id);
+                var isMaintenance = maintenanceSlotsWithNotes.ContainsKey(slot.Id);
+                string? maintenanceNote = isMaintenance ? maintenanceSlotsWithNotes[slot.Id] : null;
                 var isBooked = bookedSlotIds.Contains(slot.Id);
                 string? bookedBy = null;
                 if (isBooked)
@@ -543,6 +553,7 @@ public class BookingService : IBookingService
                     StartTime = slot.StartTime,
                     EndTime = slot.EndTime,
                     IsMaintenance = isMaintenance,
+                    MaintenanceNote = maintenanceNote,
                     IsAvailable = !isBooked && !isMaintenance,
                     BookedBy = bookedBy
                 };

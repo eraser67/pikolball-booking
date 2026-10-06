@@ -1,3 +1,5 @@
+using PickleBallBooking.Models;
+
 namespace PickleBallBooking.Services;
 
 public interface IBookingService
@@ -55,7 +57,9 @@ public interface IBookingService
         List<int> timeSlotIds,
         string customerName,
         string customerPhone,
-        string customerEmail);
+        string customerEmail,
+        string? facebookName = null,
+        PaymentMethod? selectedPaymentMethod = null);
 
     /// <summary>
     /// Cancel a booking and release all BookingTimeSlot records by setting IsActive = false.

@@ -26,6 +26,9 @@ public class Court
 
     public CourtStatus Status { get; set; } = CourtStatus.Active;
 
+    [MaxLength(500)]
+    public string? MaintenanceNote { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

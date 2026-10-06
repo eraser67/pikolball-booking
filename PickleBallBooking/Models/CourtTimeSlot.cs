@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace PickleBallBooking.Models;
 
 /// <summary>
@@ -20,6 +22,9 @@ public class CourtTimeSlot
     /// Maintenance = unavailable, cannot be booked
     /// </summary>
     public CourtTimeSlotStatus AvailabilityStatus { get; set; } = CourtTimeSlotStatus.Active;
+
+    [MaxLength(500)]
+    public string? MaintenanceNote { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

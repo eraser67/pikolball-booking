@@ -119,7 +119,7 @@ namespace PickleBallBooking.Pages
                 }
             }
 
-            var courts = await _courtService.GetActiveAsync();
+            var courts = await _courtService.GetAllAsync();
             var timeSlots = await _timeSlotService.GetActiveAsync();
 
             Courts = new List<CourtCardViewModel>();
@@ -129,18 +129,21 @@ namespace PickleBallBooking.Pages
                 return;
             }
 
-            // Single round-trip availability lookup for every active court (reuses existing service).
-            var availabilityByCourt = timeSlots.Count == 0
+            var activeCourts = courts.Where(c => c.Status == CourtStatus.Active).ToList();
+
+            // Single round-trip availability lookup for active courts
+            var availabilityByCourt = (timeSlots.Count == 0 || activeCourts.Count == 0)
                 ? null
-                : await _bookingService.GetAvailabilityForAllCourtsAsync(courts.Select(c => c.Id), PreviewDate);
+                : await _bookingService.GetAvailabilityForAllCourtsAsync(activeCourts.Select(c => c.Id), PreviewDate);
 
             var index = 0;
             foreach (var court in courts)
             {
                 var totalSlots = timeSlots.Count;
                 var availableSlots = 0;
+                var isCourtActive = court.Status == CourtStatus.Active;
 
-                if (availabilityByCourt is not null
+                if (isCourtActive && availabilityByCourt is not null
                     && availabilityByCourt.TryGetValue(court.Id, out var slots))
                 {
                     availableSlots = slots.Count(s => s.IsAvailable);
@@ -156,7 +159,7 @@ namespace PickleBallBooking.Pages
                     ImageUrl = uploadedUrl ?? CourtImageFor(index),
                     TotalSlots = totalSlots,
                     AvailableSlots = availableSlots,
-                    HasAvailabilityData = availabilityByCourt is not null
+                    HasAvailabilityData = isCourtActive && availabilityByCourt is not null
                 });
 
                 index++;

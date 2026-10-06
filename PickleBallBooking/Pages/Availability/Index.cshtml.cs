@@ -12,8 +12,9 @@ public class CourtAvailabilityStatus
     public int BookedSlots { get; set; }
     public int TotalSlots { get; set; }
     public decimal AvailabilityPercentage => TotalSlots > 0 ? (decimal)AvailableSlots / TotalSlots * 100 : 0;
-    public string Status => AvailableSlots > 0 ? "Available" : "Fully Booked";
-    public string StatusBadge => AvailableSlots > 0 ? "success" : "danger";
+    public string Status => Court.Status == CourtStatus.Inactive ? "Unavailable" : (AvailableSlots > 0 ? "Available" : "Fully Booked");
+    public string StatusBadge => Court.Status == CourtStatus.Inactive ? "secondary" : (AvailableSlots > 0 ? "success" : "danger");
+    public bool IsInactive => Court.Status == CourtStatus.Inactive;
 }
 
 public class TimeSlotAvailability
@@ -26,9 +27,14 @@ public class TimeSlotAvailability
     public List<Court> AvailableCourts { get; set; } = new();
     public List<Court> BookedCourts { get; set; } = new();
     /// <summary>
-    /// Maps CourtId to privacy-safe display name (e.g. "John D." or "Reserved").
+    /// Maps CourtId to privacy-safe display name (e.g. "John D.", "Maintenance", or "Reserved").
     /// </summary>
     public Dictionary<int, string> CourtBookers { get; set; } = new();
+    /// <summary>
+    /// Maps CourtId to maintenance note (court-level or slot-level).
+    /// </summary>
+    public Dictionary<int, string?> CourtNotes { get; set; } = new();
+
     public bool HasAvailableSlots => AvailableCourts.Count > 0;
     public string CourtStatusText => HasAvailableSlots 
         ? $"{AvailableCourts.Count} court{(AvailableCourts.Count > 1 ? "s" : "")} available" 
@@ -43,6 +49,9 @@ public class TimeSlotAvailability
 
     public string GetBookerForCourt(int courtId) =>
         CourtBookers.TryGetValue(courtId, out var name) && !string.IsNullOrWhiteSpace(name) ? name : "Reserved";
+
+    public string? GetMaintenanceNoteForCourt(int courtId) =>
+        CourtNotes.TryGetValue(courtId, out var note) ? note : null;
 }
 
 public class IndexModel : PageModel
@@ -84,7 +93,7 @@ public class IndexModel : PageModel
 
         IsPastDate = Date < today;
 
-        Courts = await _courtService.GetActiveAsync();
+        Courts = await _courtService.GetAllAsync();
         var timeSlots = await _timeSlotService.GetActiveAsync();
 
         DateOptions = Enumerable.Range(0, CalendarWindowDays)
@@ -107,12 +116,12 @@ public class IndexModel : PageModel
             return;
         }
 
-                // Use ONLY predefined time slots from the database (1-hour slots)
-        // This prevents confusing combinations like 6-9 AM being "fully booked" when really only 6-7 is booked.
-        // Availability for every court is fetched in a single round-trip to avoid N+1 queries.
-        var availabilityByCourt = IsPastDate
+        var activeCourts = Courts.Where(c => c.Status == CourtStatus.Active).ToList();
+
+        // Availability for active courts fetched in a single round-trip.
+        var availabilityByCourt = IsPastDate || activeCourts.Count == 0
             ? new Dictionary<int, List<SlotAvailability>>()
-            : await _bookingService.GetAvailabilityForAllCourtsAsync(Courts.Select(c => c.Id), Date);
+            : await _bookingService.GetAvailabilityForAllCourtsAsync(activeCourts.Select(c => c.Id), Date);
 
         foreach (var timeSlot in timeSlots.OrderBy(t => t.StartTime))
         {
@@ -126,40 +135,50 @@ public class IndexModel : PageModel
                 Price = priceResult.Success ? priceResult.Price : null
             };
 
-            if (IsPastDate)
+            foreach (var court in Courts)
             {
-                // Past dates have all courts booked
-                slot.BookedCourts.AddRange(Courts);
-                foreach (var court in Courts)
+                // Inactive courts are unavailable for all slots with their court-level maintenance note
+                if (court.Status == CourtStatus.Inactive)
                 {
-                    slot.CourtBookers[court.Id] = "Past";
+                    slot.BookedCourts.Add(court);
+                    slot.CourtBookers[court.Id] = "Maintenance";
+                    slot.CourtNotes[court.Id] = court.MaintenanceNote;
+                    continue;
                 }
-            }
-            else
-            {
-                foreach (var court in Courts)
+
+                if (IsPastDate)
                 {
-                    var isAvailable = false;
-                    string? booker = null;
+                    slot.BookedCourts.Add(court);
+                    slot.CourtBookers[court.Id] = "Past";
+                    continue;
+                }
 
-                    if (availabilityByCourt.TryGetValue(court.Id, out var slots))
-                    {
-                        var matchingSlot = slots.FirstOrDefault(s => s.TimeSlotId == timeSlot.Id);
-                        if (matchingSlot != null)
-                        {
-                            isAvailable = matchingSlot.IsAvailable;
-                            booker = matchingSlot.BookedBy;
-                        }
-                    }
+                var isAvailable = false;
+                string? booker = null;
+                string? maintNote = null;
 
-                    if (isAvailable)
+                if (availabilityByCourt.TryGetValue(court.Id, out var slots))
+                {
+                    var matchingSlot = slots.FirstOrDefault(s => s.TimeSlotId == timeSlot.Id);
+                    if (matchingSlot != null)
                     {
-                        slot.AvailableCourts.Add(court);
+                        isAvailable = matchingSlot.IsAvailable;
+                        booker = matchingSlot.BookedBy;
+                        maintNote = matchingSlot.MaintenanceNote;
                     }
-                    else
+                }
+
+                if (isAvailable)
+                {
+                    slot.AvailableCourts.Add(court);
+                }
+                else
+                {
+                    slot.BookedCourts.Add(court);
+                    slot.CourtBookers[court.Id] = booker ?? "Reserved";
+                    if (!string.IsNullOrWhiteSpace(maintNote))
                     {
-                        slot.BookedCourts.Add(court);
-                        slot.CourtBookers[court.Id] = booker ?? "Reserved";
+                        slot.CourtNotes[court.Id] = maintNote;
                     }
                 }
             }
