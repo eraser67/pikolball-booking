@@ -558,6 +558,22 @@
             });
         });
 
+        // ─── Auto-load slots on page ready if court+date are pre-selected ──
+        // booking.js registers its listeners inside DOMContentLoaded; we use the
+        // same event (or a short fallback) so we are guaranteed to fire AFTER them.
+        function triggerInitialSlotLoad() {
+            const cs = document.getElementById('courtSelect');
+            const bd = document.getElementById('bookingDate');
+            if (cs && cs.value && bd && bd.value) {
+                cs.dispatchEvent(new Event('change'));
+            }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', triggerInitialSlotLoad);
+        } else {
+            triggerInitialSlotLoad();
+        }
+
         // ─── Payment method card selection ──────────────────────────────────
         const pmCards = document.querySelectorAll('.payment-method-card');
         const pmInput = document.getElementById('Input_SelectedPaymentMethod');

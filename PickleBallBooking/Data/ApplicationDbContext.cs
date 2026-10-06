@@ -75,6 +75,9 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
 
     public DbSet<OrganizationPaymentSettings> OrganizationPaymentSettings => Set<OrganizationPaymentSettings>();
 
+    /// <summary>Tenant-configured payment options (GCash, Maya, Bank QR, etc.). Each has its own QR image.</summary>
+    public DbSet<TenantPaymentOption> TenantPaymentOptions => Set<TenantPaymentOption>();
+
     // Phase 26: subscription tables (global — no tenant query filter)
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
 
@@ -139,6 +142,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         typeof(RoundRobinBye),
         // Phase 41
         typeof(MatchScoreAudit),
+        // Tenant payment options (multi-method support)
+        typeof(TenantPaymentOption),
     };
 
     public override int SaveChanges()
