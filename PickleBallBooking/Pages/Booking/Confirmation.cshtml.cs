@@ -32,11 +32,17 @@ public class ConfirmationModel : PageModel
     /// <summary>GCash payment settings for the booking's tenant (null if not configured).</summary>
     public Models.OrganizationPaymentSettings? PaymentSettings { get; set; }
 
+    /// <summary>The specific TenantPaymentOption chosen by the customer (e.g. Maya, GCash, Bank QR).</summary>
+    public Models.TenantPaymentOption? SelectedPaymentOption { get; set; }
+
     /// <summary>The payment record created/loaded for this booking.</summary>
     public Models.Payment? Payment { get; set; }
 
-    /// <summary>Public URL of the GCash QR code image if configured.</summary>
+    /// <summary>Public URL of the QR code image if configured.</summary>
     public string? QRCodeUrl { get; set; }
+
+    /// <summary>True if the organization has enabled AI auto-verification in Org Settings.</summary>
+    public bool EnableAiPaymentVerification { get; set; }
 
     public async Task OnGetAsync(string reference)
     {
@@ -49,13 +55,36 @@ public class ConfirmationModel : PageModel
 
         if (Booking is null) return;
 
-        // Load organization's payment settings for the booking's venue organization.
+        // Load organization settings & AI verification toggle
+        var org = await _context.Organizations
+            .IgnoreQueryFilters()
+            .Where(o => o.Id == Booking.OrganizationId)
+            .Select(o => new { o.EnableAiPaymentVerification })
+            .FirstOrDefaultAsync();
+        EnableAiPaymentVerification = org?.EnableAiPaymentVerification == true;
+
+        // Load organization's legacy payment settings for the booking's venue organization.
         PaymentSettings = await _paymentService.GetPaymentSettingsForOrgAsync(Booking.OrganizationId);
-        QRCodeUrl       = _proofStorage.GetQRCodePublicUrl(PaymentSettings?.QRCodeImagePath);
+
+        // Load the specific TenantPaymentOption chosen by the customer
+        if (Booking.SelectedPaymentOptionId is int optionId and > 0)
+        {
+            SelectedPaymentOption = await _paymentService.GetPaymentOptionByIdNoFilterAsync(optionId);
+        }
+
+        // Determine QR code public URL: prefer chosen payment option, fallback to org payment settings
+        if (!string.IsNullOrWhiteSpace(SelectedPaymentOption?.QRCodeImagePath))
+        {
+            QRCodeUrl = _proofStorage.GetQRCodePublicUrl(SelectedPaymentOption.QRCodeImagePath);
+        }
+        else if (!string.IsNullOrWhiteSpace(PaymentSettings?.QRCodeImagePath))
+        {
+            QRCodeUrl = _proofStorage.GetQRCodePublicUrl(PaymentSettings.QRCodeImagePath);
+        }
 
         // Auto-create a pending payment record for this booking so the customer
         // has something to submit a reference number against.
-        if (PaymentSettings?.IsActive == true)
+        if (SelectedPaymentOption is not null || PaymentSettings?.IsActive == true)
         {
             Payment = await _paymentService.CreateForBookingAsync(Booking.Id);
         }

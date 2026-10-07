@@ -69,6 +69,7 @@ public class AvailabilityIndexModelTests
     {
         await using var context = await SeedAsync();
         var model = CreateModel(context);
+        model.Date = AppClock.TodayLocal.AddDays(1);
 
         await model.OnGetAsync();
 
@@ -86,7 +87,7 @@ public class AvailabilityIndexModelTests
         await using var context = await SeedAsync();
         var model = CreateModel(context);
 
-                model.Date = AppClock.TodayLocal;
+        model.Date = AppClock.TodayLocal.AddDays(1);
         await model.OnGetAsync();
 
         Assert.Contains(model.TimeSlotAvailabilities, slot => slot.HasAvailableSlots);
@@ -102,7 +103,37 @@ public class AvailabilityIndexModelTests
         await model.OnGetAsync();
 
         Assert.True(model.IsPastDate);
-        Assert.All(model.TimeSlotAvailabilities, slot => Assert.False(slot.HasAvailableSlots));
+        Assert.All(model.TimeSlotAvailabilities, slot =>
+        {
+            Assert.True(slot.IsPast);
+            Assert.False(slot.HasAvailableSlots);
+            Assert.Equal("Passed", slot.CourtStatusText);
+        });
+    }
+
+    [Fact]
+    public async Task OnGetAsync_MarksTodayPastSlotAsPassed()
+    {
+        await using var context = CreateContext();
+        context.Courts.Add(new Court { Id = 1, OrganizationId = 1, Name = "Court 1", Status = CourtStatus.Active });
+        // Slot that has definitely passed today: 00:00 to 01:00
+        context.TimeSlots.Add(new TimeSlot { Id = 1, StartTime = TimeSpan.Zero, EndTime = TimeSpan.FromHours(1), Status = TimeSlotStatus.Active });
+        // Slot that has definitely NOT passed today: 23:00 to 23:59
+        context.TimeSlots.Add(new TimeSlot { Id = 2, StartTime = TimeSpan.FromHours(23), EndTime = TimeSpan.FromHours(23.99), Status = TimeSlotStatus.Active });
+        await context.SaveChangesAsync();
+
+        var model = CreateModel(context);
+        model.Date = AppClock.TodayLocal;
+        await model.OnGetAsync();
+
+        var pastSlot = model.TimeSlotAvailabilities.First(s => s.StartTime == TimeSpan.Zero);
+        Assert.True(pastSlot.IsPast);
+        Assert.False(pastSlot.HasAvailableSlots);
+        Assert.Equal("Passed", pastSlot.CourtStatusText);
+
+        var futureSlot = model.TimeSlotAvailabilities.First(s => s.StartTime == TimeSpan.FromHours(23));
+        Assert.False(futureSlot.IsPast);
+        Assert.True(futureSlot.HasAvailableSlots);
     }
 
     [Theory]
@@ -123,7 +154,7 @@ public class AvailabilityIndexModelTests
     {
         await using var context = await SeedAsync();
 
-        var today = AppClock.TodayLocal;
+        var futureDate = AppClock.TodayLocal.AddDays(1);
         var booking = new Booking
         {
             Id = 10,
@@ -133,7 +164,7 @@ public class AvailabilityIndexModelTests
             CustomerPhone = "09123456789",
             CustomerEmail = "mj@example.com",
             CourtId = 1,
-            BookingDate = today,
+            BookingDate = futureDate,
             StartTime = new TimeSpan(9, 0, 0),
             EndTime = new TimeSpan(10, 0, 0),
             Price = 100m,
@@ -147,7 +178,7 @@ public class AvailabilityIndexModelTests
             OrganizationId = 1,
             BookingId = 10,
             CourtId = 1,
-            BookingDate = today,
+            BookingDate = futureDate,
             TimeSlotId = 1,
             SlotOrder = 0,
             IsActive = true
@@ -156,7 +187,7 @@ public class AvailabilityIndexModelTests
         await context.SaveChangesAsync();
 
         var model = CreateModel(context);
-        model.Date = today;
+        model.Date = futureDate;
         await model.OnGetAsync();
 
         var slot9am = model.TimeSlotAvailabilities.FirstOrDefault(s => s.StartTime == new TimeSpan(9, 0, 0));

@@ -136,7 +136,8 @@ public class BookingService : IBookingService
         string customerPhone,
         string customerEmail,
         string? facebookName = null,
-        PaymentMethod? selectedPaymentMethod = null)
+        PaymentMethod? selectedPaymentMethod = null,
+        int? selectedPaymentOptionId = null)
     {
         // Validate input
         if (timeSlotIds == null || timeSlotIds.Count == 0)
@@ -221,7 +222,7 @@ public class BookingService : IBookingService
                 courtId, court.OrganizationId, bookingDate, chronologicalSlots,
                 customerName, customerPhone, customerEmail,
                 startTime, endTime, durationHours, priceResult.Price,
-                facebookName, selectedPaymentMethod,
+                facebookName, selectedPaymentMethod, selectedPaymentOptionId,
                 manageTransaction: true));
         }
 
@@ -229,7 +230,7 @@ public class BookingService : IBookingService
             courtId, court.OrganizationId, bookingDate, chronologicalSlots,
             customerName, customerPhone, customerEmail,
             startTime, endTime, durationHours, priceResult.Price,
-            facebookName, selectedPaymentMethod,
+            facebookName, selectedPaymentMethod, selectedPaymentOptionId,
             manageTransaction: false);
     }
 
@@ -247,6 +248,7 @@ public class BookingService : IBookingService
         decimal price,
         string? facebookName,
         PaymentMethod? selectedPaymentMethod,
+        int? selectedPaymentOptionId,
         bool manageTransaction)
     {
         IDbContextTransaction? transaction = null;
@@ -296,6 +298,7 @@ public class BookingService : IBookingService
                     CustomerEmail = customerEmail,
                     FacebookName = facebookName,
                     SelectedPaymentMethod = selectedPaymentMethod,
+                    SelectedPaymentOptionId = selectedPaymentOptionId,
                     CourtId = courtId,
                     BookingDate = bookingDate,
                     StartTime = startTime,

@@ -137,7 +137,72 @@ public sealed class BookingEmailService
             replyTo: sender.ReplyTo));
     }
 
+    // ─── AI Payment Verification notifications ────────────────────────────────
+
+    /// <summary>
+    /// Sent to the org admin when the AI cascade cannot reach sufficient confidence
+    /// to auto-verify a payment. Prompts the admin to manually review.
+    /// </summary>
+    public void SendAiManualReviewRequiredAsync(
+        Booking booking, Payment payment, Organization org, string aiReason)
+    {
+        var targetEmail = org.NotificationEmail;
+        if (string.IsNullOrWhiteSpace(targetEmail)) return;
+
+        var sender = GetSenderForOrg(org);
+        Fire(_email.SendAsync(
+            targetEmail,
+            org.Name,
+            $"🤖 Manual Payment Review Required — {booking.BookingReference}",
+            BuildAiManualReviewHtml(booking, payment, org, aiReason),
+            fromAddress: sender.FromAddress,
+            fromName: sender.FromName,
+            replyTo: booking.CustomerEmail));
+    }
+
+    private static string BuildAiManualReviewHtml(
+        Booking booking, Payment payment, Organization org, string aiReason)
+    {
+        var courtName = booking.Court?.Name ?? "Court";
+        var timeStr   = $"{FormatTime(booking.StartTime)} – {FormatTime(booking.EndTime)}";
+
+        return $"""
+            <!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;background:#f9fafb;padding:24px;">
+            <div style="max-width:600px;margin:auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+              <div style="background:#f59e0b;padding:24px 32px;">
+                <h1 style="color:#fff;margin:0;font-size:20px;">🤖 AI Payment Review Required</h1>
+                <p style="color:#fef3c7;margin:8px 0 0;">The AI verification agent needs your help</p>
+              </div>
+              <div style="padding:32px;">
+                <p style="color:{DarkText};">The AI verification agent analyzed the submitted payment but was not confident enough to auto-verify it. Please review and verify or reject manually in the Admin Dashboard.</p>
+                <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                  <tr><td style="padding:8px;color:{GrayText};width:40%;">Booking Ref</td><td style="padding:8px;font-weight:600;">{booking.BookingReference}</td></tr>
+                  <tr style="background:#f9fafb;"><td style="padding:8px;color:{GrayText};">Customer</td><td style="padding:8px;">{HtmlEncode(booking.CustomerName)}</td></tr>
+                  <tr><td style="padding:8px;color:{GrayText};">Court</td><td style="padding:8px;">{HtmlEncode(courtName)}</td></tr>
+                  <tr style="background:#f9fafb;"><td style="padding:8px;color:{GrayText};">Date</td><td style="padding:8px;">{booking.BookingDate:MMMM d, yyyy}</td></tr>
+                  <tr><td style="padding:8px;color:{GrayText};">Time</td><td style="padding:8px;">{timeStr}</td></tr>
+                  <tr style="background:#f9fafb;"><td style="padding:8px;color:{GrayText};">Amount</td><td style="padding:8px;font-weight:600;">₱{payment.Amount:F2}</td></tr>
+                  <tr><td style="padding:8px;color:{GrayText};">Reference #</td><td style="padding:8px;font-family:monospace;">{HtmlEncode(payment.ReferenceNumber)}</td></tr>
+                  <tr style="background:#fef3c7;"><td style="padding:8px;color:{GrayText};">AI Reason</td><td style="padding:8px;color:#92400e;">{HtmlEncode(aiReason)}</td></tr>
+                </table>
+                <p style="color:{DarkText};">Please log in to review the payment proof and take action.</p>
+              </div>
+            </div>
+            </body></html>
+            """;
+    }
+
+    private static string HtmlEncode(string? value)
+        => System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
+
+    private static string FormatTime(TimeSpan t)
+    {
+        var dt = DateTime.Today.Add(t == TimeSpan.Zero ? TimeSpan.FromHours(24) : t);
+        return dt.ToString("h:mm tt");
+    }
+
     // ─── Phase 34: Activity RSVP & Waitlist notifications ────────────────────
+
 
     /// <summary>RSVP confirmed — sent immediately after player's spot is secured.</summary>
     public void SendActivityRsvpConfirmedAsync(Activity activity, Organization org, string userEmail, string userName)

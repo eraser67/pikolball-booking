@@ -50,6 +50,18 @@ public sealed class BookingTelegramService
     }
 
     /// <summary>
+    /// Alert staff when the AI agent could not auto-verify a payment and manual review is needed.
+    /// </summary>
+    public void SendAiManualReviewAlertAsync(Booking booking, Payment payment, Organization org, string aiReason)
+    {
+        var chatId = ResolveChatId(org);
+        if (string.IsNullOrWhiteSpace(chatId)) return;
+
+        var message = BuildAiManualReviewAlertMessage(booking, payment, org, aiReason);
+        Fire(_telegram.SendMessageAsync(chatId, message));
+    }
+
+    /// <summary>
     /// Alert staff when a booking is cancelled.
     /// </summary>
     public void SendBookingCancelledAlertAsync(Booking booking, Organization org)
@@ -181,6 +193,26 @@ public sealed class BookingTelegramService
             🧾 *GCash Ref*: `{refNum}`
             💰 *Amount*: {EscapeMarkdown(amount)}
             ⚡ *Action*: Please review and verify payment in Admin Dashboard.
+            """;
+    }
+
+    public static string BuildAiManualReviewAlertMessage(Booking booking, Payment payment, Organization org, string aiReason)
+    {
+        var orgName  = EscapeMarkdown(org.Name);
+        var custName = EscapeMarkdown(booking.CustomerName);
+        var refNum   = EscapeMarkdown(payment.ReferenceNumber);
+        var amount   = payment.Amount.ToString("C2");
+        var reason   = EscapeMarkdown(aiReason[..Math.Min(aiReason.Length, 200)]);
+
+        return $"""
+            🤖 *AI Could Not Auto\\-Verify Payment*
+            🏢 *Club*: {orgName}
+            📋 *Booking*: {EscapeMarkdown(booking.BookingReference)}
+            👤 *Customer*: {custName}
+            🧾 *Ref\\#*: `{refNum}`
+            💰 *Amount*: {EscapeMarkdown(amount)}
+            ⚠️ *AI Reason*: {reason}
+            ⚡ *Action Required*: Please review the payment proof and verify or reject manually.
             """;
     }
 

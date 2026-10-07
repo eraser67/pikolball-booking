@@ -133,6 +133,17 @@ public class Organization
     /// <summary>When true, the announcement banner is displayed to all visitors.</summary>
     public bool ShowAnnouncementBanner { get; set; } = false;
 
+    // ── AI Payment Verification ────────────────────────────────────────────
+
+    /// <summary>
+    /// When true, submitted payments are automatically evaluated by the AI
+    /// verification cascade (Gemini Flash → Gemini Pro → Deepseek → rule-based fallback).
+    /// High-confidence results auto-verify and confirm the booking instantly.
+    /// Low-confidence results fall back to manual admin review with email + Telegram alerts.
+    /// The AI never auto-rejects — admin always has the final say on rejections.
+    /// </summary>
+    public bool EnableAiPaymentVerification { get; set; } = false;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

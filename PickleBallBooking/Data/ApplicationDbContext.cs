@@ -490,6 +490,26 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        // Tenant-configured payment options (GCash, Maya, Bank QR, etc.)
+        modelBuilder.Entity<TenantPaymentOption>(entity =>
+        {
+            entity.HasQueryFilter(o => CurrentOrganizationId != null && o.OrganizationId == CurrentOrganizationId);
+
+            entity.Property(o => o.Label).HasMaxLength(100).IsRequired();
+            entity.Property(o => o.AccountName).HasMaxLength(100).IsRequired();
+            entity.Property(o => o.AccountNumber).HasMaxLength(100);
+            entity.Property(o => o.QRCodeImagePath).HasMaxLength(500);
+            entity.Property(o => o.Instructions).HasMaxLength(1000);
+
+            entity.HasIndex(o => new { o.OrganizationId, o.DisplayOrder })
+                .HasDatabaseName("IX_TenantPaymentOption_OrgId_Order");
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(o => o.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // Phase 26: subscription plan + subscription configuration.
         // SubscriptionPlans are global (no tenant filter) — platform-managed.
         // Subscriptions are also global: platform admins must read across tenants.

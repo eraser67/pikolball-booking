@@ -10,10 +10,19 @@ public class CourtAvailabilityStatus
     public Court Court { get; set; } = null!;
     public int AvailableSlots { get; set; }
     public int BookedSlots { get; set; }
+    public int PassedSlots { get; set; }
     public int TotalSlots { get; set; }
     public decimal AvailabilityPercentage => TotalSlots > 0 ? (decimal)AvailableSlots / TotalSlots * 100 : 0;
-    public string Status => Court.Status == CourtStatus.Inactive ? "Unavailable" : (AvailableSlots > 0 ? "Available" : "Fully Booked");
-    public string StatusBadge => Court.Status == CourtStatus.Inactive ? "secondary" : (AvailableSlots > 0 ? "success" : "danger");
+    public string Status => Court.Status == CourtStatus.Inactive 
+        ? "Unavailable" 
+        : (AvailableSlots > 0 
+            ? "Available" 
+            : (PassedSlots == TotalSlots || (PassedSlots > 0 && AvailableSlots == 0 && BookedSlots == 0) ? "Passed" : "Fully Booked"));
+    public string StatusBadge => Court.Status == CourtStatus.Inactive 
+        ? "secondary" 
+        : (AvailableSlots > 0 
+            ? "success" 
+            : (PassedSlots == TotalSlots || (PassedSlots > 0 && AvailableSlots == 0 && BookedSlots == 0) ? "secondary" : "danger"));
     public bool IsInactive => Court.Status == CourtStatus.Inactive;
 }
 
@@ -24,10 +33,11 @@ public class TimeSlotAvailability
     public string Label { get; set; } = string.Empty;
     public string FormattedLabel { get; set; } = string.Empty;
     public decimal? Price { get; set; }
+    public bool IsPast { get; set; }
     public List<Court> AvailableCourts { get; set; } = new();
     public List<Court> BookedCourts { get; set; } = new();
     /// <summary>
-    /// Maps CourtId to privacy-safe display name (e.g. "John D.", "Maintenance", or "Reserved").
+    /// Maps CourtId to privacy-safe display name (e.g. "John D.", "Maintenance", "Passed", or "Reserved").
     /// </summary>
     public Dictionary<int, string> CourtBookers { get; set; } = new();
     /// <summary>
@@ -35,10 +45,12 @@ public class TimeSlotAvailability
     /// </summary>
     public Dictionary<int, string?> CourtNotes { get; set; } = new();
 
-    public bool HasAvailableSlots => AvailableCourts.Count > 0;
-    public string CourtStatusText => HasAvailableSlots 
-        ? $"{AvailableCourts.Count} court{(AvailableCourts.Count > 1 ? "s" : "")} available" 
-        : "Fully booked";
+    public bool HasAvailableSlots => !IsPast && AvailableCourts.Count > 0;
+    public string CourtStatusText => IsPast
+        ? "Passed"
+        : (HasAvailableSlots 
+            ? $"{AvailableCourts.Count} court{(AvailableCourts.Count > 1 ? "s" : "")} available" 
+            : "Fully booked");
 
     public string TimePeriod => StartTime.Hours switch
     {
@@ -82,13 +94,16 @@ public class IndexModel : PageModel
 
     public bool IsPastDate { get; set; }
 
-        public async Task OnGetAsync()
+    public async Task OnGetAsync()
     {
         var today = AppClock.TodayLocal;
+        var isToday = Date == today;
+        var nowHours = AppClock.NowLocal.TimeOfDay.TotalHours;
 
         if (Date == default)
         {
             Date = today;
+            isToday = true;
         }
 
         IsPastDate = Date < today;
@@ -119,12 +134,13 @@ public class IndexModel : PageModel
         var activeCourts = Courts.Where(c => c.Status == CourtStatus.Active).ToList();
 
         // Availability for active courts fetched in a single round-trip.
-        var availabilityByCourt = IsPastDate || activeCourts.Count == 0
+        var availabilityByCourt = activeCourts.Count == 0
             ? new Dictionary<int, List<SlotAvailability>>()
             : await _bookingService.GetAvailabilityForAllCourtsAsync(activeCourts.Select(c => c.Id), Date);
 
         foreach (var timeSlot in timeSlots.OrderBy(t => t.StartTime))
         {
+            var isSlotPast = IsPastDate || (isToday && timeSlot.StartTime.TotalHours <= nowHours);
             var priceResult = await _bookingService.CalculatePriceAsync(Date, timeSlot.StartTime, timeSlot.EndTime);
             var slot = new TimeSlotAvailability
             {
@@ -132,7 +148,8 @@ public class IndexModel : PageModel
                 EndTime = timeSlot.EndTime,
                 Label = AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime),
                 FormattedLabel = AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime),
-                Price = priceResult.Success ? priceResult.Price : null
+                Price = priceResult.Success ? priceResult.Price : null,
+                IsPast = isSlotPast
             };
 
             foreach (var court in Courts)
@@ -146,10 +163,19 @@ public class IndexModel : PageModel
                     continue;
                 }
 
-                if (IsPastDate)
+                if (isSlotPast)
                 {
                     slot.BookedCourts.Add(court);
-                    slot.CourtBookers[court.Id] = "Past";
+                    string? pastBooker = null;
+                    if (availabilityByCourt.TryGetValue(court.Id, out var courtSlots))
+                    {
+                        var matchingSlot = courtSlots.FirstOrDefault(s => s.TimeSlotId == timeSlot.Id);
+                        if (matchingSlot != null && !matchingSlot.IsAvailable)
+                        {
+                            pastBooker = matchingSlot.BookedBy;
+                        }
+                    }
+                    slot.CourtBookers[court.Id] = !string.IsNullOrWhiteSpace(pastBooker) ? pastBooker : "Passed";
                     continue;
                 }
 
@@ -189,14 +215,16 @@ public class IndexModel : PageModel
         // Calculate court availability for the selected date
         foreach (var court in Courts)
         {
-            var availableCount = TimeSlotAvailabilities.Count(slot => slot.AvailableCourts.Contains(court));
-            var bookedCount = TimeSlotAvailabilities.Count(slot => slot.BookedCourts.Contains(court));
+            var availableCount = TimeSlotAvailabilities.Count(slot => !slot.IsPast && slot.AvailableCourts.Contains(court));
+            var bookedCount = TimeSlotAvailabilities.Count(slot => !slot.IsPast && slot.BookedCourts.Contains(court));
+            var passedCount = TimeSlotAvailabilities.Count(slot => slot.IsPast);
 
             CourtAvailabilities.Add(new CourtAvailabilityStatus
             {
                 Court = court,
                 AvailableSlots = availableCount,
                 BookedSlots = bookedCount,
+                PassedSlots = passedCount,
                 TotalSlots = TimeSlotAvailabilities.Count
             });
         }

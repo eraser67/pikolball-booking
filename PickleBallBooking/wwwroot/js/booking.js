@@ -35,6 +35,100 @@ document.addEventListener('DOMContentLoaded', function () {
     const hiddenSelectedSlotsContainer = document.getElementById('hiddenSelectedSlotsContainer');
     const mobileStickySummary = document.getElementById('mobileStickySummary');
     const btnMobileProceed = document.getElementById('btnMobileProceed');
+    const bottomSheetBackdrop = document.getElementById('bottomSheetBackdrop');
+    const bottomSheetHeaderTrigger = document.getElementById('bottomSheetHeaderTrigger');
+    const btnCloseBottomSheet = document.getElementById('btnCloseBottomSheet');
+    const btnSheetCloseSecondary = document.getElementById('btnSheetCloseSecondary');
+    const btnSheetContinue = document.getElementById('btnSheetContinue');
+
+    // Smooth scroll and focus Step 4 ("Your Details")
+    function scrollToStep4() {
+        if (!step4Card) return;
+        step4Card.style.display = '';
+        step4Card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const nameInput = document.getElementById('Input_CustomerName');
+        if (nameInput) {
+            setTimeout(function () {
+                nameInput.focus();
+            }, 350);
+        }
+    }
+
+    // Expand mobile bottom sheet to show full booking summary
+    function expandBottomSheet() {
+        if (!mobileStickySummary) return;
+        mobileStickySummary.classList.add('is-expanded');
+        mobileStickySummary.setAttribute('aria-expanded', 'true');
+        if (bottomSheetBackdrop) {
+            bottomSheetBackdrop.classList.add('is-active');
+        }
+        document.body.style.overflow = 'hidden';
+        syncBottomSheetValues();
+    }
+
+    // Collapse mobile bottom sheet
+    function collapseBottomSheet() {
+        if (!mobileStickySummary) return;
+        mobileStickySummary.classList.remove('is-expanded');
+        mobileStickySummary.setAttribute('aria-expanded', 'false');
+        if (bottomSheetBackdrop) {
+            bottomSheetBackdrop.classList.remove('is-active');
+        }
+        document.body.style.overflow = '';
+    }
+
+    // Toggle bottom sheet between collapsed and expanded
+    function toggleBottomSheet() {
+        if (!mobileStickySummary) return;
+        if (mobileStickySummary.classList.contains('is-expanded')) {
+            collapseBottomSheet();
+        } else {
+            expandBottomSheet();
+        }
+    }
+
+    // Expose helpers globally so Index.cshtml AJAX price handler can trigger them
+    window.expandBottomSheet = expandBottomSheet;
+    window.collapseBottomSheet = collapseBottomSheet;
+    window.scrollToStep4 = scrollToStep4;
+
+    // Synchronize bottom sheet content with desktop summary elements
+    function syncBottomSheetValues() {
+        const summaryCourt = document.getElementById('summaryCourtName');
+        const summaryDate = document.getElementById('summaryDate');
+        const summaryTime = document.getElementById('summaryTime');
+        const summaryDuration = document.getElementById('summaryDuration');
+        const summaryPrice = document.getElementById('summaryPrice');
+        const summaryOvernightItem = document.getElementById('summaryOvernightTransitionItem');
+        const summaryOvernightDetails = document.getElementById('summaryOvernightDetails');
+
+        const sheetCourtName = document.getElementById('sheetCourtName');
+        const sheetDate = document.getElementById('sheetDate');
+        const sheetTime = document.getElementById('sheetTime');
+        const sheetDuration = document.getElementById('sheetDuration');
+        const sheetPriceValue = document.getElementById('sheetPriceValue');
+        const sheetOvernightItem = document.getElementById('sheetOvernightItem');
+        const sheetOvernightDetails = document.getElementById('sheetOvernightDetails');
+
+        if (sheetCourtName && summaryCourt) sheetCourtName.textContent = summaryCourt.textContent;
+        if (sheetDate && summaryDate) sheetDate.textContent = summaryDate.textContent;
+        if (sheetTime && summaryTime) sheetTime.textContent = summaryTime.textContent;
+        if (sheetDuration && summaryDuration) sheetDuration.textContent = summaryDuration.textContent;
+
+        const hasPrice = summaryPrice && summaryPrice.textContent.trim() !== '-' && summaryPrice.textContent.trim() !== '';
+        if (sheetPriceValue) {
+            sheetPriceValue.textContent = hasPrice ? summaryPrice.textContent.trim() : '-';
+        }
+
+        if (sheetOvernightItem && summaryOvernightItem && sheetOvernightDetails && summaryOvernightDetails) {
+            if (summaryOvernightItem.style.display !== 'none') {
+                sheetOvernightItem.style.display = 'block';
+                sheetOvernightDetails.innerHTML = summaryOvernightDetails.innerHTML;
+            } else {
+                sheetOvernightItem.style.display = 'none';
+            }
+        }
+    }
 
     // Selection state keyed by date string (e.g., "2026-09-22" -> Array of slot objects)
     let selectedSlotsByDate = {};
@@ -102,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         const confirmActions = document.getElementById('confirmActionsContainer');
         if (confirmActions) {
-            confirmActions.style.display = 'none';
+            confirmActions.style.setProperty('display', 'none', 'important');
         }
         const priceContainer = document.getElementById('priceContainer');
         if (priceContainer) {
@@ -550,6 +644,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
+        syncBottomSheetValues();
         syncHiddenSlotInputs();
         updateOvernightContinueBanner();
         updateStepIndicator();
@@ -757,7 +852,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (step4Card) {
             step4Card.style.display = 'none';
             const confirmActions = document.getElementById('confirmActionsContainer');
-            if (confirmActions) { confirmActions.style.display = 'none'; }
+            if (confirmActions) { confirmActions.style.setProperty('display', 'none', 'important'); }
         }
 
         fetch(`/Booking?handler=Slots&courtId=${encodeURIComponent(courtId)}&date=${encodeURIComponent(dateVal)}`, {
@@ -876,11 +971,46 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Mobile Bottom Sheet Event Listeners
+    if (bottomSheetHeaderTrigger) {
+        bottomSheetHeaderTrigger.addEventListener('click', function (e) {
+            if (e.target.closest('#btnMobileProceed')) return;
+            toggleBottomSheet();
+        });
+    }
+
+    if (bottomSheetBackdrop) {
+        bottomSheetBackdrop.addEventListener('click', collapseBottomSheet);
+    }
+
+    if (btnCloseBottomSheet) {
+        btnCloseBottomSheet.addEventListener('click', collapseBottomSheet);
+    }
+
+    if (btnSheetCloseSecondary) {
+        btnSheetCloseSecondary.addEventListener('click', collapseBottomSheet);
+    }
+
+    if (btnSheetContinue) {
+        btnSheetContinue.addEventListener('click', function () {
+            collapseBottomSheet();
+            scrollToStep4();
+        });
+    }
+
     // Mobile Proceed Button
     if (btnMobileProceed) {
-        btnMobileProceed.addEventListener('click', function () {
-            if (step4Card && step4Card.style.display !== 'none') {
-                scrollToStep4();
+        btnMobileProceed.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const summaryPrice = document.getElementById('summaryPrice');
+            const hasCalculatedPrice = summaryPrice && summaryPrice.textContent.trim() !== '-' && summaryPrice.textContent.trim() !== '';
+
+            if (hasCalculatedPrice) {
+                if (step4Card && step4Card.style.display !== 'none') {
+                    scrollToStep4();
+                } else {
+                    expandBottomSheet();
+                }
             } else {
                 const calculateBtn = document.getElementById('btnCalculatePrice');
                 if (calculateBtn) {
@@ -889,6 +1019,17 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    // Listen for custom price calculation event
+    window.addEventListener('booking:price-calculated', function (e) {
+        const sheetPriceValue = document.getElementById('sheetPriceValue');
+        if (sheetPriceValue && e.detail?.price) {
+            sheetPriceValue.textContent = e.detail.price;
+        }
+        if (window.innerWidth < 992) {
+            expandBottomSheet();
+        }
+    });
 
     // Form submission intercept: ensure primary booking date is Day 1 of the booking
     // and all selected slots across all dates are canonically submitted with zero duplicates.

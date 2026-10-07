@@ -137,6 +137,14 @@ builder.Services.Configure<PaymentProofOptions>(builder.Configuration.GetSection
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddHttpClient<IPaymentProofStorage, SupabasePaymentProofStorage>();
 
+// AI payment verification cascade (Gemini Flash → Gemini Pro → Deepseek → rule-based).
+// Uses a shared HttpClient (typed) so connections are pooled across providers.
+// API keys are bound from User Secrets / environment variables via the AiVerification section.
+builder.Services.Configure<AiVerificationOptions>(
+    builder.Configuration.GetSection(AiVerificationOptions.SectionName));
+builder.Services.AddHttpClient<IAiPaymentVerificationService, AiPaymentVerificationService>(
+    client => client.Timeout = TimeSpan.FromSeconds(60));
+
 // Resend transactional email:
 // IEmailService → ResendEmailService (typed HttpClient; IHttpClientFactory manages socket lifetime).
 // BookingEmailService is scoped: it composes and fires emails for each request.

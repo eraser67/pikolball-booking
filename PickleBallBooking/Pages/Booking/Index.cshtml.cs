@@ -16,13 +16,20 @@ public class IndexModel : PageModel
     private readonly ICourtService _courtService;
     private readonly ITimeSlotService _timeSlotService;
     private readonly ApplicationDbContext _context;
+    private readonly IPaymentService _paymentService;
 
-    public IndexModel(IBookingService bookingService, ICourtService courtService, ITimeSlotService timeSlotService, ApplicationDbContext context)
+    public IndexModel(
+        IBookingService bookingService,
+        ICourtService courtService,
+        ITimeSlotService timeSlotService,
+        ApplicationDbContext context,
+        IPaymentService paymentService)
     {
         _bookingService = bookingService;
-        _courtService = courtService;
+        _courtService   = courtService;
         _timeSlotService = timeSlotService;
-        _context = context;
+        _context        = context;
+        _paymentService = paymentService;
     }
 
     [BindProperty]
@@ -33,6 +40,9 @@ public class IndexModel : PageModel
     public Court? SelectedCourt { get; set; }
 
     public List<CalendarDateOption> DateOptions { get; set; } = new();
+
+    /// <summary>Active tenant-configured payment options shown to the customer as selectable cards.</summary>
+    public List<TenantPaymentOption> PaymentOptions { get; set; } = new();
 
     /// <summary>
     /// List of all TimeSlots for the selected date/court, with availability status
@@ -201,7 +211,7 @@ public class IndexModel : PageModel
             Input.CustomerPhone,
             Input.CustomerEmail,
             string.IsNullOrWhiteSpace(Input.FacebookName) ? null : Input.FacebookName.Trim(),
-            Input.SelectedPaymentMethod);
+            selectedPaymentOptionId: Input.SelectedPaymentOptionId);
 
         if (!result.Success)
         {
@@ -218,6 +228,10 @@ public class IndexModel : PageModel
         if (date.HasValue)
         {
             Input.BookingDate = date.Value;
+        }
+        else if (Input.BookingDate < AppClock.TodayLocal)
+        {
+            Input.BookingDate = AppClock.TodayLocal;
         }
 
         if (courtId.HasValue)
@@ -347,6 +361,13 @@ public class IndexModel : PageModel
         }
 
         SelectedCourt = courts.FirstOrDefault(c => c.Id == Input.CourtId);
+
+        // Load active payment options for dynamic card rendering
+        PaymentOptions = await _paymentService.GetPaymentOptionsAsync();
+        if (!Input.SelectedPaymentOptionId.HasValue && PaymentOptions.Count > 0)
+        {
+            Input.SelectedPaymentOptionId = PaymentOptions[0].Id;
+        }
     }
 
     private async Task LoadCalendarAsync()
@@ -503,9 +524,9 @@ public class IndexModel : PageModel
         [Display(Name = "Facebook Name (optional)")]
         public string? FacebookName { get; set; }
 
-        /// <summary>Payment method selected by the customer during booking.</summary>
+        /// <summary>ID of the TenantPaymentOption selected by the customer.</summary>
         [Display(Name = "Payment Method")]
-        public PaymentMethod SelectedPaymentMethod { get; set; } = PaymentMethod.GCash;
+        public int? SelectedPaymentOptionId { get; set; }
     }
 
     public class TimeSlotAvailabilityView

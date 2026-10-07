@@ -166,7 +166,13 @@ public interface IOrganizationService
 
     /// <summary>Changes a member's role in any org (platform admin only).</summary>
     Task<bool> UpdateMemberRoleInOrgAsync(int organizationId, string userId, OrganizationRole newRole, CancellationToken ct = default);
+
+    /// <summary>
+    /// Enables or disables the AI payment verification agent for the CURRENT tenant organization.
+    /// </summary>
+    Task<bool> UpdateAiPaymentVerificationAsync(bool enabled, CancellationToken cancellationToken = default);
 }
+
 
 /// <summary>Platform view of an organization.</summary>
 public sealed record OrganizationSummary(
@@ -603,6 +609,22 @@ public sealed class OrganizationService : IOrganizationService
 
         var trimmed = string.IsNullOrWhiteSpace(chatId) ? null : chatId.Trim();
         organization.TelegramChatId = trimmed;
+        organization.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> UpdateAiPaymentVerificationAsync(bool enabled, CancellationToken cancellationToken = default)
+    {
+        var id = _tenantContext.OrganizationId;
+        if (id is null) return false;
+
+        var organization = await _context.Organizations
+            .FirstOrDefaultAsync(o => o.Id == id.Value, cancellationToken);
+
+        if (organization is null) return false;
+
+        organization.EnableAiPaymentVerification = enabled;
         organization.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);
         return true;

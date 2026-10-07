@@ -4,6 +4,40 @@
     ViewData["Title"] = "Court Availability";
 }
 
+<style>
+.pb-avail-card.past {
+  border-color: #cbd5e1;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  opacity: 0.82;
+  transition: opacity 0.2s ease, box-shadow 0.2s ease;
+}
+.pb-avail-card.past:hover {
+  opacity: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+.pb-status-indicator.past {
+  background-color: #64748b;
+  box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.25);
+}
+.pb-court-badge-past {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #475569;
+  background-color: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.35rem;
+}
+.pb-passed-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  background-color: #e2e8f0;
+  border-radius: 0.25rem;
+  padding: 0.15rem 0.5rem;
+}
+</style>
+
 <div class="container-xl px-2 px-md-3 py-3">
     <!-- Header -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
@@ -44,9 +78,16 @@
 
     @if (Model.IsPastDate)
     {
-        <div class="alert alert-warning d-flex align-items-center gap-2 mb-4 py-2" role="alert">
-            <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
-            <div>This date is in the past. Select today or an upcoming date to reserve a court.</div>
+        <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4 py-2" role="alert">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-clock-history flex-shrink-0 fs-5 text-warning-emphasis"></i>
+                <div>
+                    <strong>Viewing Past Schedule:</strong> This date has already passed. Schedules and match records are shown for historical reference.
+                </div>
+            </div>
+            <a asp-page="Index" asp-route-Date="@PickleBallBooking.Services.AppClock.TodayLocal.ToString("yyyy-MM-dd")" class="btn btn-warning btn-sm fw-semibold shadow-sm text-nowrap">
+                <i class="bi bi-calendar-check me-1"></i>Back to Today
+            </a>
         </div>
     }
 
@@ -114,10 +155,22 @@
                                     else if (availability.AvailableSlots > 0)
                                     {
                                         <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>@availability.AvailableSlots @(availability.AvailableSlots == 1 ? "slot" : "slots") open</span>
+                                        @if (availability.PassedSlots > 0)
+                                        {
+                                            <span class="text-muted ms-1">(@availability.PassedSlots passed)</span>
+                                        }
+                                    }
+                                    else if (availability.PassedSlots == availability.TotalSlots || (availability.PassedSlots > 0 && availability.BookedSlots == 0))
+                                    {
+                                        <span class="text-secondary"><i class="bi bi-clock-history me-1"></i>All slots passed</span>
                                     }
                                     else
                                     {
                                         <span class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Fully booked</span>
+                                        @if (availability.PassedSlots > 0)
+                                        {
+                                            <span class="text-muted ms-1">(@availability.PassedSlots passed)</span>
+                                        }
                                     }
                                 </div>
                             </div>
@@ -149,15 +202,31 @@
 
         <!-- Filter & View Controls -->
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 bg-light p-2 rounded-3 border">
-            <div class="btn-group btn-group-sm" role="group" aria-label="Filter by time of day" id="timePeriodFilters">
-                <button type="button" class="btn btn-outline-primary active" data-period="all">All Day</button>
-                <button type="button" class="btn btn-outline-primary" data-period="morning"><i class="bi bi-sunrise me-1"></i>Morning</button>
-                <button type="button" class="btn btn-outline-primary" data-period="afternoon"><i class="bi bi-sun me-1"></i>Afternoon</button>
-                <button type="button" class="btn btn-outline-primary" data-period="evening"><i class="bi bi-moon-stars me-1"></i>Evening</button>
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 py-1">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Filter by time of day" id="timePeriodFilters">
+                    <button type="button" class="btn btn-outline-primary active" data-period="all">All Day</button>
+                    <button type="button" class="btn btn-outline-primary" data-period="morning"><i class="bi bi-sunrise me-1"></i>Morning</button>
+                    <button type="button" class="btn btn-outline-primary" data-period="afternoon"><i class="bi bi-sun me-1"></i>Afternoon</button>
+                    <button type="button" class="btn btn-outline-primary" data-period="evening"><i class="bi bi-moon-stars me-1"></i>Evening</button>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 small text-muted">
+                    <span class="d-inline-flex align-items-center gap-1"><span class="pb-status-indicator open"></span> Available</span>
+                    <span class="d-inline-flex align-items-center gap-1"><span class="pb-status-indicator full"></span> Booked</span>
+                    <span class="d-inline-flex align-items-center gap-1"><span class="pb-status-indicator past"></span> Passed</span>
+                </div>
             </div>
-            <div class="form-check form-switch mb-0">
-                <input class="form-check-input" type="checkbox" id="onlyAvailableToggle" role="switch">
-                <label class="form-check-label small fw-semibold" for="onlyAvailableToggle">Open slots only</label>
+            <div class="d-flex align-items-center gap-3">
+                @if (Model.TimeSlotAvailabilities.Any(s => s.IsPast))
+                {
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="hidePastToggle" role="switch" checked>
+                        <label class="form-check-label small fw-semibold" for="hidePastToggle">Hide passed</label>
+                    </div>
+                }
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="onlyAvailableToggle" role="switch">
+                    <label class="form-check-label small fw-semibold" for="onlyAvailableToggle">Open only</label>
+                </div>
             </div>
         </div>
 
@@ -166,9 +235,75 @@
             @foreach (var slot in Model.TimeSlotAvailabilities)
             {
                 var hasAvailable = slot.HasAvailableSlots;
+                var isPast = slot.IsPast;
 
-                <div class="col slot-col" data-period="@slot.TimePeriod" data-available="@(hasAvailable ? "true" : "false")">
-                    @if (hasAvailable)
+                <div class="col slot-col @(isPast ? "d-none" : "")" data-period="@slot.TimePeriod" data-available="@(hasAvailable ? "true" : "false")" data-past="@(isPast ? "true" : "false")">
+                    @if (isPast)
+                    {
+                        <div class="pb-avail-card past" aria-label="Time slot @slot.FormattedLabel has passed">
+                            <!-- Header: Time & Passed Badge -->
+                            <div class="mb-2 pb-2 border-bottom border-light-subtle">
+                                <div class="pb-avail-time text-muted text-truncate" style="text-decoration: line-through;">
+                                    @slot.FormattedLabel
+                                </div>
+                                <div class="pb-avail-status-line mt-1">
+                                    <span class="pb-status-indicator past"></span>
+                                    <span class="text-secondary"><i class="bi bi-clock-history me-1"></i>Passed</span>
+                                </div>
+                            </div>
+
+                            <!-- Courts Breakdown & Booker Display -->
+                            <div class="my-1 flex-grow-1">
+                                @foreach (var court in Model.Courts)
+                                {
+                                    var booker = slot.GetBookerForCourt(court.Id);
+                                    var note = slot.GetMaintenanceNoteForCourt(court.Id);
+                                    var isInactive = court.Status == PickleBallBooking.Models.CourtStatus.Inactive;
+                                    var isMaintenance = booker == "Maintenance" || isInactive;
+                                    var wasBooked = !isMaintenance && booker != "Passed" && booker != "Reserved" && !string.IsNullOrWhiteSpace(booker);
+
+                                    if (isMaintenance)
+                                    {
+                                        <div class="pb-court-row pb-court-booker-text text-truncate" title="@court.Name: @(isInactive ? "Unavailable" : "Maintenance") @(!string.IsNullOrWhiteSpace(note) ? $" - {note}" : "")">
+                                            <span class="text-truncate text-muted">
+                                                @court.Name: <span class="badge @(isInactive ? "bg-secondary-subtle text-secondary" : "bg-warning-subtle text-warning-emphasis") border px-1" style="font-size:0.68rem;"><i class="bi bi-tools me-1"></i>@(isInactive ? "Unavailable" : "Maintenance")</span>
+                                                @if (!string.IsNullOrWhiteSpace(note))
+                                                {
+                                                    <span class="small text-muted ms-1" style="font-size: 0.72rem;">@note</span>
+                                                }
+                                            </span>
+                                        </div>
+                                    }
+                                    else if (wasBooked)
+                                    {
+                                        <div class="pb-court-row pb-court-booker-text text-truncate" title="@court.Name: Played by @booker">
+                                            <span class="text-truncate text-muted">
+                                                @court.Name: <i class="bi bi-person-fill text-secondary"></i> @booker
+                                            </span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="pb-court-row">
+                                            <span class="text-truncate text-muted">@court.Name:</span>
+                                            <span class="pb-court-badge-past flex-shrink-0">
+                                                <i class="bi bi-clock-history me-1" style="font-size: 0.65rem;"></i> Passed
+                                            </span>
+                                        </div>
+                                    }
+                                }
+                            </div>
+
+                            <!-- Footer: Passed Pill -->
+                            <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top border-light-subtle">
+                                <span class="small text-muted">-</span>
+                                <span class="pb-passed-pill">
+                                    <i class="bi bi-clock-history me-1"></i>Passed
+                                </span>
+                            </div>
+                        </div>
+                    }
+                    else if (hasAvailable)
                     {
                         <a asp-page="/Booking/Index"
                            asp-route-date="@Model.Date.ToString("yyyy-MM-dd")"
@@ -314,6 +449,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         const periodButtons = document.querySelectorAll('#timePeriodFilters button');
         const availableToggle = document.getElementById('onlyAvailableToggle');
+        const hidePastToggle = document.getElementById('hidePastToggle');
         const slotCols = document.querySelectorAll('.slot-col');
         const noSlotsAlert = document.getElementById('noMatchingSlotsAlert');
 
@@ -321,16 +457,19 @@
 
         function applyFilters() {
             const onlyAvailable = availableToggle ? availableToggle.checked : false;
+            const hidePast = hidePastToggle ? hidePastToggle.checked : false;
             let visibleCount = 0;
 
             slotCols.forEach(function (col) {
                 const colPeriod = col.getAttribute('data-period');
                 const isAvailable = col.getAttribute('data-available') === 'true';
+                const isPast = col.getAttribute('data-past') === 'true';
 
                 const matchesPeriod = (activePeriod === 'all' || colPeriod === activePeriod);
                 const matchesAvailability = (!onlyAvailable || isAvailable);
+                const matchesPast = (!hidePast || !isPast);
 
-                if (matchesPeriod && matchesAvailability) {
+                if (matchesPeriod && matchesAvailability && matchesPast) {
                     col.classList.remove('d-none');
                     visibleCount++;
                 } else {
@@ -359,6 +498,13 @@
         if (availableToggle) {
             availableToggle.addEventListener('change', applyFilters);
         }
+
+        if (hidePastToggle) {
+            hidePastToggle.addEventListener('change', applyFilters);
+        }
+
+        // Apply filters on initial load (e.g. Hide passed is enabled by default)
+        applyFilters();
     });
 </script>
 }

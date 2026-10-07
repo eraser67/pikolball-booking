@@ -45,7 +45,7 @@
              class="alert alert-danger"
              role="alert"
              id="validationSummary"
-             style="display: none;">
+             style="@(ViewData.ModelState.IsValid ? "display: none;" : "")">
             <strong>Please correct the following errors:</strong>
         </div>
 
@@ -134,26 +134,16 @@
                             Select a Date
                         </h2>
 
-                        <!-- Date chip strip (7-day scrollable) -->
-                        <div class="date-chip-strip" id="dateChipStrip" role="group" aria-label="Select booking date">
-                            @foreach (var opt in Model.DateOptions)
-                            {
-                                <button type="button"
-                                        class="date-chip @(opt.IsSelected ? "selected" : "")"
-                                        data-date="@opt.Date.ToString("yyyy-MM-dd")"
-                                        aria-pressed="@(opt.IsSelected ? "true" : "false")">
-                                    <span class="date-chip-day">@opt.DayLabel</span>
-                                    <span class="date-chip-num">@opt.DateLabel</span>
-                                </button>
-                            }
+                        <div class="mb-1">
+                            <label for="bookingDate" class="form-label fw-semibold">Booking Date</label>
+                            <input asp-for="Input.BookingDate"
+                                   type="date"
+                                   id="bookingDate"
+                                   class="form-control form-control-lg"
+                                   min="@todayStr"
+                                   required />
+                            <span asp-validation-for="Input.BookingDate" class="text-danger"></span>
                         </div>
-                        <!-- Hidden input kept for model binding -->
-                        <input asp-for="Input.BookingDate"
-                               type="date"
-                               id="bookingDate"
-                               class="d-none"
-                               required />
-                        <span asp-validation-for="Input.BookingDate" class="text-danger"></span>
                     </div>
                 </section>
 
@@ -309,7 +299,7 @@
                 <section class="booking-form-section card mb-4 shadow-sm step4-panel"
                          id="step4Card"
                          aria-labelledby="step4Heading"
-                         style="@(Model.CalculatedPrice.HasValue ? "" : "display:none;")">
+                         style="@(Model.CalculatedPrice.HasValue || !ViewData.ModelState.IsValid ? "" : "display:none;")">
                     <div class="card-body">
                         <h2 class="h5 card-title d-flex align-items-center gap-2" id="step4Heading">
                             <span class="pb-step-index" aria-hidden="true">4</span>
@@ -319,7 +309,7 @@
                         <!-- Estimated price banner -->
                         <div class="price-alert mb-4" id="step4PriceAlert">
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-semibold">Estimated total</span>
+                                <span class="fw-semibold">Total</span>
                                 <span class="price-alert-value" id="step4PriceValue">
                                     @(Model.CalculatedPrice.HasValue ? $"₱{Model.CalculatedPrice.Value:N2}" : "")
                                 </span>
@@ -380,25 +370,49 @@
                                 <i class="bi bi-credit-card me-1 text-primary"></i>
                                 How would you like to pay?
                             </p>
-                            <input type="hidden" asp-for="Input.SelectedPaymentMethod" id="Input_SelectedPaymentMethod" value="0" />
-                            <div class="payment-method-grid" id="paymentMethodGrid" role="group" aria-label="Payment method">
-                                <!-- GCash QR card -->
-                                <button type="button"
-                                        class="payment-method-card selected"
-                                        data-method="0"
-                                        aria-pressed="true"
-                                        id="pmCardGCash">
-                                    <i class="bi bi-qr-code payment-method-icon"></i>
-                                    <div class="payment-method-label">GCash QR</div>
-                                    <div class="payment-method-sub">Scan &amp; upload receipt</div>
-                                    <i class="bi bi-check-circle-fill payment-method-check text-success"></i>
-                                </button>
-                                <!-- Future payment methods can be added here -->
-                            </div>
-                            <div class="form-text mt-2">
-                                <i class="bi bi-info-circle me-1"></i>
-                                After booking, you'll be shown the QR code to scan and pay. Upload your receipt to confirm.
-                            </div>
+
+                            @if (!Model.PaymentOptions.Any())
+                            {
+                                <div class="alert alert-warning py-2 px-3 small">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    No payment methods have been configured yet. Contact the venue to complete your booking.
+                                </div>
+                            }
+                            else
+                            {
+                                <input type="hidden"
+                                       asp-for="Input.SelectedPaymentOptionId"
+                                       id="Input_SelectedPaymentOptionId" />
+
+                                <div class="payment-method-grid" id="paymentMethodGrid"
+                                     role="group" aria-label="Payment method">
+                                    @{ var isFirst = true; }
+                                    @foreach (var opt in Model.PaymentOptions)
+                                    {
+                                        var isSelected = Model.Input.SelectedPaymentOptionId == opt.Id
+                                            || (!Model.Input.SelectedPaymentOptionId.HasValue && isFirst);
+                                        <button type="button"
+                                                class="payment-method-card @(isSelected ? "selected" : "")"
+                                                data-method="@opt.Id"
+                                                aria-pressed="@(isSelected ? "true" : "false")"
+                                                id="pmCard_@opt.Id">
+                                            <i class="bi bi-qr-code payment-method-icon"></i>
+                                            <div class="payment-method-label">@opt.Label</div>
+                                            <div class="payment-method-sub">@opt.AccountName</div>
+                                            @if (isSelected)
+                                            {
+                                                <i class="bi bi-check-circle-fill payment-method-check text-success"></i>
+                                            }
+                                        </button>
+                                        isFirst = false;
+                                    }
+                                </div>
+
+                                <div class="form-text mt-2">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    After booking, you'll be shown the QR code to scan and pay. Upload your receipt to confirm.
+                                </div>
+                            }
                         </div>
 
                     </div>
@@ -452,34 +466,16 @@
                         </div>
                     </div>
 
-                    <!-- Confirm Action (only after price is known) -->
-                    @if (Model.CalculatedPrice.HasValue)
-                    {
-                        <div class="booking-actions d-grid gap-2 mb-4" id="confirmActionsContainer">
-                            <button type="submit"
-                                    asp-page-handler="Confirm"
-                                    class="btn btn-success btn-lg"
-                                    id="btnConfirmBooking">
-                                <span class="pb-btn-spinner spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                                <i class="bi bi-check-circle pb-btn-label"></i>
-                                <span class="pb-btn-label">Confirm Booking</span>
-                            </button>
-
-                            <a href="@Url.Page("/Index")" class="btn btn-outline-secondary btn-lg">
-                                Cancel
-                            </a>
-                        </div>
-                    }
-
-                    <!-- Confirm actions rendered by JS after AJAX price calc -->
-                    <div id="ajaxConfirmActions" class="d-grid gap-2 mb-4" style="display:none !important;">
+                    <!-- Confirm Actions (shown after price is calculated) -->
+                    <div id="confirmActionsContainer" class="booking-actions d-grid gap-2 mb-4"
+                         style="@(Model.CalculatedPrice.HasValue || !ViewData.ModelState.IsValid ? "" : "display:none !important;")">
                         <button type="submit"
                                 asp-page-handler="Confirm"
                                 class="btn btn-success btn-lg"
-                                id="btnConfirmBookingAjax">
+                                id="btnConfirmBooking">
                             <span class="pb-btn-spinner spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>
-                            <i class="bi bi-check-circle me-1"></i>
-                            Confirm Booking
+                            <i class="bi bi-check-circle pb-btn-label me-1"></i>
+                            <span class="pb-btn-label">Confirm Booking</span>
                         </button>
                         <button type="button" class="btn btn-outline-secondary btn-lg" id="btnEditBooking">
                             <i class="bi bi-pencil me-1"></i>Edit Slots
@@ -493,18 +489,83 @@
 
     </form>
 
-    <!-- Mobile Sticky Summary Bar — fixed bottom, shown once slots are selected -->
-    <div class="mobile-sticky-summary d-lg-none" id="mobileStickySummary">
-        <div class="container-fluid px-3 py-1">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="mobile-summary-info">
-                    <div class="fw-bold small text-truncate" id="mobileSummaryCourtDate">-</div>
-                    <div class="text-primary fw-bold small" id="mobileSummaryTimeDuration">-</div>
+    <!-- Mobile Bottom Sheet Backdrop -->
+    <div class="bottom-sheet-backdrop d-lg-none" id="bottomSheetBackdrop"></div>
+
+    <!-- Mobile Sticky Summary Bar & Expandable Bottom Sheet (fixed bottom) -->
+    <div class="mobile-sticky-summary d-lg-none" id="mobileStickySummary" aria-expanded="false">
+        
+        <!-- Bottom Sheet Header / Drag Trigger -->
+        <div class="bottom-sheet-header-trigger" id="bottomSheetHeaderTrigger" role="button" tabindex="0" aria-label="Toggle booking summary details">
+            <div class="bottom-sheet-handle-bar">
+                <span class="bottom-sheet-handle"></span>
+            </div>
+
+            <div class="container-fluid px-3 py-1">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="mobile-summary-info d-flex align-items-center gap-2">
+                        <div class="mobile-summary-text text-truncate">
+                            <div class="fw-bold small text-truncate" id="mobileSummaryCourtDate">-</div>
+                            <div class="text-primary fw-bold small" id="mobileSummaryTimeDuration">-</div>
+                        </div>
+                        <i class="bi bi-chevron-up sheet-chevron text-muted" id="sheetChevronIcon"></i>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-bold text-success fs-6" id="mobileSummaryPrice" style="display: none;"></span>
+                        <button type="button" class="btn btn-primary btn-sm px-3 fw-semibold" id="btnMobileProceed">
+                            <i class="bi bi-calculator me-1"></i> Calculate
+                        </button>
+                    </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="fw-bold text-success fs-6" id="mobileSummaryPrice" style="display: none;"></span>
-                    <button type="button" class="btn btn-primary btn-sm px-3 fw-semibold" id="btnMobileProceed">
-                        Next <i class="bi bi-arrow-right ms-1"></i>
+            </div>
+        </div>
+
+        <!-- Expanded Bottom Sheet Content -->
+        <div class="bottom-sheet-body" id="bottomSheetBody">
+            <div class="container-fluid px-3 pt-2 pb-3">
+                <div class="d-flex justify-content-between align-items-center pb-2 mb-2 border-bottom">
+                    <h5 class="h6 mb-0 fw-bold d-flex align-items-center text-dark">
+                        <i class="bi bi-receipt text-primary me-2 fs-5"></i>Booking Summary
+                    </h5>
+                    <button type="button" class="btn-close btn-sm" id="btnCloseBottomSheet" aria-label="Close summary"></button>
+                </div>
+
+                <div class="bottom-sheet-details">
+                    <div class="sheet-summary-item d-flex justify-content-between py-1 border-bottom border-light">
+                        <span class="text-muted small">Court</span>
+                        <span class="fw-semibold small text-end" id="sheetCourtName">-</span>
+                    </div>
+                    <div class="sheet-summary-item d-flex justify-content-between py-1 border-bottom border-light">
+                        <span class="text-muted small">Date</span>
+                        <span class="fw-semibold small text-end" id="sheetDate">-</span>
+                    </div>
+                    <div class="sheet-summary-item d-flex justify-content-between py-1 border-bottom border-light">
+                        <span class="text-muted small">Time</span>
+                        <span class="fw-semibold small text-end" id="sheetTime">-</span>
+                    </div>
+
+                    <div class="sheet-summary-item py-1 border-bottom border-light" id="sheetOvernightItem" style="display: none;">
+                        <span class="text-muted small d-block mb-1">Overnight Schedule</span>
+                        <div class="overnight-date-block w-100 p-2 rounded bg-light" id="sheetOvernightDetails"></div>
+                    </div>
+
+                    <div class="sheet-summary-item d-flex justify-content-between py-1 border-bottom border-light">
+                        <span class="text-muted small">Duration</span>
+                        <span class="fw-semibold small text-end" id="sheetDuration">-</span>
+                    </div>
+
+                    <div class="sheet-summary-item d-flex justify-content-between align-items-center py-2 mt-2 rounded bg-success-subtle px-2 border border-success-subtle" id="sheetPriceRow">
+                        <span class="fw-bold text-success-emphasis small">Total Amount</span>
+                        <span class="fw-bold text-success fs-5" id="sheetPriceValue">-</span>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-3" id="sheetActionButtons">
+                    <button type="button" class="btn btn-primary btn-lg fw-semibold shadow-sm" id="btnSheetContinue">
+                        <i class="bi bi-person-fill me-1"></i> Continue to Your Details
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnSheetCloseSecondary">
+                        Close Summary
                     </button>
                 </div>
             </div>
@@ -519,9 +580,11 @@
     (function () {
         'use strict';
 
+        const courtSelect = document.getElementById('courtSelect');
+        const bookingDateInput = document.getElementById('bookingDate');
+
         // ─── Court card selection ───────────────────────────────────────────
         const courtCards = document.querySelectorAll('.court-card-btn:not([disabled])');
-        const courtSelect = document.getElementById('courtSelect');
         courtCards.forEach(card => {
             card.addEventListener('click', function () {
                 courtCards.forEach(c => {
@@ -537,54 +600,30 @@
                     icon.className = 'bi bi-check-circle-fill court-card-check text-success';
                     this.appendChild(icon);
                 }
-                courtSelect.value = this.dataset.courtId;
-                courtSelect.dispatchEvent(new Event('change'));
+                if (courtSelect) {
+                    courtSelect.value = this.dataset.courtId;
+                    courtSelect.dispatchEvent(new Event('change'));
+                }
             });
         });
-
-        // ─── Date chip selection ────────────────────────────────────────────
-        const dateChips = document.querySelectorAll('.date-chip');
-        const bookingDateInput = document.getElementById('bookingDate');
-        dateChips.forEach(chip => {
-            chip.addEventListener('click', function () {
-                dateChips.forEach(c => {
-                    c.classList.remove('selected');
-                    c.setAttribute('aria-pressed', 'false');
-                });
-                this.classList.add('selected');
-                this.setAttribute('aria-pressed', 'true');
-                bookingDateInput.value = this.dataset.date;
-                bookingDateInput.dispatchEvent(new Event('change'));
-            });
-        });
-
-        // ─── Auto-load slots on page ready if court+date are pre-selected ──
-        // booking.js registers its listeners inside DOMContentLoaded; we use the
-        // same event (or a short fallback) so we are guaranteed to fire AFTER them.
-        function triggerInitialSlotLoad() {
-            const cs = document.getElementById('courtSelect');
-            const bd = document.getElementById('bookingDate');
-            if (cs && cs.value && bd && bd.value) {
-                cs.dispatchEvent(new Event('change'));
-            }
-        }
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', triggerInitialSlotLoad);
-        } else {
-            triggerInitialSlotLoad();
-        }
 
         // ─── Payment method card selection ──────────────────────────────────
         const pmCards = document.querySelectorAll('.payment-method-card');
-        const pmInput = document.getElementById('Input_SelectedPaymentMethod');
+        const pmInput = document.getElementById('Input_SelectedPaymentOptionId');
         pmCards.forEach(card => {
             card.addEventListener('click', function () {
                 pmCards.forEach(c => {
                     c.classList.remove('selected');
                     c.setAttribute('aria-pressed', 'false');
+                    c.querySelector('.payment-method-check')?.remove();
                 });
                 this.classList.add('selected');
                 this.setAttribute('aria-pressed', 'true');
+                if (!this.querySelector('.payment-method-check')) {
+                    const icon = document.createElement('i');
+                    icon.className = 'bi bi-check-circle-fill payment-method-check text-success';
+                    this.appendChild(icon);
+                }
                 if (pmInput) pmInput.value = this.dataset.method;
             });
         });
@@ -593,7 +632,7 @@
         const btnCalc = document.getElementById('btnCalculatePrice');
         const priceCalcError = document.getElementById('priceCalcError');
         const step4Card = document.getElementById('step4Card');
-        const ajaxConfirmActions = document.getElementById('ajaxConfirmActions');
+        const confirmActionsContainer = document.getElementById('confirmActionsContainer') || document.getElementById('ajaxConfirmActions');
         const priceContainer = document.getElementById('priceContainer');
         const summaryPrice = document.getElementById('summaryPrice');
         const step4PriceValue = document.getElementById('step4PriceValue');
@@ -603,8 +642,8 @@
             btnCalc.addEventListener('click', async function () {
                 const spinner = btnCalc.querySelector('.pb-btn-spinner');
                 // Get court & date
-                const courtId = courtSelect?.value;
-                const date = bookingDateInput?.value;
+                const courtId = courtSelect?.value || document.getElementById('courtSelect')?.value;
+                const date = bookingDateInput?.value || document.getElementById('bookingDate')?.value;
                 // Get selected slot IDs
                 const checked = Array.from(document.querySelectorAll('.timeslot-checkbox:checked'));
                 const slotIds = checked.map(c => c.value);
@@ -642,23 +681,34 @@
                         mobileSummaryPrice.textContent = formatted;
                         mobileSummaryPrice.style.display = '';
                     }
+                    const sheetPriceValue = document.getElementById('sheetPriceValue');
+                    if (sheetPriceValue) { sheetPriceValue.textContent = formatted; }
                     if (priceContainer) priceContainer.style.display = '';
 
                     // Reveal Step 4
                     if (step4Card) {
                         step4Card.style.display = '';
                         step4Card.classList.add('step4-animate-in');
-                        step4Card.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
 
                     // Show confirm button
-                    if (ajaxConfirmActions) {
-                        ajaxConfirmActions.style.setProperty('display', 'grid', 'important');
+                    if (confirmActionsContainer) {
+                        confirmActionsContainer.style.setProperty('display', 'grid', 'important');
                     }
 
                     // Update booking summary container visibility
                     const summaryContainer = document.getElementById('bookingSummaryContainer');
                     if (summaryContainer) summaryContainer.style.display = '';
+
+                    // Dispatch custom event for UI components
+                    window.dispatchEvent(new CustomEvent('booking:price-calculated', { detail: { price: formatted } }));
+
+                    // On mobile, expand the bottom sheet so user clearly sees the full booking summary
+                    if (window.innerWidth < 992 && typeof window.expandBottomSheet === 'function') {
+                        window.expandBottomSheet();
+                    } else if (step4Card) {
+                        step4Card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
 
                 } catch (err) {
                     showPriceError('Network error. Please try again.');
@@ -682,7 +732,7 @@
         if (btnEdit) {
             btnEdit.addEventListener('click', function () {
                 if (step4Card) step4Card.style.display = 'none';
-                if (ajaxConfirmActions) ajaxConfirmActions.style.setProperty('display', 'none', 'important');
+                if (confirmActionsContainer) confirmActionsContainer.style.setProperty('display', 'none', 'important');
                 document.getElementById('timeslotGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
         }

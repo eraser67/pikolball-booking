@@ -36,8 +36,18 @@
             <div class="card text-start mb-4">
                 <div class="card-body">
                     <dl class="row mb-0">
-                        <dt class="col-sm-5">Booking Reference</dt>
-                        <dd class="col-sm-7 font-monospace">@Model.PaymentInfo.BookingReference</dd>
+                        <dt class="col-sm-5 align-self-center">Booking Reference</dt>
+                        <dd class="col-sm-7">
+                            <div class="d-inline-flex align-items-center gap-2">
+                                <span class="font-monospace fw-bold text-dark fs-6" id="textBookingRef">@Model.PaymentInfo.BookingReference</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary copy-btn py-0 px-2"
+                                        data-copy="@Model.PaymentInfo.BookingReference"
+                                        title="Copy booking reference"
+                                        style="font-size: 0.78rem;">
+                                    <i class="bi bi-clipboard me-1"></i><span>Copy</span>
+                                </button>
+                            </div>
+                        </dd>
 
                         <dt class="col-sm-5">Court</dt>
                         <dd class="col-sm-7">@Model.PaymentInfo.CourtName</dd>
@@ -86,3 +96,45 @@
         </a>
     </div>
 </div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', async function () {
+            const textToCopy = this.getAttribute('data-copy');
+            if (!textToCopy) return;
+
+            const icon = this.querySelector('i');
+            const span = this.querySelector('span');
+            const origText = span ? span.textContent : '';
+            const origIconClass = icon ? icon.className : '';
+
+            try {
+                await navigator.clipboard.writeText(textToCopy);
+                if (span) span.textContent = 'Copied!';
+                if (icon) icon.className = 'bi bi-check2 me-1';
+                this.classList.add('btn-success');
+                this.classList.remove('btn-outline-primary');
+
+                setTimeout(() => {
+                    if (span) span.textContent = origText;
+                    if (icon) icon.className = origIconClass;
+                    this.classList.remove('btn-success');
+                    this.classList.add('btn-outline-primary');
+                }, 2000);
+            } catch (err) {
+                const ta = document.createElement('textarea');
+                ta.value = textToCopy;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                if (span) span.textContent = 'Copied!';
+                setTimeout(() => { if (span) span.textContent = origText; }, 2000);
+            }
+        });
+    });
+});
+</script>
+}

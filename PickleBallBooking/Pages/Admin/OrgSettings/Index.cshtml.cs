@@ -94,6 +94,7 @@ public class IndexModel : PageModel
         Input.OpeningHours           = organization.OpeningHours;
         Input.AnnouncementText       = organization.AnnouncementText;
         Input.ShowAnnouncementBanner = organization.ShowAnnouncementBanner;
+        Input.EnableAiPaymentVerification = organization.EnableAiPaymentVerification;
 
         CurrentLogoUrl      = _imageStorage.GetPublicUrl(organization.LogoPath);
         CurrentHeroImageUrl = _imageStorage.GetPublicUrl(organization.HeroImagePath);
@@ -271,6 +272,9 @@ public class IndexModel : PageModel
             Input.AnnouncementText,
             Input.ShowAnnouncementBanner);
 
+        // Save AI verification toggle.
+        await _organizationService.UpdateAiPaymentVerificationAsync(Input.EnableAiPaymentVerification);
+
         StatusMessage = "Settings saved successfully.";
         return RedirectToPage();
 
@@ -408,6 +412,10 @@ public class IndexModel : PageModel
 
         [Display(Name = "Show announcement banner")]
         public bool ShowAnnouncementBanner { get; set; } = false;
+
+        // AI
+        [Display(Name = "Enable AI Payment Verification")]
+        public bool EnableAiPaymentVerification { get; set; } = false;
 
         // Branding images
         [Display(Name = "Brand Logo")]

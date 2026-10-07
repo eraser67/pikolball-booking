@@ -1,0 +1,109 @@
+@page "/Admin/PaymentOptions"
+@model PickleBallBooking.Pages.Admin.PaymentOptions.IndexModel
+@{
+    ViewData["Title"] = "Payment Methods";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-0"><i class="bi bi-credit-card-2-front me-2 text-primary"></i>Payment Methods</h1>
+        <p class="text-muted small mb-0 mt-1">
+            Add the payment accounts customers can use when booking (GCash, Maya, Bank QR, etc.).
+        </p>
+    </div>
+    <a asp-page="Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>Add Method
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!Model.Options.Any())
+{
+    <div class="card text-center py-5 shadow-sm">
+        <div class="card-body">
+            <i class="bi bi-credit-card display-4 text-muted mb-3 d-block"></i>
+            <h5 class="text-muted">No payment methods yet</h5>
+            <p class="text-muted small">Add a GCash, Maya, or Bank QR so customers can pay when booking.</p>
+            <a asp-page="Create" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-circle me-1"></i>Add First Method
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var opt in Model.Options)
+        {
+            var qrUrl = Model.QRUrls.GetValueOrDefault(opt.Id);
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm @(opt.IsActive ? "" : "opacity-50")">
+                    @if (qrUrl is not null)
+                    {
+                        <div class="text-center pt-3">
+                            <img src="@qrUrl"
+                                 alt="QR code for @opt.Label"
+                                 class="rounded"
+                                 style="max-width:140px;max-height:140px;object-fit:contain;border:2px solid #dee2e6;" />
+                        </div>
+                    }
+                    <div class="card-body pb-2">
+                        <div class="d-flex align-items-start justify-content-between">
+                            <div>
+                                <h5 class="card-title mb-1">
+                                    @opt.Label
+                                    @if (!opt.IsActive)
+                                    {
+                                        <span class="badge bg-secondary ms-1" style="font-size:.7em">Disabled</span>
+                                    }
+                                </h5>
+                                <p class="text-muted small mb-0">@opt.AccountName</p>
+                                @if (!string.IsNullOrEmpty(opt.AccountNumber))
+                                {
+                                    <p class="text-muted small mb-0 font-monospace">@opt.AccountNumber</p>
+                                }
+                                @if (!string.IsNullOrEmpty(opt.Instructions))
+                                {
+                                    <p class="text-muted small mt-1 mb-0 fst-italic">@opt.Instructions</p>
+                                }
+                            </div>
+                            <span class="badge @(opt.IsActive ? "bg-success" : "bg-secondary") ms-2">
+                                @(opt.IsActive ? "Active" : "Off")
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent d-flex gap-2 pt-2">
+                        <a asp-page="Edit" asp-route-id="@opt.Id" class="btn btn-outline-primary btn-sm flex-grow-1">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </a>
+                        <form method="post" asp-page-handler="Toggle" style="flex:0 0 auto">
+                            <input type="hidden" name="id" value="@opt.Id" />
+                            <input type="hidden" name="active" value="@(!opt.IsActive ? "true" : "false")" />
+                            <button type="submit"
+                                    class="btn @(opt.IsActive ? "btn-outline-secondary" : "btn-outline-success") btn-sm"
+                                    title="@(opt.IsActive ? "Disable" : "Enable")">
+                                <i class="bi @(opt.IsActive ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </form>
+                        <form method="post" asp-page-handler="Delete" style="flex:0 0 auto"
+                              data-pb-confirm="Delete '@opt.Label'? This cannot be undone."
+                              data-pb-confirm-title="Delete payment method"
+                              data-pb-confirm-ok="Delete">
+                            <input type="hidden" name="id" value="@opt.Id" />
+                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

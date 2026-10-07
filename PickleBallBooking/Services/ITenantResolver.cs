@@ -1,6 +1,9 @@
+using System.Net;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using PickleBallBooking.Data;
 using PickleBallBooking.Models;
@@ -43,17 +46,20 @@ public sealed class TenantResolver : ITenantResolver
     private readonly ApplicationDbContext _context;
     private readonly ITenantHostParser _hostParser;
     private readonly TenantOptions _options;
+    private readonly IWebHostEnvironment? _env;
 
     public TenantResolver(
         IHttpContextAccessor httpContextAccessor,
         ApplicationDbContext context,
         ITenantHostParser hostParser,
-        IOptions<TenantOptions> options)
+        IOptions<TenantOptions> options,
+        IWebHostEnvironment? env = null)
     {
         _httpContextAccessor = httpContextAccessor;
         _context = context;
         _hostParser = hostParser;
         _options = options.Value;
+        _env = env;
     }
 
     public async Task<int?> ResolveOrganizationIdAsync(CancellationToken cancellationToken = default)
@@ -71,8 +77,16 @@ public sealed class TenantResolver : ITenantResolver
         var host = httpContext.Request.Host.Host;
         if (!_hostParser.TryGetTenantSlug(host, _options.BaseDomain, out var slug))
         {
-            // Unknown / missing / malformed / base-domain / www / nested host: no tenant.
-            return null;
+            // Development-only: allow direct device IP access from phone/tablet on local Wi-Fi
+            if (_env?.IsDevelopment() == true && IPAddress.TryParse(host, out _))
+            {
+                slug = httpContext.Request.Query["tenant"].FirstOrDefault() ?? "demo";
+            }
+            else
+            {
+                // Unknown / missing / malformed / base-domain / www / nested host: no tenant.
+                return null;
+            }
         }
 
         // Resolve the slug to an ACTIVE organization. Organizations is not tenant

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
+using PickleBallBooking.Data;
 using PickleBallBooking.Services;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -16,18 +18,29 @@ public class PaymentModel : PageModel
 {
     private readonly IPaymentService _paymentService;
     private readonly IPaymentProofStorage _proofStorage;
+    private readonly ApplicationDbContext _context;
 
-    public PaymentModel(IPaymentService paymentService, IPaymentProofStorage proofStorage)
+    public PaymentModel(
+        IPaymentService paymentService,
+        IPaymentProofStorage proofStorage,
+        ApplicationDbContext context)
     {
         _paymentService = paymentService;
         _proofStorage   = proofStorage;
+        _context        = context;
     }
 
     public Services.PaymentLookup? PaymentInfo { get; set; }
 
     public Models.OrganizationPaymentSettings? Settings { get; set; }
 
+    /// <summary>The specific payment option the customer chose on the booking form.</summary>
+    public Models.TenantPaymentOption? SelectedPaymentOption { get; set; }
+
     public string? QRCodeUrl { get; set; }
+
+    /// <summary>True if the organization has enabled AI auto-verification in Org Settings.</summary>
+    public bool EnableAiPaymentVerification { get; set; }
 
     [BindProperty]
     public PaymentInput Input { get; set; } = new();
@@ -63,9 +76,10 @@ public class PaymentModel : PageModel
         PaymentInfo = await _paymentService.GetByBookingReferenceAsync(Input.Reference ?? string.Empty);
         if (PaymentInfo is null) return NotFound();
 
+        await LoadSettingsAsync(Input.Reference ?? string.Empty);
+
         if (!ModelState.IsValid)
         {
-            await LoadSettingsAsync(Input.Reference ?? string.Empty);
             return Page();
         }
 
@@ -91,7 +105,6 @@ public class PaymentModel : PageModel
             {
                 // Invalid or oversized proof: reject without touching the existing payment record.
                 ModelState.AddModelError("Input.ProofImage", ex.Message);
-                await LoadSettingsAsync(Input.Reference ?? string.Empty);
                 return Page();
             }
             catch (InvalidOperationException)
@@ -100,7 +113,6 @@ public class PaymentModel : PageModel
                 // Show the customer a clear message instead of silently submitting without proof.
                 ModelState.AddModelError("Input.ProofImage",
                     "Could not upload your payment screenshot. Please try again, or submit without a screenshot.");
-                await LoadSettingsAsync(Input.Reference ?? string.Empty);
                 return Page();
             }
             catch
@@ -109,15 +121,36 @@ public class PaymentModel : PageModel
             }
         }
 
-        var ok = await _paymentService.SubmitAsync(
+        var result = await _paymentService.SubmitWithResultAsync(
             PaymentInfo.PaymentId,
             Input.GCashReference ?? string.Empty,
             proofPath);
 
-        if (!ok)
+        if (result != PaymentSubmitResult.Success)
         {
-            ModelState.AddModelError(string.Empty, "Unable to submit payment. Please try again.");
-            await LoadSettingsAsync(Input.Reference ?? string.Empty);
+            var methodName = SelectedPaymentOption?.Label ?? "payment";
+            switch (result)
+            {
+                case PaymentSubmitResult.DuplicateReference:
+                    ModelState.AddModelError("Input.GCashReference",
+                        $"This {methodName} reference number has already been used for another booking. Please check your transaction receipt and enter your unique reference number.");
+                    break;
+                case PaymentSubmitResult.NotPending:
+                    ModelState.AddModelError(string.Empty,
+                        "This booking payment has already been submitted or processed.");
+                    break;
+                case PaymentSubmitResult.EmptyReference:
+                    ModelState.AddModelError("Input.GCashReference",
+                        $"Please enter your {methodName} reference number.");
+                    break;
+                case PaymentSubmitResult.DatabaseError:
+                    ModelState.AddModelError(string.Empty,
+                        "A database error occurred while saving your payment. Please try again.");
+                    break;
+                default:
+                    ModelState.AddModelError(string.Empty, "Unable to submit payment. Please try again.");
+                    break;
+            }
             return Page();
         }
 
@@ -128,22 +161,50 @@ public class PaymentModel : PageModel
     {
         if (PaymentInfo is not null)
         {
+            var org = await _context.Organizations
+                .IgnoreQueryFilters()
+                .Where(o => o.Id == PaymentInfo.OrganizationId)
+                .Select(o => new { o.EnableAiPaymentVerification })
+                .FirstOrDefaultAsync();
+            EnableAiPaymentVerification = org?.EnableAiPaymentVerification == true;
+
             Settings = await _paymentService.GetPaymentSettingsForOrgAsync(PaymentInfo.OrganizationId);
+
+            int? optionId = PaymentInfo.SelectedPaymentOptionId;
+            if (!optionId.HasValue || optionId.Value <= 0)
+            {
+                var payment = await _paymentService.GetByIdAsync(PaymentInfo.PaymentId);
+                optionId = payment?.Booking?.SelectedPaymentOptionId;
+            }
+
+            if (optionId is int optId and > 0)
+            {
+                SelectedPaymentOption = await _paymentService.GetPaymentOptionByIdNoFilterAsync(optId);
+            }
+
+            if (SelectedPaymentOption is not null)
+            {
+                QRCodeUrl = _proofStorage.GetQRCodePublicUrl(SelectedPaymentOption.QRCodeImagePath);
+            }
+            else
+            {
+                QRCodeUrl = _proofStorage.GetQRCodePublicUrl(Settings?.QRCodeImagePath);
+            }
         }
         else
         {
             Settings = await _paymentService.GetPaymentSettingsAsync();
+            QRCodeUrl = _proofStorage.GetQRCodePublicUrl(Settings?.QRCodeImagePath);
         }
-        QRCodeUrl = _proofStorage.GetQRCodePublicUrl(Settings?.QRCodeImagePath);
     }
 
     public class PaymentInput
     {
         public string? Reference { get; set; }
 
-        [Required(ErrorMessage = "Please enter your GCash reference number.")]
+        [Required(ErrorMessage = "Please enter your payment reference number.")]
         [MaxLength(100)]
-        [Display(Name = "GCash Reference Number")]
+        [Display(Name = "Payment Reference Number")]
         public string? GCashReference { get; set; }
 
         [Display(Name = "Payment Screenshot (optional)")]

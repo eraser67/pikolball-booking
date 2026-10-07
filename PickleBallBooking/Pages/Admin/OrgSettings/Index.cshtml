@@ -332,63 +332,24 @@
         right-click your venue → click the coordinates at the top to copy them.
     </div>
 
-    <hr class="my-4" />
-
     <!-- ── PAYMENT SETTINGS ────────────────────────────────────── -->
-    <h5 class="mb-1">GCash Payment Settings</h5>
+    <h5 class="mb-1">Payment Methods</h5>
     <p class="text-muted small mb-3">
-        Customers will see these details on the payment page after booking.
-        Leave blank to disable the payment prompt.
+        Configure the payment options (GCash, Maya, Bank QR, etc.) that customers can choose when booking.
     </p>
-
-    <div class="mb-3">
-        <div class="form-check form-switch">
-            <input asp-for="Input.GCashEnabled" class="form-check-input" type="checkbox" role="switch" id="gcashEnabled" />
-            <label class="form-check-label fw-semibold" for="gcashEnabled">
-                @Html.DisplayNameFor(m => m.Input.GCashEnabled)
-            </label>
+    <div class="alert alert-info d-flex align-items-start gap-3 py-3" role="alert">
+        <i class="bi bi-credit-card-2-front fs-4 mt-1 flex-shrink-0"></i>
+        <div>
+            <div class="fw-semibold mb-1">Payment methods are now managed separately</div>
+            <p class="mb-2 small">
+                You can add multiple payment options — GCash, Maya, bank QR codes, and more —
+                each with their own QR code and instructions. Customers will be able to choose
+                their preferred method when booking.
+            </p>
+            <a asp-page="/Admin/PaymentOptions/Index" class="btn btn-primary btn-sm">
+                <i class="bi bi-qr-code me-1"></i>Manage Payment Methods
+            </a>
         </div>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Input.AccountName" class="form-label fw-semibold"></label>
-        <input asp-for="Input.AccountName" class="form-control"
-               placeholder="e.g. Juan Dela Cruz" />
-        <span asp-validation-for="Input.AccountName" class="text-danger"></span>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Input.AccountNumber" class="form-label fw-semibold"></label>
-        <input asp-for="Input.AccountNumber" class="form-control"
-               placeholder="e.g. 09171234567" />
-        <span asp-validation-for="Input.AccountNumber" class="text-danger"></span>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Input.Instructions" class="form-label fw-semibold"></label>
-        <textarea asp-for="Input.Instructions" class="form-control" rows="3"
-                  placeholder="e.g. Please include your booking reference in the GCash note."></textarea>
-        <span asp-validation-for="Input.Instructions" class="text-danger"></span>
-    </div>
-
-    <!-- QR Code Upload -->
-    <div class="mb-4">
-        <label asp-for="Input.QRCodeImage" class="form-label fw-semibold"></label>
-        @if (!string.IsNullOrEmpty(Model.CurrentQRCodeUrl))
-        {
-            <div class="mb-2">
-                <img src="@Model.CurrentQRCodeUrl" alt="Current GCash QR Code"
-                     style="max-width:160px;border-radius:8px;border:1px solid #dee2e6;" />
-                <div class="text-muted small mt-1">Current QR code</div>
-            </div>
-        }
-        <input asp-for="Input.QRCodeImage" type="file" class="form-control"
-               accept="image/jpeg,image/png,image/webp" id="qrImageInput" />
-        <div class="form-text">Max 3 MB (JPEG, PNG, WEBP). Leave blank to keep existing QR code.</div>
-        <div id="qrSizeError" class="text-danger small mt-1" style="display:none;">
-            File too large. Maximum allowed size is 3 MB.
-        </div>
-        <span asp-validation-for="Input.QRCodeImage" class="text-danger"></span>
     </div>
 
     <hr class="my-4" />
@@ -423,6 +384,47 @@
             Leave blank to disable Telegram alerts. <em>(Add your bot to your group and invite <code>&#64;RawDataBot</code> or message <code>&#64;userinfobot</code> to find your Chat ID)</em>.
         </div>
         <span asp-validation-for="Input.TelegramChatId" class="text-danger"></span>
+    </div>
+
+    <!-- ── AI PAYMENT VERIFICATION ───────────────────────────── -->
+    <hr class="my-4" />
+    <h5 class="mb-1">
+        <i class="bi bi-robot text-primary me-1"></i>AI Payment Verification
+        <span class="badge bg-success ms-2 fs-6 fw-normal">Free</span>
+    </h5>
+    <p class="text-muted small mb-3">
+        Automatically evaluate submitted payments using an AI cascade: Gemini Flash → Gemini Pro → Deepseek → rule-based fallback.
+        Confident payments are verified and bookings confirmed instantly — no admin action needed.
+        Uncertain payments fall back to your manual review queue with an email and Telegram alert.
+        <strong>The AI never auto-rejects.</strong>
+    </p>
+
+    <div class="card border mb-4">
+        <div class="card-body">
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       id="enableAiVerification"
+                       asp-for="Input.EnableAiPaymentVerification">
+                <label class="form-check-label fw-semibold" for="enableAiVerification">
+                    Enable AI Auto-Verification
+                </label>
+            </div>
+            <div class="small text-muted mt-1">
+                <i class="bi bi-info-circle me-1"></i>
+                When enabled, every payment submission is evaluated automatically.
+                High-confidence results are auto-verified. Low-confidence results notify
+                you via email and Telegram so you can review manually.
+            </div>
+            <div id="aiProviderInfo" class="mt-3 pt-3 border-top small" style="display:@(Model.Input.EnableAiPaymentVerification ? "block" : "none")">
+                <div class="fw-semibold mb-2 text-primary">Active Provider Cascade</div>
+                <div class="d-flex flex-column gap-1">
+                    <div><span class="badge bg-primary me-2">1st</span>Gemini Flash — fast, free tier, vision analysis</div>
+                    <div><span class="badge bg-secondary me-2">2nd</span>Gemini Pro — higher accuracy, vision analysis</div>
+                    <div><span class="badge bg-secondary me-2">3rd</span>Deepseek — text-only fallback</div>
+                    <div><span class="badge bg-light text-dark border me-2">4th</span>Rule-based — always available, zero API cost</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="d-flex align-items-center gap-3 mt-3">
@@ -548,6 +550,16 @@
                 if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
                     colorPicker.value = this.value;
                 }
+            });
+        })();
+
+        // Show/hide AI provider cascade panel when the toggle changes
+        (function () {
+            const toggle = document.getElementById('enableAiVerification');
+            const panel  = document.getElementById('aiProviderInfo');
+            if (!toggle || !panel) return;
+            toggle.addEventListener('change', function () {
+                panel.style.display = this.checked ? 'block' : 'none';
             });
         })();
     </script>

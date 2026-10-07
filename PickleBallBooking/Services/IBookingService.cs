@@ -59,7 +59,8 @@ public interface IBookingService
         string customerPhone,
         string customerEmail,
         string? facebookName = null,
-        PaymentMethod? selectedPaymentMethod = null);
+        PaymentMethod? selectedPaymentMethod = null,
+        int? selectedPaymentOptionId = null);
 
     /// <summary>
     /// Cancel a booking and release all BookingTimeSlot records by setting IsActive = false.
