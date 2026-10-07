@@ -18,7 +18,8 @@ param (
     [string]$VpsUser = "",
     [string]$Domain = "punitbola.tech",
     [int]$SshPort = 22,
-    [string]$SshKeyPath = ""
+    [string]$SshKeyPath = "",
+    [switch]$SkipProvisioning
 )
 
 if ($VpsUser -ne "") {
@@ -49,8 +50,15 @@ ssh @sshOpts -o ConnectTimeout=10 $remote "echo 'Connected successfully to Hosti
 Write-Host "=== 2. Uploading provisioning scripts ===" -ForegroundColor Cyan
 scp @scpOpts deploy/setup-vps.sh deploy/deploy-app.sh deploy/pikolball.service deploy/nginx-punitbola.conf "$remote`:/tmp/"
 
-Write-Host "=== 3. Running VPS provisioning on $remote ===" -ForegroundColor Cyan
-ssh @sshOpts $remote "chmod +x /tmp/setup-vps.sh /tmp/deploy-app.sh && /tmp/setup-vps.sh"
+Write-Host "=== 3. Preparing scripts on $remote ===" -ForegroundColor Cyan
+ssh @sshOpts $remote "sed -i 's/\r$//' /tmp/setup-vps.sh /tmp/deploy-app.sh && chmod +x /tmp/setup-vps.sh /tmp/deploy-app.sh"
+
+if (-not $SkipProvisioning) {
+    Write-Host "=== Running VPS provisioning on $remote ===" -ForegroundColor Cyan
+    ssh @sshOpts $remote "/tmp/setup-vps.sh"
+} else {
+    Write-Host "=== Skipping provisioning (already provisioned) ===" -ForegroundColor Yellow
+}
 
 Write-Host "=== 4. Uploading published build artifacts to VPS ===" -ForegroundColor Cyan
 ssh @sshOpts $remote "rm -rf /tmp/publish && mkdir -p /tmp/publish"
