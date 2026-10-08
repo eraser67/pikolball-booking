@@ -347,7 +347,7 @@ Model.PaymentSettings.IsActive)) && Model.Payment is not null && Model.Booking i
                                     });
                                 });
 
-                                // Direct Blob Download for QR Code on Mobile & Desktop (avoids navigating away to Supabase storage URL)
+                                // Direct Blob / Web Share API for QR Code on Mobile & Desktop
                                 document.querySelectorAll('.btn-save-qr').forEach(btn => {
                                     btn.addEventListener('click', async function () {
                                         const url = this.dataset.qrUrl;
@@ -367,26 +367,53 @@ Model.PaymentSettings.IsActive)) && Model.Payment is not null && Model.Booking i
                                             const res = await fetch(url, { mode: 'cors' });
                                             if (!res.ok) throw new Error('Fetch failed: ' + res.status);
                                             const blob = await res.blob();
-                                            const blobUrl = URL.createObjectURL(blob);
 
-                                            const link = document.createElement('a');
-                                            link.href = blobUrl;
-                                            link.download = filename;
-                                            document.body.appendChild(link);
-                                            link.click();
-                                            document.body.removeChild(link);
+                                            // Attempt Web Share API with File (Native iOS "Save Image" to Photos / Android Gallery)
+                                            let shared = false;
+                                            const mimeType = blob.type || (filename.endsWith('.png') ? 'image/png' : 'image/jpeg');
+                                            if (typeof File !== 'undefined' && navigator.canShare) {
+                                                const file = new File([blob], filename, { type: mimeType });
+                                                if (navigator.canShare({ files: [file] })) {
+                                                    try {
+                                                        await navigator.share({
+                                                            files: [file],
+                                                            title: filename
+                                                        });
+                                                        shared = true;
+                                                    } catch (shareErr) {
+                                                        if (shareErr.name === 'AbortError') {
+                                                            // User dismissed native share sheet
+                                                            if (span) span.textContent = origText;
+                                                            if (icon) icon.className = origIcon;
+                                                            this.disabled = false;
+                                                            return;
+                                                        }
+                                                        console.warn('Web Share failed, falling back to blob download', shareErr);
+                                                    }
+                                                }
+                                            }
 
-                                            setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+                                            // Fallback to direct blob download if not shared via Web Share API
+                                            if (!shared) {
+                                                const blobUrl = URL.createObjectURL(blob);
+                                                const link = document.createElement('a');
+                                                link.href = blobUrl;
+                                                link.download = filename;
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                document.body.removeChild(link);
+                                                setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+                                            }
 
                                             if (span) span.textContent = 'Saved!';
                                             if (icon) icon.className = 'bi bi-check-lg me-1 text-success';
                                             setTimeout(() => {
                                                 if (span) span.textContent = origText;
                                                 if (icon) icon.className = origIcon;
-                                                btn.disabled = false;
+                                                this.disabled = false;
                                             }, 2000);
                                         } catch (err) {
-                                            console.warn('Direct blob download failed, falling back to download link', err);
+                                            console.warn('Save failed, falling back to download link', err);
                                             const link = document.createElement('a');
                                             link.href = url;
                                             link.target = '_blank';
@@ -397,7 +424,7 @@ Model.PaymentSettings.IsActive)) && Model.Payment is not null && Model.Booking i
 
                                             if (span) span.textContent = origText;
                                             if (icon) icon.className = origIcon;
-                                            btn.disabled = false;
+                                            this.disabled = false;
                                         }
                                     });
                                 });

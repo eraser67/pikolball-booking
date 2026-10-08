@@ -6,6 +6,47 @@
     var displayName   = Model.SelectedPaymentOption?.AccountName   ?? Model.Settings?.AccountName;
     var displayNumber = Model.SelectedPaymentOption?.AccountNumber ?? Model.Settings?.AccountNumber;
     var displayInstr  = Model.SelectedPaymentOption?.Instructions  ?? Model.Settings?.Instructions;
+
+    var isMaya = methodLabel.Contains("Maya", StringComparison.OrdinalIgnoreCase);
+    var isGCash = methodLabel.Contains("GCash", StringComparison.OrdinalIgnoreCase);
+    var isBank = methodLabel.Contains("Bank", StringComparison.OrdinalIgnoreCase) ||
+                 methodLabel.Contains("BDO", StringComparison.OrdinalIgnoreCase) ||
+                 methodLabel.Contains("BPI", StringComparison.OrdinalIgnoreCase) ||
+                 methodLabel.Contains("InstaPay", StringComparison.OrdinalIgnoreCase) ||
+                 methodLabel.Contains("PESONet", StringComparison.OrdinalIgnoreCase);
+
+    string refPlaceholder;
+    string refInputMode;
+    string refHelpText;
+    bool refAutoCap = false;
+
+    if (isMaya)
+    {
+        refPlaceholder = "e.g. 9B4C-1A2D-3E5F or Reference ID";
+        refInputMode = "text";
+        refHelpText = "Found under Reference ID or Transaction Details in your Maya app.";
+        refAutoCap = true;
+    }
+    else if (isGCash)
+    {
+        refPlaceholder = "e.g. 8045858980078 (13 digits)";
+        refInputMode = "numeric";
+        refHelpText = "Found on your GCash transaction receipt or SMS confirmation (13 digits).";
+    }
+    else if (isBank)
+    {
+        refPlaceholder = "e.g. Reference No. or InstaPay Trace No.";
+        refInputMode = "text";
+        refHelpText = $"Found on your {methodLabel} receipt, confirmation screen, or SMS.";
+        refAutoCap = true;
+    }
+    else
+    {
+        refPlaceholder = "e.g. Reference / Transaction Number";
+        refInputMode = "text";
+        refHelpText = $"Found on your {methodLabel} receipt or transaction history.";
+        refAutoCap = true;
+    }
 }
 
 @if (Model.PaymentInfo is null)
@@ -144,13 +185,14 @@
                                 </span>
                                 <input asp-for="Input.GCashReference"
                                        class="form-control form-control-lg border-start-0 font-monospace fs-6"
-                                       placeholder="e.g. 8045858980078 (13 digits)"
-                                       inputmode="numeric"
+                                       placeholder="@refPlaceholder"
+                                       inputmode="@refInputMode"
+                                       autocapitalize="@(refAutoCap ? "characters" : null)"
                                        autocomplete="off"
                                        id="inputGCashRef" />
                             </div>
                             <div class="form-text small">
-                                Found on your @methodLabel receipt or Transaction History screen.
+                                @refHelpText
                             </div>
                             <span asp-validation-for="Input.GCashReference" class="text-danger small d-block mt-1"></span>
                         </div>
@@ -272,11 +314,12 @@
                     </p>
                 </div>
                 <div class="modal-footer border-0 justify-content-center pt-0 pb-3">
-                    <a href="@Model.QRCodeUrl"
-                       download="@(methodLabel.ToLowerInvariant())-qr.png"
-                       class="btn btn-primary btn-sm px-3 fw-semibold">
-                        <i class="bi bi-download me-1"></i>Save QR to Photos
-                    </a>
+                    <button type="button"
+                            class="btn btn-primary btn-sm px-3 fw-semibold btn-save-qr"
+                            data-qr-url="@Model.QRCodeUrl"
+                            data-filename="@(methodLabel.ToLowerInvariant())-qr.jpg">
+                        <i class="bi bi-download me-1"></i><span>Save QR to Photos</span>
+                    </button>
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
@@ -361,13 +404,28 @@
                 try {
                     const text = await navigator.clipboard.readText();
                     if (text) {
-                        inputGCashRef.value = text.trim();
+                        const trimmed = text.trim();
+                        inputGCashRef.value = (inputGCashRef.getAttribute('autocapitalize') === 'characters')
+                            ? trimmed.toUpperCase()
+                            : trimmed;
                         inputGCashRef.focus();
                     }
                 } catch (err) {
                     inputGCashRef.focus();
                 }
             });
+
+            // Auto-capitalize alphanumeric reference input if autocapitalize is enabled
+            if (inputGCashRef.getAttribute('autocapitalize') === 'characters') {
+                inputGCashRef.addEventListener('input', function () {
+                    const start = this.selectionStart;
+                    const end = this.selectionEnd;
+                    this.value = this.value.toUpperCase();
+                    if (start !== null && end !== null) {
+                        this.setSelectionRange(start, end);
+                    }
+                });
+            }
         }
 
         // 1-Tap Copy Buttons
@@ -390,6 +448,88 @@
                     document.body.removeChild(ta);
                     this.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
                     setTimeout(() => { this.innerHTML = originalHtml; }, 2000);
+                }
+            });
+        });
+
+        // Direct Blob / Web Share API for QR Code on Mobile & Desktop
+        document.querySelectorAll('.btn-save-qr').forEach(btn => {
+            btn.addEventListener('click', async function () {
+                const url = this.dataset.qrUrl;
+                const filename = this.dataset.filename || 'qr-code.jpg';
+                if (!url) return;
+
+                const span = this.querySelector('span');
+                const icon = this.querySelector('i');
+                const origText = span ? span.textContent : 'Save QR to Photos';
+                const origIcon = icon ? icon.className : 'bi bi-download me-1';
+
+                try {
+                    this.disabled = true;
+                    if (span) span.textContent = 'Saving...';
+                    if (icon) icon.className = 'spinner-border spinner-border-sm me-1';
+
+                    const res = await fetch(url, { mode: 'cors' });
+                    if (!res.ok) throw new Error('Fetch failed: ' + res.status);
+                    const blob = await res.blob();
+
+                    // Attempt Web Share API with File (Native iOS "Save Image" to Photos / Android Gallery)
+                    let shared = false;
+                    const mimeType = blob.type || (filename.endsWith('.png') ? 'image/png' : 'image/jpeg');
+                    if (typeof File !== 'undefined' && navigator.canShare) {
+                        const file = new File([blob], filename, { type: mimeType });
+                        if (navigator.canShare({ files: [file] })) {
+                            try {
+                                await navigator.share({
+                                    files: [file],
+                                    title: filename
+                                });
+                                shared = true;
+                            } catch (shareErr) {
+                                if (shareErr.name === 'AbortError') {
+                                    // User dismissed native share sheet
+                                    if (span) span.textContent = origText;
+                                    if (icon) icon.className = origIcon;
+                                    this.disabled = false;
+                                    return;
+                                }
+                                console.warn('Web Share failed, falling back to blob download', shareErr);
+                            }
+                        }
+                    }
+
+                    // Fallback to direct blob download if not shared via Web Share API
+                    if (!shared) {
+                        const blobUrl = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = blobUrl;
+                        link.download = filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+                    }
+
+                    if (span) span.textContent = 'Saved!';
+                    if (icon) icon.className = 'bi bi-check-lg me-1 text-success';
+                    setTimeout(() => {
+                        if (span) span.textContent = origText;
+                        if (icon) icon.className = origIcon;
+                        this.disabled = false;
+                    }, 2000);
+                } catch (err) {
+                    console.warn('Save failed, falling back to download link', err);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.target = '_blank';
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    if (span) span.textContent = origText;
+                    if (icon) icon.className = origIcon;
+                    this.disabled = false;
                 }
             });
         });

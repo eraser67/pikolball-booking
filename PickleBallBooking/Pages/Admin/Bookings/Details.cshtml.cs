@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PickleBallBooking.Data;
@@ -14,6 +15,7 @@ public class DetailsModel : PageModel
     private readonly ApplicationDbContext _context;
     private readonly IPaymentService _paymentService;
     private readonly IPaymentProofStorage _proofStorage;
+    private readonly IPlayerCheckInService? _checkInService;
 
     public DetailsModel(
         IBookingService bookingService,
@@ -21,7 +23,8 @@ public class DetailsModel : PageModel
         ITimeSlotService timeSlotService,
         ApplicationDbContext context,
         IPaymentService paymentService,
-        IPaymentProofStorage proofStorage)
+        IPaymentProofStorage proofStorage,
+        IPlayerCheckInService? checkInService = null)
     {
         _bookingService = bookingService;
         _courtService = courtService;
@@ -29,6 +32,7 @@ public class DetailsModel : PageModel
         _context = context;
         _paymentService = paymentService;
         _proofStorage = proofStorage;
+        _checkInService = checkInService;
     }
 
     public Models.Booking? Booking { get; set; }
@@ -51,7 +55,7 @@ public class DetailsModel : PageModel
     [TempData]
     public string? ErrorMessage { get; set; }
 
-        public async Task<IActionResult> OnGetAsync(int id)
+    public async Task<IActionResult> OnGetAsync(int id)
     {
         // Complete any expired confirmed bookings so the details view is accurate.
         await _bookingService.AutoCompleteExpiredBookingsAsync();
@@ -110,6 +114,144 @@ public class DetailsModel : PageModel
         return await ChangeStatusAsync(id, BookingStatus.Completed);
     }
 
+    public async Task<IActionResult> OnPostVerifyPaymentAsync(int id, int paymentId)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.Identity?.Name ?? "staff";
+
+        var ok = await _paymentService.VerifyAsync(paymentId, userId);
+        if (ok)
+        {
+            var booking = await _bookingService.GetBookingByIdAsync(id);
+            if (booking?.BookingStatus == BookingStatus.Pending)
+            {
+                await _bookingService.UpdateBookingStatusAsync(id, BookingStatus.Confirmed);
+            }
+            StatusMessage = "Payment verified and booking confirmed successfully!";
+        }
+        else
+        {
+            ErrorMessage = "Could not verify payment. Ensure payment record is in Submitted status.";
+        }
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostRejectPaymentAsync(int id, int paymentId, string? notes)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.Identity?.Name ?? "staff";
+
+        var ok = await _paymentService.RejectAsync(paymentId, userId, notes);
+        if (ok)
+        {
+            StatusMessage = "Payment has been rejected.";
+        }
+        else
+        {
+            ErrorMessage = "Could not reject payment.";
+        }
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostCheckInAsync(int id)
+    {
+        var booking = await _bookingService.GetBookingByIdAsync(id);
+        if (booking is null) return NotFound();
+
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.Identity?.Name ?? "staff";
+
+        if (_checkInService != null)
+        {
+            var res = await _checkInService.CheckInBookingAsync(booking.BookingReference, CheckInMethod.AdminManual, userId);
+            if (res.Success)
+            {
+                StatusMessage = $"Player {booking.CustomerName} checked in successfully!";
+            }
+            else
+            {
+                ErrorMessage = res.Message;
+            }
+        }
+        else
+        {
+            booking.CheckedInAt = DateTime.UtcNow;
+            booking.CheckedInByUserId = userId;
+            booking.CheckInMethod = CheckInMethod.AdminManual;
+            booking.IsNoShow = false;
+            await _context.SaveChangesAsync();
+            StatusMessage = $"Player {booking.CustomerName} checked in successfully!";
+        }
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostUndoCheckInAsync(int id)
+    {
+        var booking = await _bookingService.GetBookingByIdAsync(id);
+        if (booking is null) return NotFound();
+
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.Identity?.Name ?? "staff";
+
+        if (_checkInService != null)
+        {
+            var res = await _checkInService.UndoBookingCheckInAsync(booking.BookingReference, userId);
+            if (res.Success)
+            {
+                StatusMessage = "Check-in undone.";
+            }
+            else
+            {
+                ErrorMessage = res.Message;
+            }
+        }
+        else
+        {
+            booking.CheckedInAt = null;
+            booking.CheckedInByUserId = null;
+            booking.CheckInMethod = null;
+            await _context.SaveChangesAsync();
+            StatusMessage = "Check-in undone.";
+        }
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostNoShowAsync(int id)
+    {
+        var booking = await _bookingService.GetBookingByIdAsync(id);
+        if (booking is null) return NotFound();
+
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.Identity?.Name ?? "staff";
+
+        if (_checkInService != null)
+        {
+            var res = await _checkInService.MarkBookingNoShowAsync(booking.BookingReference, userId);
+            if (res.Success)
+            {
+                StatusMessage = $"Booking {booking.BookingReference} marked as No-Show.";
+            }
+            else
+            {
+                ErrorMessage = res.Message;
+            }
+        }
+        else
+        {
+            booking.IsNoShow = true;
+            booking.CheckedInAt = null;
+            booking.CheckInMethod = null;
+            await _context.SaveChangesAsync();
+            StatusMessage = $"Booking {booking.BookingReference} marked as No-Show.";
+        }
+
+        return RedirectToPage(new { id });
+    }
+
     private async Task<IActionResult> ChangeStatusAsync(int id, BookingStatus newStatus)
     {
         Booking = await _bookingService.GetBookingByIdAsync(id);
@@ -127,7 +269,6 @@ public class DetailsModel : PageModel
         }
         else
         {
-            // Surface the reason (e.g. invalid status transition) to the user.
             ErrorMessage = result.ErrorMessage;
         }
 

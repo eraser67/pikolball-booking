@@ -58,7 +58,7 @@
                         <dt class="col-sm-5">Amount</dt>
                         <dd class="col-sm-7 fw-bold">@Model.PaymentInfo.Amount.ToString("C2")</dd>
 
-                        <dt class="col-sm-5">GCash Reference</dt>
+                        <dt class="col-sm-5">Reference Number</dt>
                         <dd class="col-sm-7 font-monospace">@(Model.PaymentInfo.ReferenceNumber ?? "—")</dd>
 
                         @if (Model.PaymentInfo.SubmittedAt.HasValue)

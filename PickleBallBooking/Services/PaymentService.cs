@@ -333,14 +333,17 @@ public sealed class PaymentService : IPaymentService
         var trimmed = (referenceNumber ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(trimmed)) return PaymentSubmitResult.EmptyReference;
 
+        var upper = trimmed.ToUpper();
+
         // Duplicate reference check: reject if the same reference number has
         // already been submitted for any other payment (ignores query filters so it
-        // checks across all tenants — payment references are globally unique).
+        // checks across all tenants — payment references are globally unique, case-insensitive).
         var isDuplicate = await _context.Payments
             .IgnoreQueryFilters()
-            .AnyAsync(p => p.ReferenceNumber == trimmed &&
-                           p.Id != paymentId &&
-                           p.PaymentStatus != PaymentStatus.Cancelled, ct);
+            .AnyAsync(p => p.Id != paymentId &&
+                           p.PaymentStatus != PaymentStatus.Cancelled &&
+                           p.ReferenceNumber != null &&
+                           (p.ReferenceNumber == trimmed || p.ReferenceNumber.ToUpper() == upper), ct);
         if (isDuplicate) return PaymentSubmitResult.DuplicateReference;
 
         var now = DateTime.UtcNow;
@@ -380,9 +383,19 @@ public sealed class PaymentService : IPaymentService
                 : null;
             if (bookingForEmail is not null && orgForEmail is not null)
             {
-                _emailService?.SendPaymentSubmittedToCustomerAsync(bookingForEmail, payment, orgForEmail);
-                _emailService?.SendPaymentSubmittedToOrgAsync(bookingForEmail, payment, orgForEmail);
-                _telegramService?.SendPaymentSubmittedAlertAsync(bookingForEmail, payment, orgForEmail);
+                string? paymentOptionLabel = null;
+                if (bookingForEmail.SelectedPaymentOptionId.HasValue)
+                {
+                    paymentOptionLabel = await _context.TenantPaymentOptions
+                        .IgnoreQueryFilters()
+                        .Where(o => o.Id == bookingForEmail.SelectedPaymentOptionId.Value)
+                        .Select(o => o.Label)
+                        .FirstOrDefaultAsync(ct);
+                }
+
+                _emailService?.SendPaymentSubmittedToCustomerAsync(bookingForEmail, payment, orgForEmail, paymentOptionLabel);
+                _emailService?.SendPaymentSubmittedToOrgAsync(bookingForEmail, payment, orgForEmail, paymentOptionLabel);
+                _telegramService?.SendPaymentSubmittedAlertAsync(bookingForEmail, payment, orgForEmail, paymentOptionLabel);
             }
         }
         catch (Exception ex)
@@ -674,7 +687,17 @@ public sealed class PaymentService : IPaymentService
                 var rejectOrg = await _context.Organizations.FindAsync([payment.OrganizationId], ct);
                 if (rejectOrg is not null)
                 {
-                    _emailService?.SendPaymentRejectedAsync(rejectBooking, payment, rejectOrg);
+                    string? paymentOptionLabel = null;
+                    if (rejectBooking.SelectedPaymentOptionId.HasValue)
+                    {
+                        paymentOptionLabel = await _context.TenantPaymentOptions
+                            .IgnoreQueryFilters()
+                            .Where(o => o.Id == rejectBooking.SelectedPaymentOptionId.Value)
+                            .Select(o => o.Label)
+                            .FirstOrDefaultAsync(ct);
+                    }
+
+                    _emailService?.SendPaymentRejectedAsync(rejectBooking, payment, rejectOrg, paymentOptionLabel);
                     _smsService?.SendPaymentRejectedAsync(rejectBooking, payment, rejectOrg);
                 }
             }

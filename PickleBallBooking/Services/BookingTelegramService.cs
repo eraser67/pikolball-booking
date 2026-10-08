@@ -38,14 +38,14 @@ public sealed class BookingTelegramService
     }
 
     /// <summary>
-    /// Alert staff when a player submits GCash payment proof.
+    /// Alert staff when a player submits payment proof.
     /// </summary>
-    public void SendPaymentSubmittedAlertAsync(Booking booking, Payment payment, Organization org)
+    public void SendPaymentSubmittedAlertAsync(Booking booking, Payment payment, Organization org, string? paymentMethod = null)
     {
         var chatId = ResolveChatId(org);
         if (string.IsNullOrWhiteSpace(chatId)) return;
 
-        var message = BuildPaymentSubmittedAlertMessage(booking, payment, org);
+        var message = BuildPaymentSubmittedAlertMessage(booking, payment, org, paymentMethod);
         Fire(_telegram.SendMessageAsync(chatId, message));
     }
 
@@ -179,18 +179,24 @@ public sealed class BookingTelegramService
             """;
     }
 
-    public static string BuildPaymentSubmittedAlertMessage(Booking booking, Payment payment, Organization org)
+    public static string BuildPaymentSubmittedAlertMessage(Booking booking, Payment payment, Organization org, string? paymentMethod = null)
     {
         var orgName  = EscapeMarkdown(org.Name);
         var custName = EscapeMarkdown(booking.CustomerName);
         var refNum   = EscapeMarkdown(payment.ReferenceNumber);
         var amount   = payment.Amount.ToString("C2");
 
+        var methodLabel = !string.IsNullOrWhiteSpace(paymentMethod)
+            ? paymentMethod.Trim()
+            : (payment.PaymentMethod == PaymentMethod.GCash ? "GCash" : "Payment");
+        var isGeneric = string.IsNullOrWhiteSpace(methodLabel) || methodLabel.Equals("payment", StringComparison.OrdinalIgnoreCase);
+        var refLabel  = isGeneric ? "Payment Ref" : (methodLabel.EndsWith("ref", StringComparison.OrdinalIgnoreCase) || methodLabel.EndsWith("reference", StringComparison.OrdinalIgnoreCase) ? methodLabel : $"{methodLabel} Ref");
+
         return $"""
             💳 *Payment Proof Submitted* — {EscapeMarkdown(booking.BookingReference)}
             🏢 *Club*: {orgName}
             👤 *Customer*: {custName}
-            🧾 *GCash Ref*: `{refNum}`
+            🧾 *{EscapeMarkdown(refLabel)}*: `{refNum}`
             💰 *Amount*: {EscapeMarkdown(amount)}
             ⚡ *Action*: Please review and verify payment in Admin Dashboard.
             """;

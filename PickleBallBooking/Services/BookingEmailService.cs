@@ -68,28 +68,28 @@ public sealed class BookingEmailService
     // ─── Customer notifications ──────────────────────────────────────────────
 
     /// <summary>Booking received — sent immediately after booking is created.</summary>
-    public void SendBookingReceivedAsync(Booking booking, Organization org)
+    public void SendBookingReceivedAsync(Booking booking, Organization org, string? paymentMethod = null)
     {
         var sender = GetSenderForOrg(org);
         Fire(_email.SendAsync(
             booking.CustomerEmail,
             booking.CustomerName,
             $"🏓 Booking Received — {booking.BookingReference}",
-            BuildBookingReceivedHtml(booking, org),
+            BuildBookingReceivedHtml(booking, org, paymentMethod),
             fromAddress: sender.FromAddress,
             fromName: sender.FromName,
             replyTo: sender.ReplyTo));
     }
 
-    /// <summary>Payment submitted — sent after customer submits GCash reference.</summary>
-    public void SendPaymentSubmittedToCustomerAsync(Booking booking, Payment payment, Organization org)
+    /// <summary>Payment submitted — sent after customer submits payment reference.</summary>
+    public void SendPaymentSubmittedToCustomerAsync(Booking booking, Payment payment, Organization org, string? paymentMethod = null)
     {
         var sender = GetSenderForOrg(org);
         Fire(_email.SendAsync(
             booking.CustomerEmail,
             booking.CustomerName,
             $"✅ Payment Received — {booking.BookingReference}",
-            BuildPaymentSubmittedCustomerHtml(booking, payment, org),
+            BuildPaymentSubmittedCustomerHtml(booking, payment, org, paymentMethod),
             fromAddress: sender.FromAddress,
             fromName: sender.FromName,
             replyTo: sender.ReplyTo));
@@ -110,14 +110,14 @@ public sealed class BookingEmailService
     }
 
     /// <summary>Payment rejected — sent after admin rejects the payment.</summary>
-    public void SendPaymentRejectedAsync(Booking booking, Payment payment, Organization org)
+    public void SendPaymentRejectedAsync(Booking booking, Payment payment, Organization org, string? paymentMethod = null)
     {
         var sender = GetSenderForOrg(org);
         Fire(_email.SendAsync(
             booking.CustomerEmail,
             booking.CustomerName,
             $"⚠️ Payment Not Accepted — {booking.BookingReference}",
-            BuildPaymentRejectedHtml(booking, payment, org),
+            BuildPaymentRejectedHtml(booking, payment, org, paymentMethod),
             fromAddress: sender.FromAddress,
             fromName: sender.FromName,
             replyTo: sender.ReplyTo));
@@ -353,7 +353,7 @@ public sealed class BookingEmailService
     }
 
     /// <summary>Payment submitted alert — sent to org when customer submits proof.</summary>
-    public void SendPaymentSubmittedToOrgAsync(Booking booking, Payment payment, Organization org)
+    public void SendPaymentSubmittedToOrgAsync(Booking booking, Payment payment, Organization org, string? paymentMethod = null)
     {
         if (string.IsNullOrWhiteSpace(org.NotificationEmail)) return;
         var sender = GetSenderForOrg(org);
@@ -361,7 +361,7 @@ public sealed class BookingEmailService
             org.NotificationEmail,
             org.Name,
             $"💳 Payment to Verify — {booking.BookingReference}",
-            BuildPaymentSubmittedOrgHtml(booking, payment, org),
+            BuildPaymentSubmittedOrgHtml(booking, payment, org, paymentMethod),
             fromAddress: sender.FromAddress,
             fromName: sender.FromName,
             replyTo: !string.IsNullOrWhiteSpace(booking.CustomerEmail) ? booking.CustomerEmail : sender.ReplyTo));
@@ -382,14 +382,17 @@ public sealed class BookingEmailService
             replyTo: !string.IsNullOrWhiteSpace(booking.CustomerEmail) ? booking.CustomerEmail : sender.ReplyTo));
     }
 
-    // ─── HTML templates ──────────────────────────────────────────────────────
-
-    private static string BuildBookingReceivedHtml(Booking booking, Organization org)
+    private static string BuildBookingReceivedHtml(Booking booking, Organization org, string? paymentMethod = null)
     {
-        var courtName  = booking.Court?.Name ?? "Court";
-        var dateStr    = booking.BookingDate.ToString("MMMM d, yyyy");
-        var timeStr    = FormatTimeRange(booking.StartTime, booking.EndTime);
-        var priceStr   = booking.Price.ToString("C2");
+        var courtName = booking.Court?.Name ?? "Court";
+        var dateStr   = booking.BookingDate.ToString("MMMM d, yyyy");
+        var timeStr   = FormatTimeRange(booking.StartTime, booking.EndTime);
+        var priceStr  = booking.Price.ToString("C2");
+
+        var methodLabel = !string.IsNullOrWhiteSpace(paymentMethod) ? paymentMethod.Trim() : "";
+        var refPrompt   = !string.IsNullOrWhiteSpace(methodLabel) && !methodLabel.Equals("payment", StringComparison.OrdinalIgnoreCase)
+            ? $"submit your {HtmlEncode(methodLabel)} reference number."
+            : "submit your payment reference number.";
 
         return Wrap(org.Name, $"""
             <h2 style="color:{Green};margin-bottom:8px;">Booking Received!</h2>
@@ -404,27 +407,34 @@ public sealed class BookingEmailService
                 ("Amount Due",        $"<strong style='color:{Green};'>{priceStr}</strong>"),
             })}
 
-            <p style="margin-top:20px;">To complete payment, visit your booking page and submit your GCash reference number.</p>
+            <p style="margin-top:20px;">To complete payment, visit your booking page and {refPrompt}</p>
             <p style="color:{GrayText};font-size:13px;">If you have questions, please contact {org.Name}.</p>
         """);
     }
 
-    private static string BuildPaymentSubmittedCustomerHtml(Booking booking, Payment payment, Organization org)
+    private static string BuildPaymentSubmittedCustomerHtml(Booking booking, Payment payment, Organization org, string? paymentMethod = null)
     {
         var submittedTime = payment.SubmittedAt.HasValue
             ? $"{AppClock.ToPhilippineTime(payment.SubmittedAt.Value):MMMM d, yyyy h:mm tt} (PST)"
             : $"{AppClock.NowLocal:MMMM d, yyyy h:mm tt} (PST)";
 
+        var methodLabel = !string.IsNullOrWhiteSpace(paymentMethod)
+            ? paymentMethod.Trim()
+            : (payment.PaymentMethod == PaymentMethod.GCash ? "GCash" : "payment");
+        var isGeneric   = string.IsNullOrWhiteSpace(methodLabel) || methodLabel.Equals("payment", StringComparison.OrdinalIgnoreCase);
+        var methodText  = isGeneric ? "payment" : (methodLabel.EndsWith("payment", StringComparison.OrdinalIgnoreCase) ? HtmlEncode(methodLabel) : $"{HtmlEncode(methodLabel)} payment");
+        var refLabel    = isGeneric ? "Reference Number" : (methodLabel.EndsWith("reference", StringComparison.OrdinalIgnoreCase) || methodLabel.EndsWith("ref", StringComparison.OrdinalIgnoreCase) ? HtmlEncode(methodLabel) : $"{HtmlEncode(methodLabel)} Reference");
+
         return Wrap(org.Name, $"""
             <h2 style="color:{Green};margin-bottom:8px;">Payment Received!</h2>
             <p>Hi {booking.CustomerName},</p>
-            <p>We've received your GCash payment submission for booking <strong>{booking.BookingReference}</strong>.</p>
+            <p>We've received your {methodText} submission for booking <strong>{booking.BookingReference}</strong>.</p>
 
             {DetailBox(new[] {
-                ("Reference Number", payment.ReferenceNumber ?? "—"),
-                ("Amount",           payment.Amount.ToString("C2")),
-                ("Submitted At",     submittedTime),
-                ("Status",           "Under review"),
+                (refLabel,       payment.ReferenceNumber ?? "—"),
+                ("Amount",       payment.Amount.ToString("C2")),
+                ("Submitted At", submittedTime),
+                ("Status",       "Under review"),
             })}
 
             <p>Our team will verify your payment shortly. You'll receive another email once it's confirmed.</p>
@@ -437,6 +447,8 @@ public sealed class BookingEmailService
         var courtName = booking.Court?.Name ?? "Court";
         var dateStr   = booking.BookingDate.ToString("MMMM d, yyyy");
         var timeStr   = FormatTimeRange(booking.StartTime, booking.EndTime);
+        var qrData    = Uri.EscapeDataString($"BOOKING:{booking.BookingReference}");
+        var qrUrl     = $"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={qrData}&margin=4";
 
         return Wrap(org.Name, $"""
             <h2 style="color:{Green};margin-bottom:8px;">🎉 Booking Confirmed!</h2>
@@ -451,16 +463,28 @@ public sealed class BookingEmailService
                 ("Status",            "<span style='color:#16a34a;font-weight:600;'>✅ Confirmed</span>"),
             })}
 
+            <div style="margin:24px 0;padding:20px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;text-align:center;">
+                <p style="margin:0 0 10px 0;font-size:14px;font-weight:600;color:{DarkText};">Court Check-In QR Pass</p>
+                <img src="{qrUrl}" alt="Check-in QR Code" width="160" height="160" style="display:inline-block;border-radius:8px;border:1px solid #e2e8f0;background:#ffffff;padding:8px;" />
+                <p style="margin:10px 0 0 0;font-size:12px;color:{GrayText};">Present this QR code upon arrival at the court for instant check-in.</p>
+                <p style="margin:4px 0 0 0;font-size:11px;font-weight:600;color:{GrayText};letter-spacing:0.5px;">Ref: {booking.BookingReference}</p>
+            </div>
+
             <p style="margin-top:20px;">See you on the court! 🏓</p>
             <p style="color:{GrayText};font-size:13px;">Please arrive a few minutes before your scheduled time.</p>
         """);
     }
 
-    private static string BuildPaymentRejectedHtml(Booking booking, Payment payment, Organization org)
+    private static string BuildPaymentRejectedHtml(Booking booking, Payment payment, Organization org, string? paymentMethod = null)
     {
         var notes = string.IsNullOrWhiteSpace(payment.Notes)
             ? "No additional reason provided."
             : payment.Notes;
+
+        var methodLabel = !string.IsNullOrWhiteSpace(paymentMethod) ? paymentMethod.Trim() : "";
+        var refPrompt   = !string.IsNullOrWhiteSpace(methodLabel) && !methodLabel.Equals("payment", StringComparison.OrdinalIgnoreCase)
+            ? $"correct {HtmlEncode(methodLabel)} reference number and screenshot."
+            : "correct payment reference number and screenshot.";
 
         return Wrap(org.Name, $"""
             <div style="background:{RedLight};border-left:4px solid {Red};padding:12px 16px;border-radius:6px;margin-bottom:20px;">
@@ -473,10 +497,11 @@ public sealed class BookingEmailService
                 ("Reason", notes),
             })}
 
-            <p style="margin-top:20px;">Please revisit your booking page and re-submit your payment with the correct GCash reference number and screenshot.</p>
+            <p style="margin-top:20px;">Please revisit your booking page and re-submit your payment with the {refPrompt}</p>
             <p style="color:{GrayText};font-size:13px;">If you believe this is an error, please contact {org.Name} directly.</p>
         """);
     }
+
 
     private static string BuildBookingCancelledCustomerHtml(Booking booking, Organization org)
     {
@@ -523,20 +548,27 @@ public sealed class BookingEmailService
         """);
     }
 
-    private static string BuildPaymentSubmittedOrgHtml(Booking booking, Payment payment, Organization org)
+    private static string BuildPaymentSubmittedOrgHtml(Booking booking, Payment payment, Organization org, string? paymentMethod = null)
     {
         var submittedTime = payment.SubmittedAt.HasValue
             ? $"{AppClock.ToPhilippineTime(payment.SubmittedAt.Value):MMMM d, yyyy h:mm tt} (PST)"
             : $"{AppClock.NowLocal:MMMM d, yyyy h:mm tt} (PST)";
 
+        var methodLabel = !string.IsNullOrWhiteSpace(paymentMethod)
+            ? paymentMethod.Trim()
+            : (payment.PaymentMethod == PaymentMethod.GCash ? "GCash" : "payment");
+        var isGeneric   = string.IsNullOrWhiteSpace(methodLabel) || methodLabel.Equals("payment", StringComparison.OrdinalIgnoreCase);
+        var methodText  = isGeneric ? "a payment" : (methodLabel.EndsWith("payment", StringComparison.OrdinalIgnoreCase) ? $"a {HtmlEncode(methodLabel)}" : $"a {HtmlEncode(methodLabel)} payment");
+        var refLabel    = isGeneric ? "Reference Number" : (methodLabel.EndsWith("reference", StringComparison.OrdinalIgnoreCase) || methodLabel.EndsWith("ref", StringComparison.OrdinalIgnoreCase) ? HtmlEncode(methodLabel) : $"{HtmlEncode(methodLabel)} Reference");
+
         return Wrap(org.Name, $"""
             <h2 style="color:{Green};margin-bottom:8px;">Payment Needs Verification</h2>
-            <p>A customer has submitted a GCash payment for <strong>{org.Name}</strong>.</p>
+            <p>A customer has submitted {methodText} for <strong>{org.Name}</strong>.</p>
 
             {DetailBox(new[] {
                 ("Booking Reference", booking.BookingReference),
                 ("Customer",          booking.CustomerName),
-                ("GCash Reference",   payment.ReferenceNumber ?? "—"),
+                (refLabel,            payment.ReferenceNumber ?? "—"),
                 ("Amount",            payment.Amount.ToString("C2")),
                 ("Submitted At",      submittedTime),
             })}
@@ -748,7 +780,7 @@ public sealed class BookingEmailService
 
                 <!-- Footer -->
                 <tr><td style="background:#f3f4f6;padding:16px 32px;font-size:12px;color:{GrayText};text-align:center;">
-                  This email was sent by {orgName} via Pikolball Booking. Please do not reply to this email.
+                  This email was sent by {orgName} via Punit Bola Booking. Please do not reply to this email.
                 </td></tr>
 
               </table>

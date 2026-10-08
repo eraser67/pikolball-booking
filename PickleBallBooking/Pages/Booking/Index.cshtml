@@ -129,21 +129,57 @@
                 <!-- ─── STEP 2: DATE ─── -->
                 <section class="booking-form-section card mb-4 shadow-sm" aria-labelledby="step2Heading">
                     <div class="card-body">
-                        <h2 class="h5 card-title d-flex align-items-center gap-2" id="step2Heading">
-                            <span class="pb-step-index" aria-hidden="true">2</span>
-                            Select a Date
-                        </h2>
-
-                        <div class="mb-1">
-                            <label for="bookingDate" class="form-label fw-semibold">Booking Date</label>
-                            <input asp-for="Input.BookingDate"
-                                   type="date"
-                                   id="bookingDate"
-                                   class="form-control form-control-lg"
-                                   min="@todayStr"
-                                   required />
-                            <span asp-validation-for="Input.BookingDate" class="text-danger"></span>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h2 class="h5 card-title d-flex align-items-center gap-2 mb-0" id="step2Heading">
+                                <span class="pb-step-index" aria-hidden="true">2</span>
+                                Select a Date
+                            </h2>
+                            <span class="badge bg-light text-muted border fw-normal d-none d-sm-inline-flex align-items-center gap-1">
+                                <i class="bi bi-calendar3 text-primary"></i> 7-Day Quick View
+                            </span>
                         </div>
+
+                        <!-- 7-Day Horizontal Strip (All 7 days visible horizontally in one view, NO swipe) -->
+                        <div class="date-quick-strip-grid mb-3" id="dateQuickStrip" role="radiogroup" aria-label="7-day horizontal date selection">
+                            @foreach (var opt in Model.DateOptions)
+                            {
+                                var isToday = opt.Date == AppClock.TodayLocal;
+                                var isTomorrow = opt.Date == AppClock.TodayLocal.AddDays(1);
+                                var dayName = isToday ? "Today" : isTomorrow ? "Tmrw" : opt.DayLabel;
+                                var dateIso = opt.Date.ToString("yyyy-MM-dd");
+                                var isSelected = opt.Date == Model.Input.BookingDate;
+
+                                <button type="button"
+                                        class="date-quick-pill @(isSelected ? "active" : "") @(isToday ? "is-today" : "")"
+                                        data-date="@dateIso"
+                                        role="radio"
+                                        aria-checked="@(isSelected ? "true" : "false")"
+                                        title="@opt.Date.ToString("dddd, MMMM d, yyyy")">
+                                    <span class="pill-day-label">@dayName</span>
+                                    <span class="pill-day-num">@opt.Date.Day</span>
+                                    <span class="pill-month-label">@opt.Date.ToString("MMM")</span>
+                                </button>
+                            }
+                        </div>
+
+                        <!-- Directly Visible Custom Date Picker (in one view with 7 days) -->
+                        <div class="custom-date-row pt-2 border-top d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-calendar-event text-primary fs-5" aria-hidden="true"></i>
+                                <label for="bookingDate" class="form-label mb-0 fw-semibold small text-muted">
+                                    Or Pick Any Date:
+                                </label>
+                            </div>
+                            <div class="custom-date-input-wrap flex-grow-1" style="max-width: 240px; min-width: 170px;">
+                                <input asp-for="Input.BookingDate"
+                                       type="date"
+                                       id="bookingDate"
+                                       class="form-control form-control-sm fw-semibold"
+                                       min="@todayStr"
+                                       required />
+                            </div>
+                        </div>
+                        <span asp-validation-for="Input.BookingDate" class="text-danger small mt-1 d-block"></span>
                     </div>
                 </section>
 
@@ -176,6 +212,22 @@
                                 <span class="pb-legend-item"><span class="pb-legend-swatch is-booked"></span>Booked</span>
                                 <span class="pb-legend-item"><span class="pb-legend-swatch is-maintenance"></span>Maintenance</span>
                                 <span class="pb-legend-item"><span class="pb-legend-swatch is-past"></span>Passed</span>
+                            </div>
+
+                            <!-- Time of Day Filter Chips -->
+                            <div class="time-filter-strip d-flex flex-wrap gap-1 mb-3" id="timeFilterStrip" role="group" aria-label="Filter time slots by time of day">
+                                <button type="button" class="btn btn-sm btn-outline-primary slot-filter-btn active" data-filter="all">
+                                    <i class="bi bi-grid-fill me-1"></i>All Times
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary slot-filter-btn" data-filter="morning">
+                                    🌅 Morning <span class="badge bg-light text-dark ms-1 filter-count" id="countMorning"></span>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary slot-filter-btn" data-filter="afternoon">
+                                    ☀️ Afternoon <span class="badge bg-light text-dark ms-1 filter-count" id="countAfternoon"></span>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary slot-filter-btn" data-filter="evening">
+                                    🌙 Evening <span class="badge bg-light text-dark ms-1 filter-count" id="countEvening"></span>
+                                </button>
                             </div>
 
                             <!-- Overnight Continuation alert -->
@@ -276,17 +328,6 @@
 
                             </div>
 
-                            <!-- AJAX Calculate Price button (within slots section) -->
-                            <div class="d-grid mt-3" id="calculateButtonContainer">
-                                <button type="button"
-                                        class="btn btn-info btn-lg"
-                                        id="btnCalculatePrice">
-                                    <span class="pb-btn-spinner spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>
-                                    <i class="bi bi-calculator me-1"></i>
-                                    Calculate Price &amp; Continue
-                                </button>
-                            </div>
-
                             <!-- AJAX error -->
                             <div id="priceCalcError" class="alert alert-danger mt-2 d-none" role="alert"></div>
 
@@ -361,6 +402,16 @@
                                        autocomplete="off" />
                                 <div class="form-text">Helps the venue contact you if needed.</div>
                                 <span asp-validation-for="Input.FacebookName" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-12 mt-1">
+                                <div class="form-check p-2 rounded bg-light border">
+                                    <input class="form-check-input ms-0 me-2" type="checkbox" id="rememberDetailsCheck" checked />
+                                    <label class="form-check-label small text-muted" for="rememberDetailsCheck">
+                                        <i class="bi bi-shield-check text-success me-1"></i>
+                                        <strong>Remember my details on this device</strong> for faster bookings next time
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
@@ -501,19 +552,19 @@
                 <span class="bottom-sheet-handle"></span>
             </div>
 
-            <div class="container-fluid px-3 py-1">
-                <div class="d-flex justify-content-between align-items-center">
+            <div class="container-fluid px-2 px-sm-3 py-1">
+                <div class="d-flex justify-content-between align-items-center gap-2">
                     <div class="mobile-summary-info d-flex align-items-center gap-2">
                         <div class="mobile-summary-text text-truncate">
                             <div class="fw-bold small text-truncate" id="mobileSummaryCourtDate">-</div>
-                            <div class="text-primary fw-bold small" id="mobileSummaryTimeDuration">-</div>
+                            <div class="text-primary fw-bold small text-truncate" id="mobileSummaryTimeDuration">-</div>
                         </div>
-                        <i class="bi bi-chevron-up sheet-chevron text-muted" id="sheetChevronIcon"></i>
+                        <i class="bi bi-chevron-up sheet-chevron text-muted flex-shrink-0" id="sheetChevronIcon"></i>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="fw-bold text-success fs-6" id="mobileSummaryPrice" style="display: none;"></span>
-                        <button type="button" class="btn btn-primary btn-sm px-3 fw-semibold" id="btnMobileProceed">
-                            <i class="bi bi-calculator me-1"></i> Calculate
+                    <div class="mobile-summary-actions d-flex align-items-center gap-2 flex-shrink-0">
+                        <span class="fw-bold text-success fs-6 text-nowrap" id="mobileSummaryPrice" style="display: none;"></span>
+                        <button type="button" class="btn btn-primary btn-sm px-2 px-sm-3 fw-semibold text-nowrap" id="btnMobileProceed">
+                            <span class="sheet-btn-word-prefix">Enter </span>Details <i class="bi bi-arrow-down ms-1"></i>
                         </button>
                     </div>
                 </div>
@@ -560,7 +611,25 @@
                     </div>
                 </div>
 
+                <!-- Customer Details Recap inside Bottom Sheet -->
+                <div class="sheet-customer-recap mt-3 p-2 rounded bg-light border" id="sheetCustomerRecap" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted small fw-semibold"><i class="bi bi-person me-1"></i>Player Details</span>
+                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none small" id="btnSheetEditDetails">Edit</button>
+                    </div>
+                    <div class="fw-bold small text-dark" id="sheetCustomerName">-</div>
+                    <div class="text-muted small" id="sheetCustomerContact">-</div>
+                    <div class="text-muted small mt-1" id="sheetCustomerPayment"></div>
+                </div>
+
                 <div class="d-grid gap-2 mt-3" id="sheetActionButtons">
+                    <!-- Shown when details are complete -->
+                    <button type="button" class="btn btn-success btn-lg fw-semibold shadow-sm" id="btnSheetConfirmBooking" style="display: none;">
+                        <span class="pb-btn-spinner spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>
+                        <i class="bi bi-check-circle pb-btn-label me-1"></i>
+                        <span class="pb-btn-label">Confirm Booking</span>
+                    </button>
+                    <!-- Fallback: Continue to Your Details (shown if user opens summary before filling details) -->
                     <button type="button" class="btn btn-primary btn-lg fw-semibold shadow-sm" id="btnSheetContinue">
                         <i class="bi bi-person-fill me-1"></i> Continue to Your Details
                     </button>
@@ -625,107 +694,11 @@
                     this.appendChild(icon);
                 }
                 if (pmInput) pmInput.value = this.dataset.method;
+                if (window.updateMobileProceedState) window.updateMobileProceedState();
             });
         });
 
-        // ─── AJAX Calculate Price ───────────────────────────────────────────
-        const btnCalc = document.getElementById('btnCalculatePrice');
-        const priceCalcError = document.getElementById('priceCalcError');
-        const step4Card = document.getElementById('step4Card');
-        const confirmActionsContainer = document.getElementById('confirmActionsContainer') || document.getElementById('ajaxConfirmActions');
-        const priceContainer = document.getElementById('priceContainer');
-        const summaryPrice = document.getElementById('summaryPrice');
-        const step4PriceValue = document.getElementById('step4PriceValue');
-        const mobileSummaryPrice = document.getElementById('mobileSummaryPrice');
-
-        if (btnCalc) {
-            btnCalc.addEventListener('click', async function () {
-                const spinner = btnCalc.querySelector('.pb-btn-spinner');
-                // Get court & date
-                const courtId = courtSelect?.value || document.getElementById('courtSelect')?.value;
-                const date = bookingDateInput?.value || document.getElementById('bookingDate')?.value;
-                // Get selected slot IDs
-                const checked = Array.from(document.querySelectorAll('.timeslot-checkbox:checked'));
-                const slotIds = checked.map(c => c.value);
-
-                if (!courtId || courtId === '' || !date) {
-                    showPriceError('Please select a court and a date first.');
-                    return;
-                }
-                if (slotIds.length === 0) {
-                    showPriceError('Please select at least one time slot.');
-                    return;
-                }
-
-                // Show spinner
-                spinner?.classList.remove('d-none');
-                btnCalc.disabled = true;
-                priceCalcError?.classList.add('d-none');
-
-                try {
-                    const params = new URLSearchParams({ courtId, date });
-                    slotIds.forEach(id => params.append('slotIds', id));
-                    const res = await fetch(`/Booking?handler=Price&${params.toString()}`);
-                    const data = await res.json();
-
-                    if (!data.success) {
-                        showPriceError(data.message || 'Unable to calculate price.');
-                        return;
-                    }
-
-                    // Update price display
-                    const formatted = data.formattedPrice;
-                    if (summaryPrice) { summaryPrice.textContent = formatted; }
-                    if (step4PriceValue) { step4PriceValue.textContent = formatted; }
-                    if (mobileSummaryPrice) {
-                        mobileSummaryPrice.textContent = formatted;
-                        mobileSummaryPrice.style.display = '';
-                    }
-                    const sheetPriceValue = document.getElementById('sheetPriceValue');
-                    if (sheetPriceValue) { sheetPriceValue.textContent = formatted; }
-                    if (priceContainer) priceContainer.style.display = '';
-
-                    // Reveal Step 4
-                    if (step4Card) {
-                        step4Card.style.display = '';
-                        step4Card.classList.add('step4-animate-in');
-                    }
-
-                    // Show confirm button
-                    if (confirmActionsContainer) {
-                        confirmActionsContainer.style.setProperty('display', 'grid', 'important');
-                    }
-
-                    // Update booking summary container visibility
-                    const summaryContainer = document.getElementById('bookingSummaryContainer');
-                    if (summaryContainer) summaryContainer.style.display = '';
-
-                    // Dispatch custom event for UI components
-                    window.dispatchEvent(new CustomEvent('booking:price-calculated', { detail: { price: formatted } }));
-
-                    // On mobile, expand the bottom sheet so user clearly sees the full booking summary
-                    if (window.innerWidth < 992 && typeof window.expandBottomSheet === 'function') {
-                        window.expandBottomSheet();
-                    } else if (step4Card) {
-                        step4Card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-
-                } catch (err) {
-                    showPriceError('Network error. Please try again.');
-                } finally {
-                    spinner?.classList.add('d-none');
-                    btnCalc.disabled = false;
-                }
-            });
-        }
-
-        function showPriceError(msg) {
-            if (priceCalcError) {
-                priceCalcError.textContent = msg;
-                priceCalcError.classList.remove('d-none');
-                priceCalcError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        }
+        // ─── Calculate Price handled canonically by booking.js ─────────────
 
         // ─── Edit Slots (collapse step 4 back) ─────────────────────────────
         const btnEdit = document.getElementById('btnEditBooking');

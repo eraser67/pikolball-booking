@@ -2626,6 +2626,158 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
 }
 
 /* ========================================================= */
+/* 7-DAY HORIZONTAL QUICK DATE STRIP (NO SWIPE / ALL IN VIEW)*/
+/* ========================================================= */
+.date-quick-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+
+.date-quick-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 2px;
+  border: 1.5px solid #d0d7de;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.16s ease-in-out;
+  user-select: none;
+  touch-action: manipulation;
+  min-width: 0;
+  width: 100%;
+}
+
+.date-quick-pill .pill-day-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.date-quick-pill .pill-day-num {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.15;
+  margin: 2px 0;
+}
+
+.date-quick-pill .pill-month-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #94a3b8;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.date-quick-pill:hover {
+  border-color: #0d6efd;
+  background-color: #f0f7ff;
+  transform: translateY(-1px);
+}
+
+.date-quick-pill.is-today:not(.active) {
+  border-color: #38bdf8;
+  background-color: #f0f9ff;
+}
+
+.date-quick-pill.is-today:not(.active) .pill-day-label {
+  color: #0284c7;
+  font-weight: 800;
+}
+
+.date-quick-pill.active {
+  background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%) !important;
+  border-color: #0a58ca !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.28);
+  transform: translateY(-1px);
+}
+
+.date-quick-pill.active .pill-day-label,
+.date-quick-pill.active .pill-day-num,
+.date-quick-pill.active .pill-month-label {
+  color: #ffffff !important;
+}
+
+@media (max-width: 575px) {
+  .date-quick-strip-grid {
+    gap: 3px;
+  }
+  .date-quick-pill {
+    padding: 6px 1px;
+    border-radius: 6px;
+    min-height: 48px;
+  }
+  .date-quick-pill .pill-day-label {
+    font-size: 0.62rem;
+  }
+  .date-quick-pill .pill-day-num {
+    font-size: 0.92rem;
+    margin: 1px 0;
+  }
+  .date-quick-pill .pill-month-label {
+    font-size: 0.58rem;
+  }
+}
+
+/* ========================================================= */
+/* TIME-OF-DAY FILTER CHIPS                                  */
+/* ========================================================= */
+.time-filter-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.slot-filter-btn {
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 4px 10px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.slot-filter-btn.active {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(13, 110, 253, 0.25);
+}
+
+.slot-filter-btn .filter-count {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 10px;
+}
+
+/* Smooth reveal animation for Step 4 */
+@keyframes step4SlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.step4-animate-in {
+  animation: step4SlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ========================================================= */
 /* CONFIRMATION MODAL (Bootstrap)                            */
 /* ========================================================= */
 
@@ -3436,7 +3588,8 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12);
   transform: translateY(100%);
   transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), max-height 0.32s cubic-bezier(0.16, 1, 0.3, 1);
-  max-height: 72px;
+  max-height: 84px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -3489,6 +3642,25 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   transform: rotate(180deg);
 }
 
+.mobile-summary-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mobile-summary-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  line-height: 1.25;
+}
+
+.mobile-summary-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .bottom-sheet-body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -3498,6 +3670,36 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
 
 .sheet-summary-item {
   font-size: 0.88rem;
+}
+
+.sheet-customer-recap {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+#btnMobileProceed {
+  white-space: nowrap;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.65rem;
+  line-height: 1.25;
+  transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.15s ease;
+}
+
+@media (min-width: 375px) {
+  #btnMobileProceed {
+    font-size: 0.85rem;
+    padding: 0.38rem 0.85rem;
+  }
+}
+
+@media (max-width: 374px) {
+  .sheet-btn-word-prefix {
+    display: none;
+  }
+  #mobileSummaryPrice {
+    font-size: 0.9rem !important;
+  }
 }
 
 /* =========================================================

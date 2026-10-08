@@ -28,18 +28,18 @@
         <!-- Date Navigator -->
         <div class="d-flex align-items-center gap-2 w-100 w-md-auto justify-content-between justify-content-md-end flex-wrap">
             <div class="btn-group btn-group-sm flex-shrink-0 shadow-sm">
-                <a asp-page="./Index" asp-route-date="@Model.SelectedDate.AddDays(-1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary" title="Previous Day">
+                <a asp-page="./Index" asp-route-date="@Model.SelectedDate.AddDays(-1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary py-2 px-3" title="Previous Day">
                     <i class="bi bi-chevron-left"></i>
                 </a>
-                <a asp-page="./Index" asp-route-date="@DateTime.Today.ToString("yyyy-MM-dd")" class="btn @(isToday ? "btn-success" : "btn-outline-secondary") fw-semibold">
+                <a asp-page="./Index" asp-route-date="@DateTime.Today.ToString("yyyy-MM-dd")" class="btn @(isToday ? "btn-success" : "btn-outline-secondary") py-2 px-3 fw-semibold">
                     Today
                 </a>
-                <a asp-page="./Index" asp-route-date="@Model.SelectedDate.AddDays(1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary" title="Next Day">
+                <a asp-page="./Index" asp-route-date="@Model.SelectedDate.AddDays(1).ToString("yyyy-MM-dd")" class="btn btn-outline-secondary py-2 px-3" title="Next Day">
                     <i class="bi bi-chevron-right"></i>
                 </a>
             </div>
             <form method="get" class="d-flex align-items-center flex-grow-1 flex-md-grow-0">
-                <input type="date" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" onchange="this.form.submit()" class="form-control form-control-sm w-100 shadow-sm" style="min-width:135px;" />
+                <input type="date" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" onchange="this.form.submit()" class="form-control form-control-sm py-2 shadow-sm" style="min-width:135px;" />
             </form>
         </div>
     </div>
@@ -63,42 +63,42 @@
     }
     <div id="ajax-alert" class="alert d-none align-items-center py-2 px-3 mb-3 mb-md-4 shadow-sm border-0 rounded-3" role="alert"></div>
 
-    <!-- Summary Statistics Cards -->
+    <!-- Summary Statistics Cards (Interactive Filter Shortcuts) -->
     <div class="row g-2 g-sm-3 mb-3 mb-md-4">
         <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm h-100 rounded-3 checkin-stat-card">
+            <div class="card border-0 shadow-sm h-100 rounded-3 checkin-stat-card cursor-pointer kpi-card-filter" data-kpi-filter="all" title="Click to show all expected players">
                 <div class="card-body p-2 p-sm-3">
                     <div class="text-muted small fw-semibold text-uppercase tracking-wider">Total Expected</div>
-                    <div class="fs-4 fs-md-3 fw-bold mb-1 mt-1 text-dark">@feed.TotalExpected</div>
+                    <div class="fs-4 fs-md-3 fw-bold mb-1 mt-1 text-dark" id="stat-total-count">@feed.TotalExpected</div>
                     <div class="text-muted small text-truncate" style="font-size:0.75rem;">@feed.Activities.Sum(a => a.TotalRsvps) acts &bull; @feed.Bookings.Count bookings</div>
                 </div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm h-100 rounded-3 border-start border-success border-4 checkin-stat-card">
+            <div class="card border-0 shadow-sm h-100 rounded-3 border-start border-success border-4 checkin-stat-card cursor-pointer kpi-card-filter" data-kpi-filter="checkedin" title="Click to filter Checked In players">
                 <div class="card-body p-2 p-sm-3">
                     <div class="text-success small fw-semibold text-uppercase tracking-wider">Checked In</div>
-                    <div class="fs-4 fs-md-3 fw-bold mb-1 mt-1 text-success">@feed.TotalCheckedIn</div>
+                    <div class="fs-4 fs-md-3 fw-bold mb-1 mt-1 text-success" id="stat-checkedin-count">@feed.TotalCheckedIn</div>
                     <div class="progress" style="height: 5px;">
-                        <div class="progress-bar bg-success" role="progressbar" style="width: @(checkInPercent)%" aria-valuenow="@(checkInPercent)" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="progress-bar bg-success" id="stat-progressbar" role="progressbar" style="width: @(checkInPercent)%" aria-valuenow="@(checkInPercent)" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm h-100 rounded-3 border-start border-warning border-4 checkin-stat-card">
+            <div class="card border-0 shadow-sm h-100 rounded-3 border-start border-warning border-4 checkin-stat-card cursor-pointer kpi-card-filter" data-kpi-filter="pending" title="Click to filter Awaiting players">
                 <div class="card-body p-2 p-sm-3">
                     <div class="text-warning-emphasis small fw-semibold text-uppercase tracking-wider">Awaiting</div>
-                    <div class="fs-4 fs-md-3 fw-bold mb-1 mt-1 text-warning-emphasis">@feed.TotalPending</div>
+                    <div class="fs-4 fs-md-3 fw-bold mb-1 mt-1 text-warning-emphasis" id="stat-pending-count">@feed.TotalPending</div>
                     <div class="text-muted small" style="font-size:0.75rem;">Pending arrival</div>
                 </div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm h-100 rounded-3 border-start border-danger border-4 checkin-stat-card">
+            <div class="card border-0 shadow-sm h-100 rounded-3 border-start border-danger border-4 checkin-stat-card cursor-pointer kpi-card-filter" data-kpi-filter="noshow" title="Click to filter No-Show players">
                 <div class="card-body p-2 p-sm-3">
                     <div class="text-danger small fw-semibold text-uppercase tracking-wider">No-Shows</div>
-                    <div class="fs-4 fs-md-3 fw-bold mb-1 mt-1 text-danger">@feed.TotalNoShow</div>
+                    <div class="fs-4 fs-md-3 fw-bold mb-1 mt-1 text-danger" id="stat-noshow-count">@feed.TotalNoShow</div>
                     <div class="text-muted small" style="font-size:0.75rem;">Recorded absent</div>
                 </div>
             </div>
@@ -121,23 +121,38 @@
                         <div class="col-12 col-sm-8 col-md-8">
                             <div class="input-group shadow-sm">
                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-qr-code"></i></span>
-                                <input type="text" id="qrPayloadInput" name="qrPayload" class="form-control border-start-0"
+                                <input type="text" id="qrPayloadInput" name="qrPayload" class="form-control border-start-0 py-2"
                                        placeholder="e.g. RSVP:42 or BOOKING:PB-1234..." autofocus autocomplete="off" />
+                                <button type="button" class="btn btn-outline-secondary border-start-0 d-none" id="btnClearPayload" title="Clear input">
+                                    <i class="bi bi-x"></i>
+                                </button>
                             </div>
                         </div>
                         <div class="col-12 col-sm-4 col-md-4">
-                            <button type="submit" id="btnSubmitCheckIn" class="btn btn-success w-100 fw-semibold d-flex align-items-center justify-content-center shadow-sm">
+                            <button type="submit" id="btnSubmitCheckIn" class="btn btn-success w-100 py-2 fw-semibold d-flex align-items-center justify-content-center shadow-sm">
                                 <i class="bi bi-check2-circle me-1"></i>Check In
                             </button>
                         </div>
                     </form>
                 </div>
                 <div class="col-12 col-lg-5 text-lg-end">
-                    <button type="button" id="btnToggleCamera" class="btn btn-outline-success btn-sm w-100 w-lg-auto py-2 px-3 fw-semibold shadow-sm">
-                        <i class="bi bi-camera-video me-1"></i><span id="cameraBtnText">Open Camera Scanner</span>
-                    </button>
-                    <div id="cameraContainer" class="d-none mt-3 p-2 bg-white rounded-3 border shadow-sm mx-auto mx-lg-0 ms-lg-auto" style="max-width:320px; width:100%;">
-                        <div id="qrReader" style="width:100%;min-height:220px;"></div>
+                    <div class="d-flex flex-column flex-sm-row gap-2 justify-content-lg-end">
+                        <button type="button" id="btnToggleCamera" class="btn btn-outline-success btn-sm py-2 px-3 fw-semibold shadow-sm">
+                            <i class="bi bi-camera-video me-1"></i><span id="cameraBtnText">Live Camera Scanner</span>
+                        </button>
+                        <button type="button" id="btnSnapPhoto" class="btn btn-outline-primary btn-sm py-2 px-3 fw-semibold shadow-sm">
+                            <i class="bi bi-camera me-1"></i><span>Snap QR Photo</span>
+                        </button>
+                        <input type="file" id="qrFileInput" accept="image/*" capture="environment" class="d-none" />
+                    </div>
+                    <div id="cameraContainer" class="d-none mt-3 p-2 bg-white rounded-3 border shadow-sm mx-auto mx-lg-0 ms-lg-auto" style="max-width:340px; width:100%;">
+                        <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                            <span class="small fw-semibold text-muted"><i class="bi bi-camera me-1"></i>Camera Live</span>
+                            <button type="button" id="btnToggleTorch" class="btn btn-sm btn-outline-warning py-0 px-2 d-none" title="Toggle Flashlight / Torch">
+                                <i class="bi bi-flashlight me-1"></i><span id="torchBtnText">Torch</span>
+                            </button>
+                        </div>
+                        <div id="qrReader" style="width:100%;min-height:240px;border-radius:8px;overflow:hidden;"></div>
                         <div class="small text-muted text-center mt-2"><i class="bi bi-bullseye me-1"></i>Point camera at player QR code</div>
                     </div>
                 </div>
@@ -148,8 +163,8 @@
     <!-- Attendance Tabs Container -->
     <div class="card border-0 shadow-sm rounded-3">
         <!-- Tab Navigation & Quick Filter Toolbar -->
-        <div class="card-header bg-white border-bottom p-3 p-md-4 pb-0 pb-md-0">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3 pb-3">
+        <div class="card-header bg-white border-bottom p-3 p-md-4 pb-2 pb-md-3">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3 mb-2">
                 <!-- Custom Navigation Pills -->
                 <ul class="nav nav-pills checkin-nav-pills gap-2" id="checkInTabs" role="tablist">
                     <li class="nav-item flex-fill flex-sm-grow-0" role="presentation">
@@ -166,16 +181,32 @@
                     </li>
                 </ul>
 
-                <!-- Live Search Box & Status Filter -->
+                <!-- Live Search Box -->
                 <div class="d-flex align-items-center gap-2 flex-grow-1 flex-md-grow-0">
                     <div class="input-group input-group-sm search-input-group shadow-sm w-100" style="max-width:320px;">
                         <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                        <input type="text" id="attendanceSearchInput" class="form-control border-start-0" placeholder="Filter roster or bookings..." autocomplete="off" />
+                        <input type="text" id="attendanceSearchInput" class="form-control border-start-0 py-2" placeholder="Filter roster or bookings..." autocomplete="off" />
                         <button class="btn btn-outline-secondary border-start-0 d-none" type="button" id="btnClearSearch">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
                 </div>
+            </div>
+
+            <!-- Horizontal Swipeable Status Filter Chips -->
+            <div class="checkin-status-chips d-flex gap-1 overflow-x-auto pt-2" style="scrollbar-width:none;">
+                <button type="button" class="status-chip active" data-status-filter="all">
+                    All <span class="badge rounded-pill ms-1">@feed.TotalExpected</span>
+                </button>
+                <button type="button" class="status-chip" data-status-filter="pending">
+                    <i class="bi bi-hourglass-split me-1 text-warning"></i>Awaiting <span class="badge rounded-pill ms-1" id="chip-pending-count">@feed.TotalPending</span>
+                </button>
+                <button type="button" class="status-chip" data-status-filter="checkedin">
+                    <i class="bi bi-check2-circle me-1 text-success"></i>Checked In <span class="badge rounded-pill ms-1" id="chip-checkedin-count">@feed.TotalCheckedIn</span>
+                </button>
+                <button type="button" class="status-chip" data-status-filter="noshow">
+                    <i class="bi bi-x-circle me-1 text-danger"></i>No-Show <span class="badge rounded-pill ms-1" id="chip-noshow-count">@feed.TotalNoShow</span>
+                </button>
             </div>
         </div>
 
@@ -259,7 +290,10 @@
                                                 <tbody>
                                                     @foreach (var p in act.Players)
                                                     {
-                                                        <tr class="searchable-item" data-search="@p.PlayerName @p.Email @p.Mobile @p.RsvpId @act.Name @act.Courts">
+                                                        var pStatus = p.Status == RsvpStatus.CheckedIn ? "checkedin" : p.Status == RsvpStatus.NoShow ? "noshow" : "pending";
+                                                        var cleanPhone = !string.IsNullOrEmpty(p.Mobile) ? new string(p.Mobile.Where(char.IsDigit).ToArray()) : "";
+
+                                                        <tr class="searchable-item" data-search="@p.PlayerName @p.Email @p.Mobile @p.RsvpId @act.Name @act.Courts" data-status="@pStatus" id="row-rsvp-@p.RsvpId">
                                                             <td>
                                                                 <div class="d-flex align-items-center gap-2">
                                                                     @if (!string.IsNullOrEmpty(p.AvatarUrl))
@@ -291,7 +325,14 @@
                                                                 }
                                                                 @if (!string.IsNullOrEmpty(p.Mobile))
                                                                 {
-                                                                    <div class="text-muted" style="font-size:0.75rem;"><i class="bi bi-telephone text-muted me-1"></i>@p.Mobile</div>
+                                                                    <div class="text-muted d-flex align-items-center gap-1" style="font-size:0.75rem;">
+                                                                        <i class="bi bi-telephone text-muted"></i>
+                                                                        <span>@p.Mobile</span>
+                                                                        @if (!string.IsNullOrEmpty(cleanPhone))
+                                                                        {
+                                                                            <a href="tel:@cleanPhone" class="text-success ms-1" title="Call"><i class="bi bi-telephone-fill"></i></a>
+                                                                        }
+                                                                    </div>
                                                                 }
                                                                 @if (string.IsNullOrEmpty(p.Email) && string.IsNullOrEmpty(p.Mobile))
                                                                 {
@@ -301,7 +342,7 @@
                                                             <td class="small">
                                                                 <span class="badge bg-light text-dark border">@(p.SkillLevel?.ToString() ?? "Open")</span>
                                                             </td>
-                                                            <td>
+                                                            <td class="status-cell">
                                                                 @if (p.Status == RsvpStatus.CheckedIn)
                                                                 {
                                                                     <span class="badge bg-success px-2 py-1">
@@ -321,7 +362,7 @@
                                                                     </span>
                                                                 }
                                                             </td>
-                                                            <td class="small text-muted">
+                                                            <td class="small text-muted time-cell">
                                                                 @if (p.CheckedInAt.HasValue)
                                                                 {
                                                                     <span class="text-success fw-medium">@p.CheckedInAt.Value.ToLocalTime().ToString("h:mm tt")</span>
@@ -335,11 +376,11 @@
                                                                     <span>—</span>
                                                                 }
                                                             </td>
-                                                            <td class="text-end">
+                                                            <td class="text-end actions-cell">
                                                                 <div class="btn-group btn-group-sm">
                                                                     @if (p.Status != RsvpStatus.CheckedIn)
                                                                     {
-                                                                        <form method="post" asp-page-handler="CheckInRsvp" class="d-inline">
+                                                                        <form method="post" asp-page-handler="CheckInRsvp" class="d-inline ajax-checkin-form" data-type="rsvp" data-id="@p.RsvpId">
                                                                             <input type="hidden" name="rsvpId" value="@p.RsvpId" />
                                                                             <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
                                                                             <button type="submit" class="btn btn-success btn-sm py-1 px-2 shadow-sm" title="Check In">
@@ -349,7 +390,7 @@
                                                                     }
                                                                     @if (p.Status != RsvpStatus.NoShow && p.Status != RsvpStatus.CheckedIn)
                                                                     {
-                                                                        <form method="post" asp-page-handler="MarkRsvpNoShowAsync" class="d-inline ms-1" onsubmit="return confirm('Mark @p.PlayerName as No-Show?');">
+                                                                        <form method="post" asp-page-handler="MarkRsvpNoShowAsync" class="d-inline ms-1 ajax-checkin-form" data-type="rsvp" data-id="@p.RsvpId" onsubmit="return confirm('Mark @p.PlayerName as No-Show?');">
                                                                             <input type="hidden" name="rsvpId" value="@p.RsvpId" />
                                                                             <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
                                                                             <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" title="Mark No-Show">
@@ -359,7 +400,7 @@
                                                                     }
                                                                     @if (p.Status == RsvpStatus.CheckedIn || p.Status == RsvpStatus.NoShow)
                                                                     {
-                                                                        <form method="post" asp-page-handler="UndoRsvp" class="d-inline ms-1">
+                                                                        <form method="post" asp-page-handler="UndoRsvp" class="d-inline ms-1 ajax-checkin-form" data-type="rsvp" data-id="@p.RsvpId">
                                                                             <input type="hidden" name="rsvpId" value="@p.RsvpId" />
                                                                             <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
                                                                             <button type="submit" class="btn btn-outline-secondary btn-sm py-1 px-2" title="Reset to Pending">
@@ -379,16 +420,20 @@
                                         <div class="d-md-none d-flex flex-column gap-2">
                                             @foreach (var p in act.Players)
                                             {
-                                                <div class="border rounded-3 p-3 bg-light-subtle searchable-item shadow-none" data-search="@p.PlayerName @p.Email @p.Mobile @p.RsvpId @act.Name @act.Courts">
+                                                var pStatus = p.Status == RsvpStatus.CheckedIn ? "checkedin" : p.Status == RsvpStatus.NoShow ? "noshow" : "pending";
+                                                var cleanPhone = !string.IsNullOrEmpty(p.Mobile) ? new string(p.Mobile.Where(char.IsDigit).ToArray()) : "";
+
+                                                <div class="border rounded-3 p-3 bg-light-subtle searchable-item shadow-none checkin-mobile-card @(p.Status == RsvpStatus.CheckedIn ? "checkedin-card" : p.Status == RsvpStatus.NoShow ? "noshow-card" : "")"
+                                                     data-search="@p.PlayerName @p.Email @p.Mobile @p.RsvpId @act.Name @act.Courts" data-status="@pStatus" id="card-rsvp-@p.RsvpId">
                                                     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                                                         <div class="d-flex align-items-center gap-2 min-w-0">
                                                             @if (!string.IsNullOrEmpty(p.AvatarUrl))
                                                             {
-                                                                <img src="@p.AvatarUrl" alt="" class="rounded-circle flex-shrink-0 shadow-sm" style="width:36px;height:36px;object-fit:cover;" />
+                                                                <img src="@p.AvatarUrl" alt="" class="rounded-circle flex-shrink-0 shadow-sm" style="width:38px;height:38px;object-fit:cover;" />
                                                             }
                                                             else
                                                             {
-                                                                <div class="rounded-circle bg-secondary bg-opacity-25 d-flex align-items-center justify-content-center text-secondary small fw-bold flex-shrink-0 shadow-sm" style="width:36px;height:36px;">
+                                                                <div class="rounded-circle bg-secondary bg-opacity-25 d-flex align-items-center justify-content-center text-secondary small fw-bold flex-shrink-0 shadow-sm" style="width:38px;height:38px;">
                                                                     @p.PlayerName.Substring(0, 1).ToUpper()
                                                                 </div>
                                                             }
@@ -403,7 +448,7 @@
                                                                 <div class="text-muted small" style="font-size:0.75rem;">RSVP #@p.RsvpId &bull; @(p.SkillLevel?.ToString() ?? "Open")</div>
                                                             </div>
                                                         </div>
-                                                        <div class="flex-shrink-0">
+                                                        <div class="flex-shrink-0 status-cell">
                                                             @if (p.Status == RsvpStatus.CheckedIn)
                                                             {
                                                                 <span class="badge bg-success small"><i class="bi bi-check2 me-1"></i>In</span>
@@ -420,7 +465,10 @@
                                                     </div>
 
                                                     <div class="small text-muted mb-2 d-flex flex-wrap gap-x-3 gap-y-1">
-                                                        <span><i class="bi bi-envelope me-1"></i>@p.Email</span>
+                                                        @if (!string.IsNullOrEmpty(p.Email))
+                                                        {
+                                                            <span class="text-truncate" style="max-width:200px;"><i class="bi bi-envelope me-1"></i>@p.Email</span>
+                                                        }
                                                         @if (!string.IsNullOrEmpty(p.Mobile))
                                                         {
                                                             <span><i class="bi bi-phone me-1"></i>@p.Mobile</span>
@@ -431,37 +479,50 @@
                                                         }
                                                     </div>
 
-                                                    <div class="d-flex align-items-center justify-content-end gap-1 pt-2 border-top">
-                                                        @if (p.Status != RsvpStatus.CheckedIn)
+                                                    <!-- 1-Tap Touch Contact & Check-in Controls -->
+                                                    <div class="d-flex align-items-center gap-1 pt-2 border-top flex-wrap">
+                                                        @if (!string.IsNullOrEmpty(cleanPhone))
                                                         {
-                                                            <form method="post" asp-page-handler="CheckInRsvp" class="flex-fill">
-                                                                <input type="hidden" name="rsvpId" value="@p.RsvpId" />
-                                                                <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
-                                                                <button type="submit" class="btn btn-success btn-sm w-100 py-1 fw-semibold shadow-sm" title="Check In">
-                                                                    <i class="bi bi-check2 me-1"></i>Check In
-                                                                </button>
-                                                            </form>
+                                                            <a href="tel:@cleanPhone" class="btn btn-outline-success btn-sm py-2 px-3 fw-semibold d-inline-flex align-items-center gap-1" title="Call player">
+                                                                <i class="bi bi-telephone-fill"></i> <span>Call</span>
+                                                            </a>
+                                                            <a href="sms:@cleanPhone" class="btn btn-outline-info btn-sm py-2 px-3 fw-semibold d-inline-flex align-items-center gap-1" title="SMS text">
+                                                                <i class="bi bi-chat-dots-fill"></i> <span>SMS</span>
+                                                            </a>
                                                         }
-                                                        @if (p.Status != RsvpStatus.NoShow && p.Status != RsvpStatus.CheckedIn)
-                                                        {
-                                                            <form method="post" asp-page-handler="MarkRsvpNoShowAsync" class="flex-shrink-0" onsubmit="return confirm('Mark @p.PlayerName as No-Show?');">
-                                                                <input type="hidden" name="rsvpId" value="@p.RsvpId" />
-                                                                <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
-                                                                <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-3" title="Mark No-Show">
-                                                                    <i class="bi bi-x-circle me-1"></i>No-Show
-                                                                </button>
-                                                            </form>
-                                                        }
-                                                        @if (p.Status == RsvpStatus.CheckedIn || p.Status == RsvpStatus.NoShow)
-                                                        {
-                                                            <form method="post" asp-page-handler="UndoRsvp" class="w-100">
-                                                                <input type="hidden" name="rsvpId" value="@p.RsvpId" />
-                                                                <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
-                                                                <button type="submit" class="btn btn-outline-secondary btn-sm w-100 py-1" title="Reset to Pending">
-                                                                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to Pending
-                                                                </button>
-                                                            </form>
-                                                        }
+
+                                                        <div class="ms-auto d-flex align-items-center gap-1 flex-fill justify-content-end actions-cell">
+                                                            @if (p.Status != RsvpStatus.CheckedIn)
+                                                            {
+                                                                <form method="post" asp-page-handler="CheckInRsvp" class="flex-fill ajax-checkin-form" data-type="rsvp" data-id="@p.RsvpId">
+                                                                    <input type="hidden" name="rsvpId" value="@p.RsvpId" />
+                                                                    <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                                                                    <button type="submit" class="btn btn-success btn-sm w-100 py-2 fw-semibold shadow-sm" title="Check In">
+                                                                        <i class="bi bi-check2 me-1"></i>Check In
+                                                                    </button>
+                                                                </form>
+                                                            }
+                                                            @if (p.Status != RsvpStatus.NoShow && p.Status != RsvpStatus.CheckedIn)
+                                                            {
+                                                                <form method="post" asp-page-handler="MarkRsvpNoShowAsync" class="flex-shrink-0 ajax-checkin-form" data-type="rsvp" data-id="@p.RsvpId" onsubmit="return confirm('Mark @p.PlayerName as No-Show?');">
+                                                                    <input type="hidden" name="rsvpId" value="@p.RsvpId" />
+                                                                    <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                                                                    <button type="submit" class="btn btn-outline-danger btn-sm py-2 px-3" title="Mark No-Show">
+                                                                        <i class="bi bi-x-circle me-1"></i>No-Show
+                                                                    </button>
+                                                                </form>
+                                                            }
+                                                            @if (p.Status == RsvpStatus.CheckedIn || p.Status == RsvpStatus.NoShow)
+                                                            {
+                                                                <form method="post" asp-page-handler="UndoRsvp" class="w-100 ajax-checkin-form" data-type="rsvp" data-id="@p.RsvpId">
+                                                                    <input type="hidden" name="rsvpId" value="@p.RsvpId" />
+                                                                    <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                                                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100 py-2" title="Reset to Pending">
+                                                                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to Pending
+                                                                    </button>
+                                                                </form>
+                                                            }
+                                                        </div>
                                                     </div>
                                                 </div>
                                             }
@@ -502,7 +563,10 @@
                                 <tbody>
                                     @foreach (var b in feed.Bookings)
                                     {
-                                        <tr class="searchable-item" data-search="@b.BookingReference @b.CustomerName @b.CustomerEmail @b.CustomerPhone @b.CourtName">
+                                        var bStatus = b.IsCheckedIn ? "checkedin" : b.IsNoShow ? "noshow" : "pending";
+                                        var cleanPhone = !string.IsNullOrEmpty(b.CustomerPhone) ? new string(b.CustomerPhone.Where(char.IsDigit).ToArray()) : "";
+
+                                        <tr class="searchable-item" data-search="@b.BookingReference @b.CustomerName @b.CustomerEmail @b.CustomerPhone @b.CourtName" data-status="@bStatus" id="row-booking-@b.BookingReference">
                                             <td>
                                                 <span class="badge bg-light text-dark border font-monospace px-2 py-1 shadow-sm">
                                                     @b.BookingReference
@@ -510,7 +574,17 @@
                                             </td>
                                             <td>
                                                 <div class="fw-semibold">@b.CustomerName</div>
-                                                <div class="text-muted small" style="font-size:0.75rem;">@b.CustomerEmail &bull; @b.CustomerPhone</div>
+                                                <div class="text-muted small d-flex align-items-center gap-1" style="font-size:0.75rem;">
+                                                    <span>@b.CustomerEmail</span>
+                                                    @if (!string.IsNullOrEmpty(b.CustomerPhone))
+                                                    {
+                                                        <span>&bull; @b.CustomerPhone</span>
+                                                        @if (!string.IsNullOrEmpty(cleanPhone))
+                                                        {
+                                                            <a href="tel:@cleanPhone" class="text-success ms-1" title="Call"><i class="bi bi-telephone-fill"></i></a>
+                                                        }
+                                                    }
+                                                </div>
                                             </td>
                                             <td class="small fw-medium">
                                                 <span class="badge bg-success-subtle text-success border border-success-subtle">
@@ -520,7 +594,7 @@
                                             <td class="small">
                                                 @PickleBallBooking.Services.AppClock.To12HourRange(b.StartTime, b.EndTime)
                                             </td>
-                                            <td>
+                                            <td class="status-cell">
                                                 @if (b.IsCheckedIn)
                                                 {
                                                     <span class="badge bg-success px-2 py-1">
@@ -540,7 +614,7 @@
                                                     </span>
                                                 }
                                             </td>
-                                            <td class="small text-muted">
+                                            <td class="small text-muted time-cell">
                                                 @if (b.CheckedInAt.HasValue)
                                                 {
                                                     <span class="text-success fw-medium">@b.CheckedInAt.Value.ToLocalTime().ToString("h:mm tt")</span>
@@ -554,11 +628,11 @@
                                                     <span>—</span>
                                                 }
                                             </td>
-                                            <td class="text-end">
+                                            <td class="text-end actions-cell">
                                                 <div class="btn-group btn-group-sm">
                                                     @if (!b.IsCheckedIn)
                                                     {
-                                                        <form method="post" asp-page-handler="CheckInBooking" class="d-inline">
+                                                        <form method="post" asp-page-handler="CheckInBooking" class="d-inline ajax-checkin-form" data-type="booking" data-id="@b.BookingReference">
                                                             <input type="hidden" name="bookingReference" value="@b.BookingReference" />
                                                             <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
                                                             <button type="submit" class="btn btn-success btn-sm py-1 px-2 shadow-sm" title="Check In Booking">
@@ -568,7 +642,7 @@
                                                     }
                                                     @if (!b.IsNoShow && !b.IsCheckedIn)
                                                     {
-                                                        <form method="post" asp-page-handler="MarkBookingNoShow" class="d-inline ms-1" onsubmit="return confirm('Mark booking @b.BookingReference as No-Show?');">
+                                                        <form method="post" asp-page-handler="MarkBookingNoShow" class="d-inline ms-1 ajax-checkin-form" data-type="booking" data-id="@b.BookingReference" onsubmit="return confirm('Mark booking @b.BookingReference as No-Show?');">
                                                             <input type="hidden" name="bookingReference" value="@b.BookingReference" />
                                                             <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
                                                             <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-2" title="Mark No-Show">
@@ -578,7 +652,7 @@
                                                     }
                                                     @if (b.IsCheckedIn || b.IsNoShow)
                                                     {
-                                                        <form method="post" asp-page-handler="UndoBooking" class="d-inline ms-1">
+                                                        <form method="post" asp-page-handler="UndoBooking" class="d-inline ms-1 ajax-checkin-form" data-type="booking" data-id="@b.BookingReference">
                                                             <input type="hidden" name="bookingReference" value="@b.BookingReference" />
                                                             <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
                                                             <button type="submit" class="btn btn-outline-secondary btn-sm py-1 px-2" title="Reset to Pending">
@@ -598,7 +672,11 @@
                         <div class="d-md-none d-flex flex-column gap-2">
                             @foreach (var b in feed.Bookings)
                             {
-                                <div class="border rounded-3 p-3 bg-light-subtle searchable-item shadow-none" data-search="@b.BookingReference @b.CustomerName @b.CustomerEmail @b.CustomerPhone @b.CourtName">
+                                var bStatus = b.IsCheckedIn ? "checkedin" : b.IsNoShow ? "noshow" : "pending";
+                                var cleanPhone = !string.IsNullOrEmpty(b.CustomerPhone) ? new string(b.CustomerPhone.Where(char.IsDigit).ToArray()) : "";
+
+                                <div class="border rounded-3 p-3 bg-light-subtle searchable-item shadow-none checkin-mobile-card @(b.IsCheckedIn ? "checkedin-card" : b.IsNoShow ? "noshow-card" : "")"
+                                     data-search="@b.BookingReference @b.CustomerName @b.CustomerEmail @b.CustomerPhone @b.CourtName" data-status="@bStatus" id="card-booking-@b.BookingReference">
                                     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                                         <div>
                                             <div class="fw-semibold small d-flex align-items-center">
@@ -606,7 +684,7 @@
                                             </div>
                                             <span class="badge bg-light text-dark border font-monospace small mt-1 shadow-sm">@b.BookingReference</span>
                                         </div>
-                                        <div>
+                                        <div class="status-cell">
                                             @if (b.IsCheckedIn)
                                             {
                                                 <span class="badge bg-success small"><i class="bi bi-check2 me-1"></i>In</span>
@@ -633,44 +711,59 @@
                                         </div>
                                         <div>
                                             <i class="bi bi-clock me-1 text-success"></i>@PickleBallBooking.Services.AppClock.To12HourRange(b.StartTime, b.EndTime)
-                                            @if (b.CheckedInAt.HasValue)
-                                            {
-                                                <span class="ms-2 text-success"><i class="bi bi-patch-check me-1"></i>@b.CheckedInAt.Value.ToLocalTime().ToString("h:mm tt")</span>
-                                            }
+                                            <span class="ms-2 time-cell">
+                                                @if (b.CheckedInAt.HasValue)
+                                                {
+                                                    <span class="text-success"><i class="bi bi-patch-check me-1"></i>@b.CheckedInAt.Value.ToLocalTime().ToString("h:mm tt")</span>
+                                                }
+                                            </span>
                                         </div>
                                     </div>
 
-                                    <div class="d-flex align-items-center justify-content-end gap-1 pt-2 border-top">
-                                        @if (!b.IsCheckedIn)
+                                    <!-- 1-Tap Touch Contact & Action Buttons -->
+                                    <div class="d-flex align-items-center gap-1 pt-2 border-top flex-wrap">
+                                        @if (!string.IsNullOrEmpty(cleanPhone))
                                         {
-                                            <form method="post" asp-page-handler="CheckInBooking" class="flex-fill">
-                                                <input type="hidden" name="bookingReference" value="@b.BookingReference" />
-                                                <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
-                                                <button type="submit" class="btn btn-success btn-sm w-100 py-1 fw-semibold shadow-sm" title="Check In Booking">
-                                                    <i class="bi bi-check2 me-1"></i>Check In
-                                                </button>
-                                            </form>
+                                            <a href="tel:@cleanPhone" class="btn btn-outline-success btn-sm py-2 px-3 fw-semibold d-inline-flex align-items-center gap-1" title="Call customer">
+                                                <i class="bi bi-telephone-fill"></i> <span>Call</span>
+                                            </a>
+                                            <a href="sms:@cleanPhone" class="btn btn-outline-info btn-sm py-2 px-3 fw-semibold d-inline-flex align-items-center gap-1" title="SMS text">
+                                                <i class="bi bi-chat-dots-fill"></i> <span>SMS</span>
+                                            </a>
                                         }
-                                        @if (!b.IsNoShow && !b.IsCheckedIn)
-                                        {
-                                            <form method="post" asp-page-handler="MarkBookingNoShow" class="flex-shrink-0" onsubmit="return confirm('Mark booking @b.BookingReference as No-Show?');">
-                                                <input type="hidden" name="bookingReference" value="@b.BookingReference" />
-                                                <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
-                                                <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-3" title="Mark No-Show">
-                                                    <i class="bi bi-x-circle me-1"></i>No-Show
-                                                </button>
-                                            </form>
-                                        }
-                                        @if (b.IsCheckedIn || b.IsNoShow)
-                                        {
-                                            <form method="post" asp-page-handler="UndoBooking" class="w-100">
-                                                <input type="hidden" name="bookingReference" value="@b.BookingReference" />
-                                                <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
-                                                <button type="submit" class="btn btn-outline-secondary btn-sm w-100 py-1" title="Reset to Pending">
-                                                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to Pending
-                                                </button>
-                                            </form>
-                                        }
+
+                                        <div class="ms-auto d-flex align-items-center gap-1 flex-fill justify-content-end actions-cell">
+                                            @if (!b.IsCheckedIn)
+                                            {
+                                                <form method="post" asp-page-handler="CheckInBooking" class="flex-fill ajax-checkin-form" data-type="booking" data-id="@b.BookingReference">
+                                                    <input type="hidden" name="bookingReference" value="@b.BookingReference" />
+                                                    <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                                                    <button type="submit" class="btn btn-success btn-sm w-100 py-2 fw-semibold shadow-sm" title="Check In Booking">
+                                                        <i class="bi bi-check2 me-1"></i>Check In
+                                                    </button>
+                                                </form>
+                                            }
+                                            @if (!b.IsNoShow && !b.IsCheckedIn)
+                                            {
+                                                <form method="post" asp-page-handler="MarkBookingNoShow" class="flex-shrink-0 ajax-checkin-form" data-type="booking" data-id="@b.BookingReference" onsubmit="return confirm('Mark booking @b.BookingReference as No-Show?');">
+                                                    <input type="hidden" name="bookingReference" value="@b.BookingReference" />
+                                                    <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm py-2 px-3" title="Mark No-Show">
+                                                        <i class="bi bi-x-circle me-1"></i>No-Show
+                                                    </button>
+                                                </form>
+                                            }
+                                            @if (b.IsCheckedIn || b.IsNoShow)
+                                            {
+                                                <form method="post" asp-page-handler="UndoBooking" class="w-100 ajax-checkin-form" data-type="booking" data-id="@b.BookingReference">
+                                                    <input type="hidden" name="bookingReference" value="@b.BookingReference" />
+                                                    <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm w-100 py-2" title="Reset to Pending">
+                                                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to Pending
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
                                     </div>
                                 </div>
                             }
@@ -688,20 +781,96 @@
 <script>
     let html5QrCode = null;
     let isCameraActive = false;
+    let isTorchActive = false;
+    let activeStatusFilter = 'all';
 
     const btnToggle = document.getElementById('btnToggleCamera');
     const cameraText = document.getElementById('cameraBtnText');
     const container = document.getElementById('cameraContainer');
+    const btnToggleTorch = document.getElementById('btnToggleTorch');
+    const torchText = document.getElementById('torchBtnText');
     const payloadInput = document.getElementById('qrPayloadInput');
+    const btnClearPayload = document.getElementById('btnClearPayload');
     const ajaxAlert = document.getElementById('ajax-alert');
     const searchInput = document.getElementById('attendanceSearchInput');
     const btnClearSearch = document.getElementById('btnClearSearch');
+
+    function playSuccessChime() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+            osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12); // A5
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+        } catch(e) {}
+    }
+
+    function triggerHaptic() {
+        if (navigator.vibrate) {
+            navigator.vibrate([100, 50, 100]);
+        }
+    }
 
     function showAlert(msg, isSuccess) {
         ajaxAlert.className = `alert ${isSuccess ? 'alert-success' : 'alert-danger'} d-flex align-items-center py-2 px-3 mb-3 mb-md-4 shadow-sm border-0 rounded-3`;
         ajaxAlert.innerHTML = `<i class="bi ${isSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-2 fs-5 flex-shrink-0"></i><div class="small fw-medium">${msg}</div>`;
         ajaxAlert.classList.remove('d-none');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    // Filter engine combining Text search + Status chip filter
+    function applyCombinedFilter() {
+        const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+        const status = activeStatusFilter;
+
+        document.querySelectorAll('.searchable-item').forEach(item => {
+            const itemText = (item.getAttribute('data-search') || '').toLowerCase();
+            const itemStatus = item.getAttribute('data-status') || '';
+
+            const matchesQuery = query === '' || itemText.includes(query);
+            const matchesStatus = status === 'all' || itemStatus === status;
+
+            item.style.display = (matchesQuery && matchesStatus) ? '' : 'none';
+        });
+
+        // Hide empty activity card blocks if all their children are hidden
+        document.querySelectorAll('.activity-parent-card').forEach(actCard => {
+            const visibleItems = actCard.querySelectorAll('.searchable-item:not([style*="display: none"])');
+            if ((query !== '' || status !== 'all') && visibleItems.length === 0) {
+                actCard.style.display = 'none';
+            } else {
+                actCard.style.display = '';
+            }
+        });
+    }
+
+    // Status chip buttons click handlers
+    document.querySelectorAll('.status-chip').forEach(chip => {
+        chip.addEventListener('click', function () {
+            document.querySelectorAll('.status-chip').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            activeStatusFilter = this.getAttribute('data-status-filter') || 'all';
+            applyCombinedFilter();
+        });
+    });
+
+    // KPI card click to filter shortcuts
+    document.querySelectorAll('.kpi-card-filter').forEach(kpiCard => {
+        kpiCard.addEventListener('click', function () {
+            const filterVal = this.getAttribute('data-kpi-filter') || 'all';
+            const targetChip = document.querySelector(`.status-chip[data-status-filter="${filterVal}"]`);
+            if (targetChip) {
+                targetChip.click();
+            }
+        });
+    });
 
     // Live search filter across active tab
     if (searchInput) {
@@ -710,22 +879,7 @@
             if (btnClearSearch) {
                 btnClearSearch.classList.toggle('d-none', query.length === 0);
             }
-
-            document.querySelectorAll('.searchable-item').forEach(item => {
-                const text = (item.getAttribute('data-search') || '').toLowerCase();
-                const matches = query === '' || text.includes(query);
-                item.style.display = matches ? '' : 'none';
-            });
-
-            // Hide empty activity card blocks if all their children are hidden
-            document.querySelectorAll('.activity-parent-card').forEach(actCard => {
-                const visibleItems = actCard.querySelectorAll('.searchable-item:not([style*="display: none"])');
-                if (query !== '' && visibleItems.length === 0) {
-                    actCard.style.display = 'none';
-                } else {
-                    actCard.style.display = '';
-                }
-            });
+            applyCombinedFilter();
         });
 
         if (btnClearSearch) {
@@ -737,9 +891,22 @@
         }
     }
 
+    // QR payload input clear button
+    if (payloadInput && btnClearPayload) {
+        payloadInput.addEventListener('input', function() {
+            btnClearPayload.classList.toggle('d-none', this.value.length === 0);
+        });
+        btnClearPayload.addEventListener('click', function() {
+            payloadInput.value = '';
+            btnClearPayload.classList.add('d-none');
+            payloadInput.focus();
+        });
+    }
+
     async function handleQrPayload(decodedText) {
         if (!decodedText) return;
         payloadInput.value = decodedText;
+        if (btnClearPayload) btnClearPayload.classList.remove('d-none');
 
         const formData = new FormData();
         formData.append('qrPayload', decodedText);
@@ -761,16 +928,8 @@
             showAlert(data.message, data.success);
 
             if (data.success) {
-                try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const osc = ctx.createOscillator();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-                    osc.connect(ctx.destination);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.15);
-                } catch(e) {}
-
+                playSuccessChime();
+                triggerHaptic();
                 setTimeout(() => window.location.reload(), 1200);
             }
         } catch(err) {
@@ -778,8 +937,84 @@
         }
     }
 
+    // Check camera video track for torch/flashlight capability
+    function checkTorchCapability() {
+        try {
+            const videoElem = document.querySelector('#qrReader video');
+            if (videoElem && videoElem.srcObject) {
+                const track = videoElem.srcObject.getVideoTracks()[0];
+                if (track) {
+                    const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+                    if (capabilities.torch) {
+                        btnToggleTorch.classList.remove('d-none');
+                        return;
+                    }
+                }
+            }
+        } catch(e) {}
+    }
+
+    if (btnToggleTorch) {
+        btnToggleTorch.addEventListener('click', async () => {
+            try {
+                const videoElem = document.querySelector('#qrReader video');
+                if (videoElem && videoElem.srcObject) {
+                    const track = videoElem.srcObject.getVideoTracks()[0];
+                    if (track) {
+                        isTorchActive = !isTorchActive;
+                        await track.applyConstraints({
+                            advanced: [{ torch: isTorchActive }]
+                        });
+                        torchText.textContent = isTorchActive ? 'Torch ON' : 'Torch';
+                        btnToggleTorch.classList.toggle('btn-warning', isTorchActive);
+                        btnToggleTorch.classList.toggle('btn-outline-warning', !isTorchActive);
+                    }
+                }
+            } catch(err) {
+                console.warn('Torch constraint error:', err);
+            }
+        });
+    }
+
+    const btnSnapPhoto = document.getElementById('btnSnapPhoto');
+    const qrFileInput = document.getElementById('qrFileInput');
+
+    if (btnSnapPhoto && qrFileInput) {
+        btnSnapPhoto.addEventListener('click', () => {
+            qrFileInput.click();
+        });
+
+        qrFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            showAlert("Scanning QR from photo...", true);
+            try {
+                if (!html5QrCode) {
+                    html5QrCode = new Html5Qrcode("qrReader");
+                }
+                const decodedText = await html5QrCode.scanFile(file, false);
+                handleQrPayload(decodedText);
+            } catch(err) {
+                console.error("Photo scan error:", err);
+                showAlert("Could not detect a clear QR code in that photo. Please try snapping closer with good lighting.", false);
+            } finally {
+                qrFileInput.value = '';
+            }
+        });
+    }
+
     btnToggle.addEventListener('click', async () => {
         if (!isCameraActive) {
+            // Check for insecure context restriction on mobile browsers
+            const isSecure = window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            if (!isSecure && (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)) {
+                showAlert("⚠️ Mobile browsers require HTTPS to stream live video over the local network. Tap 'Snap QR Photo' instead to scan instantly with your camera!", false);
+                btnSnapPhoto?.classList.add('btn-primary');
+                btnSnapPhoto?.classList.remove('btn-outline-primary');
+                return;
+            }
+
             container.classList.remove('d-none');
             cameraText.textContent = 'Close Camera Scanner';
             btnToggle.classList.replace('btn-outline-success', 'btn-outline-secondary');
@@ -787,7 +1022,9 @@
 
             try {
                 if (typeof Html5Qrcode !== 'undefined') {
-                    html5QrCode = new Html5Qrcode("qrReader");
+                    if (!html5QrCode) {
+                        html5QrCode = new Html5Qrcode("qrReader");
+                    }
                     await html5QrCode.start(
                         { facingMode: "environment" },
                         { fps: 10, qrbox: { width: 220, height: 220 } },
@@ -796,10 +1033,22 @@
                         },
                         (errorMessage) => {}
                     );
+                    setTimeout(checkTorchCapability, 800);
                 }
             } catch(e) {
                 console.error("Camera access error:", e);
-                showAlert("Could not access camera. Please check permissions or type the code manually.", false);
+                const isSecure = window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+                if (!isSecure) {
+                    showAlert("⚠️ Mobile browsers block live camera on plain HTTP (http://" + location.host + "). Please tap 'Snap QR Photo' to scan using your phone camera directly!", false);
+                    btnSnapPhoto?.classList.add('btn-primary');
+                    btnSnapPhoto?.classList.remove('btn-outline-primary');
+                } else {
+                    showAlert("Could not access camera. Please check camera permissions in your browser or type the code manually.", false);
+                }
+                container.classList.add('d-none');
+                cameraText.textContent = 'Live Camera Scanner';
+                btnToggle.classList.replace('btn-outline-secondary', 'btn-outline-success');
+                isCameraActive = false;
             }
         } else {
             if (html5QrCode) {
@@ -807,9 +1056,62 @@
                 html5QrCode = null;
             }
             container.classList.add('d-none');
-            cameraText.textContent = 'Open Camera Scanner';
+            btnToggleTorch.classList.add('d-none');
+            isTorchActive = false;
+            cameraText.textContent = 'Live Camera Scanner';
             btnToggle.classList.replace('btn-outline-secondary', 'btn-outline-success');
             isCameraActive = false;
+        }
+    });
+
+    // ⚡ Fast In-Place AJAX Check-In / No-Show / Undo Handler
+    document.addEventListener('submit', async function (e) {
+        const form = e.target.closest('.ajax-checkin-form');
+        if (!form) return;
+
+        e.preventDefault();
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const origBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        }
+
+        try {
+            const formData = new FormData(form);
+            const actionUrl = form.action || window.location.href;
+
+            const resp = await fetch(actionUrl, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: formData
+            });
+
+            if (!resp.ok) {
+                form.submit();
+                return;
+            }
+
+            const data = await resp.json();
+            showAlert(data.message, data.success);
+
+            if (data.success) {
+                playSuccessChime();
+                triggerHaptic();
+                // Smoothly reload page state after 800ms to keep all complex event aggregations 100% in sync
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = origBtnHtml;
+                }
+            }
+        } catch(err) {
+            // Fallback to standard HTTP POST submit
+            form.submit();
         }
     });
 </script>
@@ -822,7 +1124,12 @@
     border-left: 5px solid #16a34a !important;
 }
 .checkin-stat-card {
-    border: 1px solid rgba(0,0,0,0.05) !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.kpi-card-filter:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 .35rem .75rem rgba(0,0,0,0.08) !important;
 }
 .activity-block {
     border: 1px solid rgba(0,0,0,0.08) !important;
@@ -850,6 +1157,51 @@
     background-color: rgba(255,255,255,0.25);
     color: #ffffff;
 }
+.checkin-status-chips {
+    -webkit-overflow-scrolling: touch;
+}
+.status-chip {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #4b5563;
+    background-color: #f3f4f6;
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.status-chip:hover {
+    color: #1f2937;
+    background-color: #e5e7eb;
+}
+.status-chip.active {
+    color: #ffffff;
+    background-color: #16a34a;
+    box-shadow: 0 .25rem .5rem rgba(22, 163, 74, 0.25);
+}
+.status-chip .badge {
+    background-color: rgba(0,0,0,0.12);
+    color: inherit;
+    font-size: 0.75rem;
+}
+.status-chip.active .badge {
+    background-color: rgba(255,255,255,0.25);
+    color: #ffffff;
+}
+.checkin-mobile-card {
+    border: 1px solid rgba(0,0,0,0.08) !important;
+    transition: all 0.15s ease;
+}
+.checkin-mobile-card.checkedin-card {
+    border-left: 4px solid #198754 !important;
+}
+.checkin-mobile-card.noshow-card {
+    border-left: 4px solid #dc3545 !important;
+}
 .checkin-table th {
     font-weight: 600;
     color: #4b5563;
@@ -867,9 +1219,13 @@
 .tracking-wider {
     letter-spacing: 0.04em;
 }
+.cursor-pointer {
+    cursor: pointer;
+}
 .bg-success-subtle { background-color: rgba(25,135,84,.12); }
 .bg-warning-subtle { background-color: rgba(255,193,7,.18); }
 .bg-danger-subtle  { background-color: rgba(220,53,69,.12); }
 .bg-primary-subtle { background-color: rgba(13,110,253,.12); }
 </style>
 }
+

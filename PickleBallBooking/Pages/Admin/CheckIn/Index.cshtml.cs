@@ -47,85 +47,58 @@ public class IndexModel : PageModel
         var staffUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "admin";
 
         var result = await _checkInService.ProcessQrCodeAsync(qrPayload, staffUserId, orgId);
-
-        // Support AJAX JSON response if requested via fetch/xhr
-        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" ||
-            Request.Headers["Accept"].ToString().Contains("application/json"))
-        {
-            return new JsonResult(result);
-        }
-
-        if (result.Success)
-        {
-            StatusMessage = result.Message;
-        }
-        else
-        {
-            ErrorMessage = result.Message;
-        }
-
-        return RedirectToPage(new { date = date?.ToString("yyyy-MM-dd") });
+        return HandleResult(result, date);
     }
 
     public async Task<IActionResult> OnPostCheckInRsvpAsync(int rsvpId, DateOnly? date = null)
     {
         var staffUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "admin";
         var result = await _checkInService.CheckInRsvpAsync(rsvpId, CheckInMethod.AdminManual, staffUserId);
-
-        if (result.Success) StatusMessage = result.Message;
-        else ErrorMessage = result.Message;
-
-        return RedirectToPage(new { date = date?.ToString("yyyy-MM-dd") });
+        return HandleResult(result, date);
     }
 
     public async Task<IActionResult> OnPostMarkRsvpNoShowAsync(int rsvpId, DateOnly? date = null)
     {
         var staffUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "admin";
         var result = await _checkInService.MarkRsvpNoShowAsync(rsvpId, staffUserId);
-
-        if (result.Success) StatusMessage = result.Message;
-        else ErrorMessage = result.Message;
-
-        return RedirectToPage(new { date = date?.ToString("yyyy-MM-dd") });
+        return HandleResult(result, date);
     }
 
     public async Task<IActionResult> OnPostUndoRsvpAsync(int rsvpId, DateOnly? date = null)
     {
         var staffUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "admin";
         var result = await _checkInService.UndoRsvpCheckInAsync(rsvpId, staffUserId);
-
-        if (result.Success) StatusMessage = result.Message;
-        else ErrorMessage = result.Message;
-
-        return RedirectToPage(new { date = date?.ToString("yyyy-MM-dd") });
+        return HandleResult(result, date);
     }
 
     public async Task<IActionResult> OnPostCheckInBookingAsync(string bookingReference, DateOnly? date = null)
     {
         var staffUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "admin";
         var result = await _checkInService.CheckInBookingAsync(bookingReference, CheckInMethod.AdminManual, staffUserId);
-
-        if (result.Success) StatusMessage = result.Message;
-        else ErrorMessage = result.Message;
-
-        return RedirectToPage(new { date = date?.ToString("yyyy-MM-dd") });
+        return HandleResult(result, date);
     }
 
     public async Task<IActionResult> OnPostMarkBookingNoShowAsync(string bookingReference, DateOnly? date = null)
     {
         var staffUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "admin";
         var result = await _checkInService.MarkBookingNoShowAsync(bookingReference, staffUserId);
-
-        if (result.Success) StatusMessage = result.Message;
-        else ErrorMessage = result.Message;
-
-        return RedirectToPage(new { date = date?.ToString("yyyy-MM-dd") });
+        return HandleResult(result, date);
     }
 
     public async Task<IActionResult> OnPostUndoBookingAsync(string bookingReference, DateOnly? date = null)
     {
         var staffUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "admin";
         var result = await _checkInService.UndoBookingCheckInAsync(bookingReference, staffUserId);
+        return HandleResult(result, date);
+    }
+
+    private IActionResult HandleResult(CheckInResult result, DateOnly? date)
+    {
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" ||
+            Request.Headers["Accept"].ToString().Contains("application/json"))
+        {
+            return new JsonResult(result);
+        }
 
         if (result.Success) StatusMessage = result.Message;
         else ErrorMessage = result.Message;

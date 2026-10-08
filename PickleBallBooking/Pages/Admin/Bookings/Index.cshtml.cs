@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using PickleBallBooking.Data;
 using PickleBallBooking.Models;
 using PickleBallBooking.Services;
 
@@ -9,11 +11,13 @@ public class IndexModel : PageModel
 {
     private readonly IBookingService _bookingService;
     private readonly ICourtService _courtService;
+    private readonly ApplicationDbContext? _context;
 
-    public IndexModel(IBookingService bookingService, ICourtService courtService)
+    public IndexModel(IBookingService bookingService, ICourtService courtService, ApplicationDbContext? context = null)
     {
         _bookingService = bookingService;
         _courtService = courtService;
+        _context = context;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -27,6 +31,14 @@ public class IndexModel : PageModel
 
     [BindProperty(SupportsGet = true)]
     public string? CustomerSearch { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public string? QuickFilter { get; set; }
+
+    public int TodayCount { get; set; }
+    public int PendingCount { get; set; }
+    public int ConfirmedTodayCount { get; set; }
+    public int TotalMatchingCount => Bookings.Count;
 
     public List<Models.Booking> Bookings { get; set; } = new();
 
@@ -74,13 +86,35 @@ public class IndexModel : PageModel
         }
     }
 
-        private async Task LoadAsync()
+    private async Task LoadAsync()
     {
         // Automatically complete confirmed bookings whose date/time has passed so
         // admins don't have to mark them manually.
         await _bookingService.AutoCompleteExpiredBookingsAsync();
 
         Courts = await _courtService.GetAllAsync();
+
+        var today = AppClock.TodayLocal;
+
+        // Apply quick filter shortcuts if supplied
+        if (!string.IsNullOrWhiteSpace(QuickFilter))
+        {
+            switch (QuickFilter.Trim().ToLowerInvariant())
+            {
+                case "pending":
+                    Status = BookingStatus.Pending;
+                    break;
+                case "today":
+                    BookingDate = today;
+                    break;
+                case "tomorrow":
+                    BookingDate = today.AddDays(1);
+                    break;
+                case "confirmed":
+                    Status = BookingStatus.Confirmed;
+                    break;
+            }
+        }
 
         var filter = new BookingAdminFilter
         {
@@ -91,6 +125,19 @@ public class IndexModel : PageModel
         };
 
         Bookings = await _bookingService.GetBookingsForAdminAsync(filter);
+
+        if (_context != null)
+        {
+            TodayCount = await _context.Bookings.CountAsync(b => b.BookingDate == today);
+            PendingCount = await _context.Bookings.CountAsync(b => b.BookingStatus == BookingStatus.Pending);
+            ConfirmedTodayCount = await _context.Bookings.CountAsync(b => b.BookingDate == today && b.BookingStatus == BookingStatus.Confirmed);
+        }
+        else
+        {
+            TodayCount = Bookings.Count(b => b.BookingDate == today);
+            PendingCount = Bookings.Count(b => b.BookingStatus == BookingStatus.Pending);
+            ConfirmedTodayCount = Bookings.Count(b => b.BookingDate == today && b.BookingStatus == BookingStatus.Confirmed);
+        }
     }
 
     private IActionResult RedirectToPageWithFilters()
@@ -100,7 +147,8 @@ public class IndexModel : PageModel
             BookingDate,
             CourtId,
             Status,
-            CustomerSearch
+            CustomerSearch,
+            QuickFilter
         });
     }
 }

@@ -363,7 +363,16 @@ public class BookingService : IBookingService
                         if (orgForEmail is not null)
                         {
                             booking.Court = await _context.Courts.FindAsync(courtId);
-                            _emailService?.SendBookingReceivedAsync(booking, orgForEmail);
+                            string? paymentOptionLabel = null;
+                            if (booking.SelectedPaymentOptionId.HasValue)
+                            {
+                                paymentOptionLabel = await _context.TenantPaymentOptions
+                                    .IgnoreQueryFilters()
+                                    .Where(o => o.Id == booking.SelectedPaymentOptionId.Value)
+                                    .Select(o => o.Label)
+                                    .FirstOrDefaultAsync();
+                            }
+                            _emailService?.SendBookingReceivedAsync(booking, orgForEmail, paymentOptionLabel);
                             _emailService?.SendNewBookingToOrgAsync(booking, orgForEmail);
                             _smsService?.SendBookingReceivedAsync(booking, orgForEmail);
                             _telegramService?.SendNewBookingAlertAsync(booking, orgForEmail);

@@ -170,4 +170,150 @@ public class BookingEmailServiceTests
         Assert.Equal("Demo Pickleball Club", spy.LastFromName);
         Assert.Equal("alice@gmail.com", spy.LastReplyTo);
     }
+
+    [Fact]
+    public async Task SendPaymentSubmittedToCustomerAsync_WithMaya_RendersMayaDynamicText()
+    {
+        // Arrange
+        var spy = new EmailServiceSpy();
+        var options = Options.Create(new EmailOptions
+        {
+            Enabled = true,
+            FromAddress = "noreply@punitbola.tech"
+        });
+        var service = new BookingEmailService(spy, NullLogger<BookingEmailService>.Instance, options);
+
+        var org = new Organization { Id = 1, Name = "Demo Club", Slug = "demo" };
+        var booking = new Booking
+        {
+            BookingReference = "PB-MAYA-123",
+            CustomerName = "Carlos Yulo",
+            CustomerEmail = "carlos@example.com"
+        };
+        var payment = new Payment
+        {
+            PaymentMethod = PaymentMethod.GCash,
+            ReferenceNumber = "MY-99887766",
+            Amount = 500m
+        };
+
+        // Act
+        service.SendPaymentSubmittedToCustomerAsync(booking, payment, org, paymentMethod: "Maya");
+        await Task.Delay(50);
+
+        // Assert
+        Assert.NotNull(spy.LastHtmlBody);
+        Assert.Contains("We've received your Maya payment submission for booking", spy.LastHtmlBody);
+        Assert.Contains("Maya Reference", spy.LastHtmlBody);
+        Assert.Contains("MY-99887766", spy.LastHtmlBody);
+    }
+
+    [Fact]
+    public async Task SendPaymentSubmittedToCustomerAsync_WithGCash_RendersGCashDynamicText()
+    {
+        // Arrange
+        var spy = new EmailServiceSpy();
+        var options = Options.Create(new EmailOptions
+        {
+            Enabled = true,
+            FromAddress = "noreply@punitbola.tech"
+        });
+        var service = new BookingEmailService(spy, NullLogger<BookingEmailService>.Instance, options);
+
+        var org = new Organization { Id = 1, Name = "Demo Club", Slug = "demo" };
+        var booking = new Booking
+        {
+            BookingReference = "PB-GCASH-456",
+            CustomerName = "EJ Obiena",
+            CustomerEmail = "ej@example.com"
+        };
+        var payment = new Payment
+        {
+            PaymentMethod = PaymentMethod.GCash,
+            ReferenceNumber = "1234567890123",
+            Amount = 600m
+        };
+
+        // Act
+        service.SendPaymentSubmittedToCustomerAsync(booking, payment, org, paymentMethod: "GCash");
+        await Task.Delay(50);
+
+        // Assert
+        Assert.NotNull(spy.LastHtmlBody);
+        Assert.Contains("We've received your GCash payment submission for booking", spy.LastHtmlBody);
+        Assert.Contains("GCash Reference", spy.LastHtmlBody);
+    }
+
+    [Fact]
+    public async Task SendPaymentRejectedAsync_WithMaya_RendersMayaPrompt()
+    {
+        // Arrange
+        var spy = new EmailServiceSpy();
+        var options = Options.Create(new EmailOptions
+        {
+            Enabled = true,
+            FromAddress = "noreply@punitbola.tech"
+        });
+        var service = new BookingEmailService(spy, NullLogger<BookingEmailService>.Instance, options);
+
+        var org = new Organization { Id = 1, Name = "Demo Club", Slug = "demo" };
+        var booking = new Booking
+        {
+            BookingReference = "PB-MAYA-REJ",
+            CustomerName = "Carlos Yulo",
+            CustomerEmail = "carlos@example.com"
+        };
+        var payment = new Payment
+        {
+            PaymentMethod = PaymentMethod.GCash,
+            ReferenceNumber = "MY-BAD-123",
+            Notes = "Blurry screenshot"
+        };
+
+        // Act
+        service.SendPaymentRejectedAsync(booking, payment, org, paymentMethod: "Maya");
+        await Task.Delay(50);
+
+        // Assert
+        Assert.NotNull(spy.LastHtmlBody);
+        Assert.Contains("re-submit your payment with the correct Maya reference number and screenshot", spy.LastHtmlBody);
+    }
+
+    [Fact]
+    public async Task SendPaymentVerifiedAsync_IncludesCheckInQrCodePass()
+    {
+        // Arrange
+        var spy = new EmailServiceSpy();
+        var options = Options.Create(new EmailOptions
+        {
+            Enabled = true,
+            FromAddress = "noreply@punitbola.tech"
+        });
+        var service = new BookingEmailService(spy, NullLogger<BookingEmailService>.Instance, options);
+
+        var org = new Organization { Id = 1, Name = "Demo Club", Slug = "demo" };
+        var booking = new Booking
+        {
+            BookingReference = "PB-VERIFIED-789",
+            CustomerName = "Margielyn Didal",
+            CustomerEmail = "margie@example.com",
+            BookingDate = new DateOnly(2026, 10, 15),
+            StartTime = TimeSpan.FromHours(17),
+            EndTime = TimeSpan.FromHours(18),
+            Court = new Court { Name = "Court A" }
+        };
+
+        // Act
+        service.SendPaymentVerifiedAsync(booking, org);
+        await Task.Delay(50);
+
+        // Assert
+        Assert.NotNull(spy.LastHtmlBody);
+        Assert.Contains("Court Check-In QR Pass", spy.LastHtmlBody);
+        Assert.Contains("api.qrserver.com", spy.LastHtmlBody);
+        Assert.Contains("BOOKING%3APB-VERIFIED-789", spy.LastHtmlBody);
+        Assert.Contains("Present this QR code upon arrival at the court", spy.LastHtmlBody);
+        Assert.Contains("Ref: PB-VERIFIED-789", spy.LastHtmlBody);
+    }
 }
+

@@ -40,19 +40,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnCloseBottomSheet = document.getElementById('btnCloseBottomSheet');
     const btnSheetCloseSecondary = document.getElementById('btnSheetCloseSecondary');
     const btnSheetContinue = document.getElementById('btnSheetContinue');
-
-    // Smooth scroll and focus Step 4 ("Your Details")
-    function scrollToStep4() {
-        if (!step4Card) return;
-        step4Card.style.display = '';
-        step4Card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        const nameInput = document.getElementById('Input_CustomerName');
-        if (nameInput) {
-            setTimeout(function () {
-                nameInput.focus();
-            }, 350);
-        }
-    }
+    const btnSheetConfirmBooking = document.getElementById('btnSheetConfirmBooking');
+    const btnSheetEditDetails = document.getElementById('btnSheetEditDetails');
 
     // Expand mobile bottom sheet to show full booking summary
     function expandBottomSheet() {
@@ -128,7 +117,73 @@ document.addEventListener('DOMContentLoaded', function () {
                 sheetOvernightItem.style.display = 'none';
             }
         }
+
+        syncBottomSheetCustomerRecap();
     }
+
+    // Dynamically toggles #btnMobileProceed between:
+    // "Enter Details ↓" (when details are not yet entered)
+    // and "Booking Summary" (when details are entered and ready for confirmation review)
+    function updateMobileProceedState() {
+        if (!btnMobileProceed) return;
+        const name = document.getElementById('Input_CustomerName')?.value?.trim() || '';
+        const phone = document.getElementById('Input_CustomerPhone')?.value?.trim() || '';
+
+        const isComplete = (name.length >= 2 && phone.length >= 7);
+
+        if (isComplete) {
+            btnMobileProceed.className = 'btn btn-success btn-sm px-2 px-sm-3 fw-semibold text-nowrap';
+            btnMobileProceed.innerHTML = '<i class="bi bi-receipt me-1"></i><span class="sheet-btn-word-prefix">Booking </span>Summary';
+            btnMobileProceed.setAttribute('data-action', 'summary');
+            btnMobileProceed.setAttribute('aria-label', 'View booking summary and confirm');
+        } else {
+            btnMobileProceed.className = 'btn btn-primary btn-sm px-2 px-sm-3 fw-semibold text-nowrap';
+            btnMobileProceed.innerHTML = '<span class="sheet-btn-word-prefix">Enter </span>Details <i class="bi bi-arrow-down ms-1"></i>';
+            btnMobileProceed.setAttribute('data-action', 'details');
+            btnMobileProceed.setAttribute('aria-label', 'Enter your booking details');
+        }
+
+        syncBottomSheetCustomerRecap();
+    }
+
+    function syncBottomSheetCustomerRecap() {
+        const recap = document.getElementById('sheetCustomerRecap');
+        const nameEl = document.getElementById('sheetCustomerName');
+        const contactEl = document.getElementById('sheetCustomerContact');
+        const paymentEl = document.getElementById('sheetCustomerPayment');
+        const sheetConfirmBtn = document.getElementById('btnSheetConfirmBooking');
+        const sheetContinueBtn = document.getElementById('btnSheetContinue');
+
+        const name = document.getElementById('Input_CustomerName')?.value?.trim() || '';
+        const phone = document.getElementById('Input_CustomerPhone')?.value?.trim() || '';
+        const email = document.getElementById('Input_CustomerEmail')?.value?.trim() || '';
+
+        // Find selected payment label
+        const selectedPmCard = document.querySelector('.payment-method-card.selected');
+        const paymentLabel = selectedPmCard?.querySelector('.payment-method-label')?.textContent?.trim() || '';
+
+        const isComplete = (name.length >= 2 && phone.length >= 7);
+
+        if (isComplete) {
+            if (recap) recap.style.display = '';
+            if (nameEl) nameEl.textContent = name;
+            let contact = phone;
+            if (email) contact += ' • ' + email;
+            if (contactEl) contactEl.textContent = contact;
+            if (paymentEl) {
+                paymentEl.innerHTML = paymentLabel ? `<i class="bi bi-credit-card me-1 text-primary"></i><strong>Payment:</strong> ${paymentLabel}` : '';
+            }
+
+            if (sheetConfirmBtn) sheetConfirmBtn.style.display = '';
+            if (sheetContinueBtn) sheetContinueBtn.style.display = 'none';
+        } else {
+            if (recap) recap.style.display = 'none';
+            if (sheetConfirmBtn) sheetConfirmBtn.style.display = 'none';
+            if (sheetContinueBtn) sheetContinueBtn.style.display = '';
+        }
+    }
+
+    window.updateMobileProceedState = updateMobileProceedState;
 
     // Selection state keyed by date string (e.g., "2026-09-22" -> Array of slot objects)
     let selectedSlotsByDate = {};
@@ -298,6 +353,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function getTotalSelectedCount() {
         return getAllSelectedSlotsChronological().length;
+    }
+
+    // Checks if all currently selected slots across all dates form a single continuous block
+    function isSelectionContinuous() {
+        const allSlots = getAllSelectedSlotsChronological();
+        if (allSlots.length <= 1) return true;
+
+        for (let i = 1; i < allSlots.length; i++) {
+            const prev = allSlots[i - 1];
+            const curr = allSlots[i];
+
+            if (curr.date === prev.date) {
+                if (curr.startMinutes !== prev.endMinutes) {
+                    return false;
+                }
+            } else if (curr.date === addDays(prev.date, 1)) {
+                if (prev.endMinutes !== 1440 || curr.startMinutes !== 0) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        return true;
     }
 
     function hideGapAlert() {
@@ -536,11 +615,20 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateSummary() {
         const allSlots = getAllSelectedSlotsChronological();
         const totalHours = allSlots.length;
+        const continuous = isSelectionContinuous();
 
-        if (totalHours === 0) {
+        if (totalHours === 0 || !continuous) {
             if (bookingSummaryContainer) bookingSummaryContainer.style.display = 'none';
-            if (mobileStickySummary) mobileStickySummary.classList.remove('is-visible');
+            if (mobileStickySummary) {
+                mobileStickySummary.classList.remove('is-visible');
+                collapseBottomSheet();
+            }
             document.body.classList.remove('has-mobile-summary');
+            if (step4Card) step4Card.style.display = 'none';
+            const priceContainer = document.getElementById('priceContainer');
+            if (priceContainer) priceContainer.style.display = 'none';
+            const confirmActions = document.getElementById('confirmActionsContainer');
+            if (confirmActions) confirmActions.style.setProperty('display', 'none', 'important');
             updateStepIndicator();
             return;
         }
@@ -635,13 +723,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
 
-            if (btnMobileProceed) {
-                if (step4Card && step4Card.style.display !== 'none') {
-                    btnMobileProceed.innerHTML = 'Enter Info <i class="bi bi-arrow-down ms-1"></i>';
-                } else {
-                    btnMobileProceed.innerHTML = '<i class="bi bi-calculator me-1"></i> Calculate';
-                }
-            }
+            updateMobileProceedState();
         }
 
         syncBottomSheetValues();
@@ -716,7 +798,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateCardAppearance();
                 updateSummary();
 
-                resetPriceDisplay();
+                triggerLivePriceCalculation();
                 return;
             }
 
@@ -728,26 +810,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const sortedCurrent = currentSlots.slice().sort(function (a, b) { return a.startMinutes - b.startMinutes; });
 
+            // If switching dates and not continuing an active midnight bridge, clear other dates
+            const existingDates = getSelectedDatesSorted();
+            const prevEndsAtMidnight = prevSlots.length > 0 && prevSlots[prevSlots.length - 1].endMinutes === 1440;
+            const nextStartsAtMidnight = nextSlots.length > 0 && nextSlots[0].startMinutes === 0;
+
             if (sortedCurrent.length === 0) {
                 // First slot on this date
-                if (prevSlots.length > 0) {
-                    // Continuing from previous date
-                    const prevEndsAtMidnight = prevSlots[prevSlots.length - 1].endMinutes === 1440;
+                if (existingDates.length > 0 && !prevEndsAtMidnight && !nextStartsAtMidnight) {
+                    // User navigated to a new date that doesn't connect at midnight: switch selection to this date
+                    selectedSlotsByDate = {};
+                } else if (prevSlots.length > 0) {
                     if (!prevEndsAtMidnight) {
+                        selectedSlotsByDate = {};
+                    } else if (startMin !== 0) {
                         checkbox.checked = false;
-                        if (card) {
-                            card.classList.add('shake-error');
-                            setTimeout(function () { card.classList.remove('shake-error'); }, 500);
-                        }
-                        showGapAlert(
-                            `Cannot start booking on ${getShortFormattedDate(currentDate)} with a gap.`,
-                            `Your booking on ${getShortFormattedDate(prevDate)} ends at ${minutesTo12Hour(prevSlots[prevSlots.length - 1].endMinutes)}. To extend across midnight, select 11:00 PM – 12:00 AM on ${getShortFormattedDate(prevDate)} first.`
-                        );
-                        return;
-                    }
-
-                    if (startMin !== 0) {
-                        checkbox.checked = false;
+                        clearTimeout(livePriceDebounceTimer);
+                        collapseBottomSheet();
                         if (card) {
                             card.classList.add('shake-error');
                             setTimeout(function () { card.classList.remove('shake-error'); }, 500);
@@ -759,10 +838,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         return;
                     }
                 } else if (nextSlots.length > 0) {
-                    // Connecting to next date
-                    const nextStartsAtMidnight = nextSlots[0].startMinutes === 0;
-                    if (!nextStartsAtMidnight || endMin !== 1440) {
+                    if (!nextStartsAtMidnight) {
+                        selectedSlotsByDate = {};
+                    } else if (endMin !== 1440) {
                         checkbox.checked = false;
+                        clearTimeout(livePriceDebounceTimer);
+                        collapseBottomSheet();
                         if (card) {
                             card.classList.add('shake-error');
                             setTimeout(function () { card.classList.remove('shake-error'); }, 500);
@@ -786,6 +867,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     // Gap detected!
                     checkbox.checked = false;
+                    clearTimeout(livePriceDebounceTimer);
+                    collapseBottomSheet();
                     if (card) {
                         card.classList.add('shake-error');
                         setTimeout(function () { card.classList.remove('shake-error'); }, 500);
@@ -827,7 +910,7 @@ document.addEventListener('DOMContentLoaded', function () {
             updateCardAppearance();
             updateSummary();
 
-            resetPriceDisplay();
+            triggerLivePriceCalculation();
         });
     }
 
@@ -930,6 +1013,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
             updateCardAppearance();
             updateSummary();
+            updateFilterCounts();
+            applyTimeFilter(currentTimeFilter);
+
+            if (getTotalSelectedCount() > 0) {
+                triggerLivePriceCalculation();
+            }
         })
         .catch(function (err) {
             console.error('Failed to load slots', err);
@@ -937,6 +1026,255 @@ document.addEventListener('DOMContentLoaded', function () {
                 timeslotGrid.style.opacity = '1';
                 timeslotGrid.style.pointerEvents = 'auto';
             }
+        });
+    }
+
+    // ─── 7-Day Horizontal Strip & Custom Date Sync ──────────────────────
+    const datePills = document.querySelectorAll('.date-quick-pill');
+
+    function syncDatePillsWithInput(dateVal) {
+        if (!datePills || datePills.length === 0) return;
+        datePills.forEach(function (pill) {
+            const isMatch = pill.dataset.date === dateVal;
+            pill.classList.toggle('active', isMatch);
+            pill.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+        });
+    }
+
+    datePills.forEach(function (pill) {
+        pill.addEventListener('click', function () {
+            const selectedDate = this.dataset.date;
+            if (!selectedDate) return;
+
+            syncDatePillsWithInput(selectedDate);
+
+            if (bookingDateInput && bookingDateInput.value !== selectedDate) {
+                bookingDateInput.value = selectedDate;
+                bookingDateInput.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+
+    // ─── Time-of-Day Filter Chips ────────────────────────────────────────
+    let currentTimeFilter = 'all';
+
+    function applyTimeFilter(filter) {
+        currentTimeFilter = filter;
+        const filterBtns = document.querySelectorAll('.slot-filter-btn');
+        filterBtns.forEach(function (btn) {
+            const isActive = btn.dataset.filter === filter;
+            btn.classList.toggle('active', isActive);
+            btn.classList.toggle('btn-outline-primary', isActive);
+            btn.classList.toggle('btn-outline-secondary', !isActive);
+        });
+
+        const slotCards = document.querySelectorAll('.timeslot-btn');
+        slotCards.forEach(function (card) {
+            const isChecked = card.classList.contains('selected') || card.querySelector('.timeslot-checkbox')?.checked;
+            if (isChecked) {
+                // Never hide selected slots
+                card.style.display = '';
+                return;
+            }
+
+            const startMin = parseInt(card.dataset.startMinutes || '0', 10);
+            let visible = true;
+            if (filter === 'morning') {
+                visible = startMin >= 360 && startMin < 720; // 6am - 12pm
+            } else if (filter === 'afternoon') {
+                visible = startMin >= 720 && startMin < 1020; // 12pm - 5pm
+            } else if (filter === 'evening') {
+                visible = startMin >= 1020 || startMin < 360; // 5pm onwards / overnight
+            }
+            card.style.display = visible ? '' : 'none';
+        });
+    }
+
+    function updateFilterCounts() {
+        const slotCards = Array.from(document.querySelectorAll('.timeslot-btn'));
+        let morningCount = 0;
+        let afternoonCount = 0;
+        let eveningCount = 0;
+
+        slotCards.forEach(function (card) {
+            const isAvailable = card.classList.contains('available') || card.classList.contains('selected');
+            if (!isAvailable) return;
+
+            const startMin = parseInt(card.dataset.startMinutes || '0', 10);
+            if (startMin >= 360 && startMin < 720) morningCount++;
+            else if (startMin >= 720 && startMin < 1020) afternoonCount++;
+            else eveningCount++;
+        });
+
+        const countMorning = document.getElementById('countMorning');
+        const countAfternoon = document.getElementById('countAfternoon');
+        const countEvening = document.getElementById('countEvening');
+        if (countMorning) countMorning.textContent = morningCount;
+        if (countAfternoon) countAfternoon.textContent = afternoonCount;
+        if (countEvening) countEvening.textContent = eveningCount;
+    }
+
+    const filterBtns = document.querySelectorAll('.slot-filter-btn');
+    filterBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            applyTimeFilter(this.dataset.filter);
+        });
+    });
+
+    // ─── Live Instant Price Calculation & Auto-Reveal ────────────────────
+    let livePriceDebounceTimer = null;
+
+    function triggerLivePriceCalculation() {
+        const totalCount = getTotalSelectedCount();
+        if (totalCount === 0 || !isSelectionContinuous()) {
+            resetPriceDisplay();
+            return;
+        }
+
+        clearTimeout(livePriceDebounceTimer);
+        livePriceDebounceTimer = setTimeout(function () {
+            calculatePriceLive();
+        }, 250);
+    }
+
+    async function calculatePriceLive() {
+        const totalCount = getTotalSelectedCount();
+        if (totalCount === 0 || !isSelectionContinuous()) {
+            resetPriceDisplay();
+            return;
+        }
+
+        const courtId = courtSelect?.value || '';
+        const dates = getSelectedDatesSorted();
+        const primaryDate = dates.length > 0 ? dates[0] : (bookingDateInput?.value || '');
+        const allSelected = getAllSelectedSlotsChronological();
+        const slotIds = allSelected.map(function (s) { return s.id; });
+
+        if (!courtId || !primaryDate || slotIds.length === 0) {
+            return;
+        }
+
+        const priceCalcError = document.getElementById('priceCalcError');
+
+        try {
+            const params = new URLSearchParams({ courtId: courtId, date: primaryDate });
+            slotIds.forEach(function (id) { params.append('slotIds', id); });
+
+            const res = await fetch(`/Booking?handler=Price&${params.toString()}`);
+            const data = await res.json();
+
+            if (!data.success) {
+                if (priceCalcError) {
+                    priceCalcError.textContent = data.message || 'Unable to calculate price.';
+                    priceCalcError.classList.remove('d-none');
+                }
+                return;
+            }
+
+            if (priceCalcError) priceCalcError.classList.add('d-none');
+
+            const formatted = data.formattedPrice;
+            const summaryPrice = document.getElementById('summaryPrice');
+            const step4PriceValue = document.getElementById('step4PriceValue');
+            const mobileSummaryPrice = document.getElementById('mobileSummaryPrice');
+            const sheetPriceValue = document.getElementById('sheetPriceValue');
+            const priceContainer = document.getElementById('priceContainer');
+            const confirmActions = document.getElementById('confirmActionsContainer');
+
+            if (summaryPrice) summaryPrice.textContent = formatted;
+            if (step4PriceValue) step4PriceValue.textContent = formatted;
+            if (mobileSummaryPrice) {
+                mobileSummaryPrice.textContent = formatted;
+                mobileSummaryPrice.style.display = 'inline';
+            }
+            if (sheetPriceValue) sheetPriceValue.textContent = formatted;
+            if (priceContainer) priceContainer.style.display = '';
+
+            // Auto-reveal Step 4 ("Your Details")
+            if (step4Card) {
+                step4Card.style.display = '';
+                step4Card.classList.add('step4-animate-in');
+            }
+
+            // Show confirm actions
+            if (confirmActions) {
+                confirmActions.style.setProperty('display', 'grid', 'important');
+            }
+
+            if (btnMobileProceed) {
+                btnMobileProceed.innerHTML = 'Enter Details <i class="bi bi-arrow-down ms-1"></i>';
+            }
+
+            window.dispatchEvent(new CustomEvent('booking:price-calculated', { detail: { price: formatted } }));
+
+        } catch (err) {
+            console.error('Live price error', err);
+        }
+    }
+
+    // Expose calculatePriceLive globally
+    window.calculatePriceLive = calculatePriceLive;
+    window.triggerLivePriceCalculation = triggerLivePriceCalculation;
+
+    // ─── "Remember My Details" LocalStorage Autofill ─────────────────────
+    function initRememberMe() {
+        const rememberCheck = document.getElementById('rememberDetailsCheck');
+        const nameInput = document.getElementById('Input_CustomerName');
+        const phoneInput = document.getElementById('Input_CustomerPhone');
+        const emailInput = document.getElementById('Input_CustomerEmail');
+        const fbInput = document.getElementById('Input_FacebookName');
+
+        if (!rememberCheck) return;
+
+        try {
+            const savedRaw = localStorage.getItem('pb_remembered_customer');
+            if (savedRaw) {
+                const saved = JSON.parse(savedRaw);
+                if (saved && typeof saved === 'object') {
+                    if (nameInput && !nameInput.value && saved.name) nameInput.value = saved.name;
+                    if (phoneInput && !phoneInput.value && saved.phone) phoneInput.value = saved.phone;
+                    if (emailInput && !emailInput.value && saved.email) emailInput.value = saved.email;
+                    if (fbInput && !fbInput.value && saved.facebook) fbInput.value = saved.facebook;
+                    rememberCheck.checked = true;
+                }
+            }
+        } catch (e) {
+            console.warn('Could not read saved customer details', e);
+        }
+
+        function saveCustomerDetails() {
+            if (rememberCheck.checked) {
+                const details = {
+                    name: nameInput?.value?.trim() || '',
+                    phone: phoneInput?.value?.trim() || '',
+                    email: emailInput?.value?.trim() || '',
+                    facebook: fbInput?.value?.trim() || ''
+                };
+                try {
+                    localStorage.setItem('pb_remembered_customer', JSON.stringify(details));
+                } catch (e) {}
+            } else {
+                try {
+                    localStorage.removeItem('pb_remembered_customer');
+                } catch (e) {}
+            }
+        }
+
+        [nameInput, phoneInput, emailInput, fbInput].forEach(function (inp) {
+            if (inp) {
+                inp.addEventListener('input', function () {
+                    saveCustomerDetails();
+                    updateMobileProceedState();
+                });
+                inp.addEventListener('change', function () {
+                    saveCustomerDetails();
+                    updateMobileProceedState();
+                });
+            }
+        });
+        rememberCheck.addEventListener('change', function () {
+            saveCustomerDetails();
+            updateMobileProceedState();
         });
     }
 
@@ -961,8 +1299,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Booking date input: dynamic update WITHOUT refreshing the page, PRESERVING existing selections
     if (bookingDateInput) {
+        bookingDateInput.addEventListener('input', function () {
+            syncDatePillsWithInput(this.value);
+        });
+
         bookingDateInput.addEventListener('change', function () {
             const selectedDate = this.value;
+            syncDatePillsWithInput(selectedDate);
             const selectedCourt = courtSelect ? courtSelect.value : '';
 
             if (selectedCourt) {
@@ -998,36 +1341,66 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Mobile Proceed Button
-    if (btnMobileProceed) {
-        btnMobileProceed.addEventListener('click', function (e) {
-            e.stopPropagation();
-            const summaryPrice = document.getElementById('summaryPrice');
-            const hasCalculatedPrice = summaryPrice && summaryPrice.textContent.trim() !== '-' && summaryPrice.textContent.trim() !== '';
+    if (btnSheetEditDetails) {
+        btnSheetEditDetails.addEventListener('click', function () {
+            collapseBottomSheet();
+            scrollToStep4();
+        });
+    }
 
-            if (hasCalculatedPrice) {
-                if (step4Card && step4Card.style.display !== 'none') {
-                    scrollToStep4();
-                } else {
-                    expandBottomSheet();
-                }
-            } else {
-                const calculateBtn = document.getElementById('btnCalculatePrice');
-                if (calculateBtn) {
-                    calculateBtn.click();
-                }
+    if (btnSheetConfirmBooking) {
+        btnSheetConfirmBooking.addEventListener('click', function () {
+            const confirmBtn = document.getElementById('btnConfirmBooking');
+            if (form && !form.checkValidity()) {
+                collapseBottomSheet();
+                form.reportValidity();
+                return;
+            }
+
+            if (confirmBtn) {
+                btnSheetConfirmBooking.disabled = true;
+                btnSheetConfirmBooking.querySelector('.pb-btn-spinner')?.classList.remove('d-none');
+                const icon = btnSheetConfirmBooking.querySelector('.bi-check-circle');
+                if (icon) icon.classList.add('d-none');
+
+                confirmBtn.click();
+
+                setTimeout(function () {
+                    btnSheetConfirmBooking.disabled = false;
+                    btnSheetConfirmBooking.querySelector('.pb-btn-spinner')?.classList.add('d-none');
+                    if (icon) icon.classList.remove('d-none');
+                }, 2000);
+            } else if (form) {
+                form.submit();
             }
         });
     }
+
+    // Mobile Proceed Button (switches dynamically between "Enter Details ↓" and "Booking Summary")
+    if (btnMobileProceed) {
+        btnMobileProceed.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const action = btnMobileProceed.getAttribute('data-action');
+            if (action === 'summary') {
+                expandBottomSheet();
+            } else {
+                scrollToStep4();
+            }
+        });
+    }
+
+    // Payment method card selection updates customer recap in bottom sheet
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('.payment-method-card')) {
+            setTimeout(updateMobileProceedState, 50);
+        }
+    });
 
     // Listen for custom price calculation event
     window.addEventListener('booking:price-calculated', function (e) {
         const sheetPriceValue = document.getElementById('sheetPriceValue');
         if (sheetPriceValue && e.detail?.price) {
             sheetPriceValue.textContent = e.detail.price;
-        }
-        if (window.innerWidth < 992) {
-            expandBottomSheet();
         }
     });
 
@@ -1049,10 +1422,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 bookingDateInput.value = dates[0];
             }
 
-            // Canonicalize slot IDs into hiddenSelectedSlotsContainer:
-            // To prevent duplicate or missing slot submissions regardless of which date the user
-            // was viewing when clicking submit, we emit ALL selected slots as hidden inputs
-            // and remove the name attribute from the dynamic grid checkboxes.
+            // Canonicalize slot IDs into hiddenSelectedSlotsContainer
             let hiddenHtml = '';
             allSelected.forEach(function (slot) {
                 hiddenHtml += `<input type="hidden" name="SelectedSlotIds" value="${slot.id}" data-date="${slot.date}" />`;
@@ -1073,10 +1443,18 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initial page state
     updateCardAppearance();
     updateSummary();
+    updateFilterCounts();
+    applyTimeFilter('all');
+    syncDatePillsWithInput(bookingDateInput ? bookingDateInput.value : '');
+    initRememberMe();
+    updateMobileProceedState();
 
-    // After clicking Calculate Price (or on form reload), Step 4 is rendered in the DOM.
-    // On mobile responsive views (< 992px), automatically scroll down to Step 4 ("Your Information")
-    if (step4Card && window.innerWidth < 992) {
+    if (getTotalSelectedCount() > 0) {
+        triggerLivePriceCalculation();
+    }
+
+    // On mobile responsive views (< 992px), automatically scroll down to Step 4 if already calculated
+    if (step4Card && step4Card.style.display !== 'none' && window.innerWidth < 992) {
         setTimeout(function () {
             scrollToStep4();
         }, 300);

@@ -2,334 +2,560 @@
 @model PickleBallBooking.Pages.Admin.Bookings.DetailsModel
 @using PickleBallBooking.Models
 @{
-    ViewData["Title"] = "Booking Details";
+    ViewData["Title"] = $"Booking {Model.Booking?.BookingReference}";
+    var statusBadgeClass = Model.Booking?.BookingStatus switch
+    {
+        BookingStatus.Pending => "bg-warning text-dark",
+        BookingStatus.Confirmed => "bg-success text-white",
+        BookingStatus.Cancelled => "bg-danger text-white",
+        BookingStatus.Completed => "bg-secondary text-white",
+        _ => "bg-light text-dark"
+    };
 }
 
-<h1>Booking Details</h1>
+<!-- ── Navigation & Sticky Hero Header ─────────────────────────────────────────── -->
+<div class="mb-3">
+    <a asp-page="Index" class="btn btn-outline-secondary btn-sm mb-2">
+        <i class="bi bi-arrow-left me-1"></i>Back to Bookings
+    </a>
+</div>
 
 @if (!string.IsNullOrEmpty(Model.StatusMessage))
 {
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        @Model.StatusMessage
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle me-1"></i>@Model.StatusMessage
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        @Model.ErrorMessage
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle me-1"></i>@Model.ErrorMessage
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 
-<div class="row g-4">
+@if (Model.Booking is not null)
+{
+    <!-- ── Top Action Banner (Always visible & accessible on mobile/tablet) ─────── -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 bg-light border">
+        <div class="card-body p-3 p-md-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge @statusBadgeClass fs-6 px-3 py-1">@Model.Booking.BookingStatus</span>
+                        <button type="button" class="btn btn-link p-0 text-decoration-none font-monospace fw-bold fs-5 copy-btn text-dark"
+                                data-copy="@Model.Booking.BookingReference" title="Tap to copy booking reference">
+                            <span>@Model.Booking.BookingReference</span>
+                            <i class="bi bi-clipboard small ms-1 text-muted"></i>
+                        </button>
+                    </div>
+                    <div class="text-muted small">
+                        <span>Created: @Model.Booking.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                        <span class="mx-1">•</span>
+                        <span>Updated: @Model.Booking.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                    </div>
+                </div>
 
-    <!-- ── Booking Info ───────────────────────────────────────────── -->
-    <div class="col-lg-6">
-        <div class="card h-100">
-            <div class="card-header fw-semibold">
-                <i class="bi bi-calendar-check me-1"></i> Booking Information
+                <!-- Primary Action Buttons Bar -->
+                <div class="d-flex flex-wrap gap-2 w-100 w-md-auto justify-content-start justify-content-md-end">
+                    @if (Model.Booking.BookingStatus == BookingStatus.Pending)
+                    {
+                        <form method="post" asp-page-handler="Confirm" class="m-0 flex-grow-1 flex-md-grow-0">
+                            <input type="hidden" name="id" value="@Model.Booking.Id" />
+                            <button type="submit" class="btn btn-success w-100 px-3 fw-semibold">
+                                <i class="bi bi-check-circle me-1"></i>Confirm Booking
+                            </button>
+                        </form>
+                    }
+
+                    @if (Model.Booking.BookingStatus == BookingStatus.Confirmed)
+                    {
+                        @if (!Model.Booking.CheckedInAt.HasValue && !Model.Booking.IsNoShow)
+                        {
+                            <form method="post" asp-page-handler="CheckIn" class="m-0 flex-grow-1 flex-md-grow-0">
+                                <input type="hidden" name="id" value="@Model.Booking.Id" />
+                                <button type="submit" class="btn btn-success w-100 px-3 fw-semibold">
+                                    <i class="bi bi-person-check-fill me-1"></i>Check In Player
+                                </button>
+                            </form>
+                        }
+
+                        <form method="post" asp-page-handler="Complete" class="m-0 flex-grow-1 flex-md-grow-0">
+                            <input type="hidden" name="id" value="@Model.Booking.Id" />
+                            <button type="submit" class="btn btn-outline-secondary w-100 px-3 fw-semibold">
+                                <i class="bi bi-check2-all me-1"></i>Complete Session
+                            </button>
+                        </form>
+                    }
+
+                    @if (Model.Booking.BookingStatus is BookingStatus.Pending or BookingStatus.Confirmed)
+                    {
+                        <form method="post" asp-page-handler="Cancel" class="m-0"
+                              data-pb-confirm="Cancel booking @Model.Booking.BookingReference for @Model.Booking.CustomerName? This will release the court slot(s) and cannot be undone."
+                              data-pb-confirm-title="Cancel booking"
+                              data-pb-confirm-ok="Cancel booking">
+                            <input type="hidden" name="id" value="@Model.Booking.Id" />
+                            <button type="submit" class="btn btn-outline-danger px-3 fw-semibold" title="Cancel booking">
+                                <i class="bi bi-x-circle me-1"></i>Cancel
+                            </button>
+                        </form>
+                    }
+                </div>
             </div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-5">Reference</dt>
-                    <dd class="col-sm-7 font-monospace fw-bold">@Model.Booking!.BookingReference</dd>
+        </div>
+    </div>
 
-                    <dt class="col-sm-5">Court</dt>
-                    <dd class="col-sm-7">@Model.Booking.Court?.Name</dd>
+    <div class="row g-4">
+        <!-- ── Left Column: Match Schedule, Attendance & Player Contact ───────────── -->
+        <div class="col-12 col-lg-6">
 
-                    <dt class="col-sm-5">Date</dt>
-                    <dd class="col-sm-7">@Model.Booking.BookingDate.ToString("D")</dd>
-
-                    <dt class="col-sm-5">Time</dt>
-                    <dd class="col-sm-7">@PickleBallBooking.Services.AppClock.To12HourRange(Model.Booking.StartTime, Model.Booking.EndTime)</dd>
+            <!-- 1. Court & Schedule Card -->
+            <div class="card border rounded-3 shadow-sm mb-4">
+                <div class="card-header bg-white fw-bold py-3">
+                    <i class="bi bi-calendar-check text-primary me-2"></i>Court & Schedule
+                </div>
+                <div class="card-body">
+                    <div class="p-3 rounded-3 bg-light border mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fs-5 fw-bold text-dark">
+                                <i class="bi bi-geo-alt-fill text-primary me-1"></i>@(Model.Booking.Court?.Name ?? "Court")
+                            </span>
+                            <span class="fs-5 fw-bold text-success">
+                                @Model.Booking.Price.ToString("C")
+                            </span>
+                        </div>
+                        <div class="text-muted fw-semibold mb-2">
+                            <i class="bi bi-calendar-event me-1"></i>@Model.Booking.BookingDate.ToString("dddd, MMMM d, yyyy")
+                        </div>
+                        <div class="d-inline-block badge bg-primary text-white fs-6 px-3 py-2 rounded-pill">
+                            <i class="bi bi-clock me-1"></i>@PickleBallBooking.Services.AppClock.To12HourRange(Model.Booking.StartTime, Model.Booking.EndTime)
+                            @if (Model.Booking.DurationHours.HasValue)
+                            {
+                                <span class="ms-1 opacity-75">(@Model.Booking.DurationHours.Value.ToString("0.#") hrs)</span>
+                            }
+                        </div>
+                    </div>
 
                     @if (Model.BookingSlots.Count > 0)
                     {
-                        <dt class="col-sm-5">Booked Slots</dt>
-                        <dd class="col-sm-7">
-                            <ul class="mb-0 ps-3">
+                        <div class="mb-2">
+                            <span class="small text-muted fw-bold text-uppercase d-block mb-1">Booked Time Slots</span>
+                            <div class="d-flex flex-wrap gap-2">
                                 @foreach (var (slot, timeSlot) in Model.BookingSlots)
                                 {
-                                    <li>@PickleBallBooking.Services.AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime)</li>
+                                    <span class="badge bg-secondary-subtle text-dark border">
+                                        @PickleBallBooking.Services.AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime)
+                                    </span>
                                 }
-                            </ul>
-                        </dd>
+                            </div>
+                        </div>
                     }
-
-                    <dt class="col-sm-5">Price</dt>
-                    <dd class="col-sm-7 fw-bold text-success">@Model.Booking.Price.ToString("C")</dd>
-
-                    <dt class="col-sm-5">Status</dt>
-                    <dd class="col-sm-7">
-                        @switch (Model.Booking.BookingStatus)
-                        {
-                            case BookingStatus.Pending:
-                                <span class="badge bg-warning text-dark">Pending</span>
-                                break;
-                            case BookingStatus.Confirmed:
-                                <span class="badge bg-success">Confirmed</span>
-                                break;
-                            case BookingStatus.Cancelled:
-                                <span class="badge bg-danger">Cancelled</span>
-                                break;
-                            case BookingStatus.Completed:
-                                <span class="badge bg-secondary">Completed</span>
-                                break;
-                        }
-                    </dd>
-
-                    <dt class="col-sm-5">Created</dt>
-                    <dd class="col-sm-7">@Model.Booking.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
-
-                    <dt class="col-sm-5">Updated</dt>
-                    <dd class="col-sm-7">@Model.Booking.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
-                </dl>
+                </div>
             </div>
-        </div>
-    </div>
 
-    <!-- ── Customer Info ─────────────────────────────────────────── -->
-    <div class="col-lg-6">
-        <div class="card h-100">
-            <div class="card-header fw-semibold">
-                <i class="bi bi-person-fill me-1"></i> Customer Information
+            <!-- 2. Front-Desk Attendance & Check-In Card -->
+            <div class="card border rounded-3 shadow-sm mb-4">
+                <div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-person-badge text-success me-2"></i>Attendance & Check-In</span>
+                    @if (Model.Booking.CheckedInAt.HasValue)
+                    {
+                        <span class="badge bg-success">Checked In</span>
+                    }
+                    else if (Model.Booking.IsNoShow)
+                    {
+                        <span class="badge bg-danger">No-Show</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-warning text-dark">Pending Check-In</span>
+                    }
+                </div>
+                <div class="card-body">
+                    @if (Model.Booking.CheckedInAt.HasValue)
+                    {
+                        <div class="alert alert-success d-flex align-items-center gap-3 mb-3">
+                            <i class="bi bi-check-circle-fill fs-3 text-success"></i>
+                            <div>
+                                <div class="fw-bold">Player is Checked In</div>
+                                <div class="small">
+                                    Arrived: @PickleBallBooking.Services.AppClock.ToPhilippineTime(Model.Booking.CheckedInAt.Value).ToString("MMM d, yyyy h:mm tt")
+                                    @(Model.Booking.CheckInMethod.HasValue ? $"({Model.Booking.CheckInMethod})" : "")
+                                </div>
+                            </div>
+                        </div>
+                        <form method="post" asp-page-handler="UndoCheckIn" class="m-0">
+                            <input type="hidden" name="id" value="@Model.Booking.Id" />
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>Undo Check-In
+                            </button>
+                        </form>
+                    }
+                    else if (Model.Booking.IsNoShow)
+                    {
+                        <div class="alert alert-danger d-flex align-items-center gap-3 mb-3">
+                            <i class="bi bi-x-circle-fill fs-3 text-danger"></i>
+                            <div>
+                                <div class="fw-bold">Marked as No-Show</div>
+                                <div class="small">Party did not arrive for the reservation.</div>
+                            </div>
+                        </div>
+                        <form method="post" asp-page-handler="CheckIn" class="m-0">
+                            <input type="hidden" name="id" value="@Model.Booking.Id" />
+                            <button type="submit" class="btn btn-outline-success btn-sm">
+                                <i class="bi bi-person-check me-1"></i>Change to Checked-In
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-3">
+                            Player has not checked in at the venue. Tap below when the party arrives at the court:
+                        </p>
+                        <div class="d-flex flex-wrap gap-2">
+                            <form method="post" asp-page-handler="CheckIn" class="m-0">
+                                <input type="hidden" name="id" value="@Model.Booking.Id" />
+                                <button type="submit" class="btn btn-success fw-semibold">
+                                    <i class="bi bi-person-check-fill me-1"></i>Check In Player
+                                </button>
+                            </form>
+                            <form method="post" asp-page-handler="NoShow" class="m-0">
+                                <input type="hidden" name="id" value="@Model.Booking.Id" />
+                                <button type="submit" class="btn btn-outline-danger">
+                                    <i class="bi bi-person-x me-1"></i>Mark as No-Show
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
             </div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-5">Full Name</dt>
-                    <dd class="col-sm-7">@Model.Booking.CustomerName</dd>
 
-                    <dt class="col-sm-5">Mobile</dt>
-                    <dd class="col-sm-7">
-                        <a href="tel:@Model.Booking.CustomerPhone">@Model.Booking.CustomerPhone</a>
-                    </dd>
+            <!-- 3. Customer Quick Contact Center Card -->
+            <div class="card border rounded-3 shadow-sm mb-4">
+                <div class="card-header bg-white fw-bold py-3">
+                    <i class="bi bi-person-lines-fill text-info me-2"></i>Customer Information
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="small text-muted fw-bold text-uppercase d-block">Full Name</label>
+                        <div class="fs-5 fw-bold text-dark">@Model.Booking.CustomerName</div>
+                    </div>
 
-                    <dt class="col-sm-5">Email</dt>
-                    <dd class="col-sm-7">
-                        <a href="mailto:@Model.Booking.CustomerEmail">@Model.Booking.CustomerEmail</a>
-                    </dd>
+                    <!-- Phone with 1-Tap Action Pills -->
+                    <div class="mb-3 p-3 rounded-3 bg-light border">
+                        <label class="small text-muted fw-bold text-uppercase d-block mb-1">Mobile Contact</label>
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <span class="fs-6 font-monospace fw-bold text-dark">@Model.Booking.CustomerPhone</span>
+                            <div class="d-flex gap-2">
+                                <a href="tel:@Model.Booking.CustomerPhone" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold">
+                                    <i class="bi bi-telephone-fill me-1"></i>Call
+                                </a>
+                                <a href="sms:@Model.Booking.CustomerPhone" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold">
+                                    <i class="bi bi-chat-dots-fill me-1"></i>SMS
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill copy-btn"
+                                        data-copy="@Model.Booking.CustomerPhone" title="Copy Phone">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Email Contact -->
+                    <div class="mb-3">
+                        <label class="small text-muted fw-bold text-uppercase d-block">Email Address</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="mailto:@Model.Booking.CustomerEmail" class="text-decoration-none">
+                                <i class="bi bi-envelope me-1"></i>@Model.Booking.CustomerEmail
+                            </a>
+                            <button type="button" class="btn btn-sm btn-link p-0 text-muted copy-btn"
+                                    data-copy="@Model.Booking.CustomerEmail" title="Copy Email">
+                                <i class="bi bi-clipboard small"></i>
+                            </button>
+                        </div>
+                    </div>
 
                     @if (!string.IsNullOrWhiteSpace(Model.Booking.FacebookName))
                     {
-                        <dt class="col-sm-5">
-                            <i class="bi bi-facebook text-primary me-1"></i>Facebook
-                        </dt>
-                        <dd class="col-sm-7">@Model.Booking.FacebookName</dd>
+                        <div class="mb-2">
+                            <label class="small text-muted fw-bold text-uppercase d-block">Facebook Name</label>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-semibold text-primary">
+                                    <i class="bi bi-facebook me-1"></i>@Model.Booking.FacebookName
+                                </span>
+                                <button type="button" class="btn btn-sm btn-link p-0 text-muted copy-btn"
+                                        data-copy="@Model.Booking.FacebookName" title="Copy Facebook Name">
+                                    <i class="bi bi-clipboard small"></i>
+                                </button>
+                            </div>
+                        </div>
                     }
-
-                    @if (Model.Booking.SelectedPaymentMethod.HasValue)
-                    {
-                        <dt class="col-sm-5">Payment Method</dt>
-                        <dd class="col-sm-7">
-                            @switch (Model.Booking.SelectedPaymentMethod.Value)
-                            {
-                                case PaymentMethod.GCash:
-                                    <span><i class="bi bi-qr-code me-1 text-success"></i>GCash QR</span>
-                                    break;
-                                default:
-                                    <span>@Model.Booking.SelectedPaymentMethod.Value</span>
-                                    break;
-                            }
-                        </dd>
-                    }
-                </dl>
+                </div>
             </div>
-        </div>
-    </div>
 
-    <!-- ── Payment Info & Proof ──────────────────────────────────── -->
-    @if (Model.BookingPayment is not null)
-    {
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-credit-card me-1"></i>Payment Record</span>
-                    @{
-                        var (badgeClass, badgeLabel) = Model.BookingPayment.PaymentStatus switch
+        </div>
+
+        <!-- ── Right Column: Payment & In-Line Verification ───────────────────────── -->
+        <div class="col-12 col-lg-6">
+
+            <div class="card border rounded-3 shadow-sm mb-4">
+                <div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-credit-card-2-front text-primary me-2"></i>Payment & Verification</span>
+                    @if (Model.BookingPayment is not null)
+                    {
+                        var (payBadgeClass, payBadgeLabel) = Model.BookingPayment.PaymentStatus switch
                         {
-                            PaymentStatus.Pending   => ("bg-warning text-dark", "Pending"),
-                            PaymentStatus.Submitted => ("bg-info text-dark",    "Submitted"),
-                            PaymentStatus.Verified  => ("bg-success",           "Verified"),
-                            PaymentStatus.Rejected  => ("bg-danger",            "Rejected"),
-                            PaymentStatus.Cancelled => ("bg-secondary",         "Cancelled"),
+                            PaymentStatus.Pending   => ("bg-warning text-dark", "Pending Submission"),
+                            PaymentStatus.Submitted => ("bg-info text-dark",    "Submitted • Needs Verification"),
+                            PaymentStatus.Verified  => ("bg-success text-white", "Verified"),
+                            PaymentStatus.Rejected  => ("bg-danger text-white",  "Rejected"),
+                            PaymentStatus.Cancelled => ("bg-secondary text-white", "Cancelled"),
                             _                       => ("bg-light text-dark",   Model.BookingPayment.PaymentStatus.ToString())
                         };
+                        <span class="badge @payBadgeClass px-2 py-1">@payBadgeLabel</span>
                     }
-                    <span class="badge @badgeClass">@badgeLabel</span>
                 </div>
                 <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <dl class="row mb-0">
-                                <dt class="col-sm-6">Amount</dt>
-                                <dd class="col-sm-6 fw-bold text-success">@Model.BookingPayment.Amount.ToString("C")</dd>
-
-                                <dt class="col-sm-6">Method</dt>
-                                <dd class="col-sm-6">
-                                    @switch (Model.BookingPayment.PaymentMethod)
-                                    {
-                                        case PaymentMethod.GCash:
-                                            <span><i class="bi bi-qr-code me-1 text-success"></i>GCash</span>
-                                            break;
-                                        default:
-                                            <span>@Model.BookingPayment.PaymentMethod</span>
-                                            break;
-                                    }
-                                </dd>
-
-                                @if (!string.IsNullOrWhiteSpace(Model.BookingPayment.ReferenceNumber))
-                                {
-                                    <dt class="col-sm-6">GCash Ref #</dt>
-                                    <dd class="col-sm-6 font-monospace">@Model.BookingPayment.ReferenceNumber</dd>
-                                }
-
-                                @if (Model.BookingPayment.SubmittedAt.HasValue)
-                                {
-                                    <dt class="col-sm-6">Submitted</dt>
-                                    <dd class="col-sm-6">@Model.BookingPayment.SubmittedAt.Value.ToString("yyyy-MM-dd HH:mm")</dd>
-                                }
-
-                                @if (Model.BookingPayment.VerifiedAt.HasValue)
-                                {
-                                    <dt class="col-sm-6">Verified At</dt>
-                                    <dd class="col-sm-6">@Model.BookingPayment.VerifiedAt.Value.ToString("yyyy-MM-dd HH:mm")</dd>
-                                }
-
-                                @if (!string.IsNullOrWhiteSpace(Model.BookingPayment.Notes))
-                                {
-                                    <dt class="col-sm-6">Admin Notes</dt>
-                                    <dd class="col-sm-6">@Model.BookingPayment.Notes</dd>
-                                }
-                            </dl>
+                    @if (Model.BookingPayment is null)
+                    {
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-credit-card display-6 d-block mb-2 text-muted"></i>
+                            <p class="mb-0">No payment record found for this booking.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Payment details summary -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="p-2 rounded bg-light border">
+                                    <span class="small text-muted d-block">Amount</span>
+                                    <span class="fs-5 fw-bold text-success">@Model.BookingPayment.Amount.ToString("C")</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2 rounded bg-light border">
+                                    <span class="small text-muted d-block">Method</span>
+                                    <span class="fw-semibold text-dark">
+                                        <i class="bi bi-qr-code text-primary me-1"></i>@Model.BookingPayment.PaymentMethod
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Proof of Payment image -->
-                        <div class="col-md-6">
-                            @if (!string.IsNullOrWhiteSpace(Model.ProofImagePath))
-                            {
-                                <p class="fw-semibold mb-2">
-                                    <i class="bi bi-image me-1"></i>Proof of Payment
-                                </p>
-                                @if (!string.IsNullOrWhiteSpace(Model.ProofSignedUrl))
+                        <!-- GCash Reference Number with 1-Tap Copy -->
+                        <div class="p-3 rounded-3 bg-light border mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small text-muted fw-bold text-uppercase">GCash Reference Number</span>
+                                @if (!string.IsNullOrWhiteSpace(Model.BookingPayment.ReferenceNumber))
                                 {
-                                    <button type="button"
-                                            class="btn p-0 border-0 bg-transparent"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#proofZoomModal"
-                                            id="proofThumbnailBtn">
-                                        <img src="@Model.ProofSignedUrl"
-                                             alt="Payment proof screenshot"
-                                             class="img-fluid rounded shadow-sm"
-                                             style="max-width:260px;width:100%;border:2px solid #0dcaf0;cursor:zoom-in;" />
+                                    <button type="button" class="btn btn-outline-secondary btn-sm copy-btn"
+                                            data-copy="@Model.BookingPayment.ReferenceNumber">
+                                        <i class="bi bi-clipboard me-1"></i><span>Copy</span>
                                     </button>
-                                    <div class="mt-2">
-                                        <a href="@Model.ProofSignedUrl"
-                                           download="payment-proof"
-                                           class="btn btn-outline-info btn-sm">
-                                            <i class="bi bi-download me-1"></i>Download Proof
-                                        </a>
-                                    </div>
                                 }
-                                else
-                                {
-                                    <div class="alert alert-warning py-2 px-3 small mb-0">
-                                        <i class="bi bi-exclamation-triangle me-1"></i>
-                                        Proof was uploaded but the signed URL could not be generated. Check Supabase storage configuration.
-                                    </div>
-                                }
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(Model.BookingPayment.ReferenceNumber))
+                            {
+                                <div class="fs-5 font-monospace fw-bold text-dark text-break">
+                                    @Model.BookingPayment.ReferenceNumber
+                                </div>
+                                <span class="small text-muted" style="font-size:0.75rem;">
+                                    Copy and verify in your GCash / Bank merchant transactions portal
+                                </span>
                             }
                             else
                             {
-                                <p class="text-muted small mb-0">
-                                    <i class="bi bi-image me-1"></i>No proof of payment uploaded yet.
-                                </p>
+                                <div class="text-muted fst-italic">Not submitted yet</div>
                             }
                         </div>
-                    </div>
-                </div>
 
-                @if (Model.BookingPayment.PaymentStatus == PaymentStatus.Submitted)
-                {
-                    <div class="card-footer d-flex gap-2">
-                        <a asp-page="/Admin/Payments/Details"
-                           asp-route-id="@Model.BookingPayment.Id"
-                           class="btn btn-success btn-sm">
-                            <i class="bi bi-check-circle me-1"></i>Verify / Reject Payment
-                        </a>
+                        <!-- Payment Proof Screenshot -->
+                        <div class="mb-3">
+                            <label class="small text-muted fw-bold text-uppercase d-block mb-2">Proof of Payment</label>
+                            @if (!string.IsNullOrWhiteSpace(Model.ProofSignedUrl))
+                            {
+                                <div class="text-center p-2 rounded-3 bg-light border">
+                                    <button type="button" class="btn p-0 border-0 bg-transparent w-100"
+                                            data-bs-toggle="modal" data-bs-target="#proofZoomModal"
+                                            title="Tap to zoom proof image">
+                                        <img src="@Model.ProofSignedUrl" alt="Payment proof"
+                                             class="img-fluid rounded-3 shadow-sm bg-white p-1"
+                                             style="max-height: 280px; width: auto; object-fit: contain; cursor: zoom-in;" />
+                                    </button>
+                                    <div class="d-flex justify-content-center gap-2 mt-2">
+                                        <button type="button" class="btn btn-outline-primary btn-sm"
+                                                data-bs-toggle="modal" data-bs-target="#proofZoomModal">
+                                            <i class="bi bi-arrows-fullscreen me-1"></i>Zoom Proof
+                                        </button>
+                                        <a href="@Model.ProofSignedUrl" download="payment-proof-@Model.Booking.BookingReference.ToLowerInvariant()"
+                                           class="btn btn-outline-secondary btn-sm">
+                                            <i class="bi bi-download me-1"></i>Download
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(Model.ProofImagePath))
+                            {
+                                <div class="alert alert-warning small mb-0">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    Proof image uploaded, but signed URL failed to generate. Check Supabase storage credentials.
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="p-3 text-center rounded bg-light border text-muted small">
+                                    <i class="bi bi-image me-1"></i>No proof screenshot uploaded.
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Verification Status Details / In-Line Approval -->
+                        @if (Model.BookingPayment.PaymentStatus == PaymentStatus.Verified)
+                        {
+                            <div class="alert alert-success d-flex align-items-center gap-2 mb-0">
+                                <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                                <div>
+                                    <div class="fw-bold">Payment Verified</div>
+                                    <div class="small">
+                                        Verified at: @(Model.BookingPayment.VerifiedAt.HasValue ? PickleBallBooking.Services.AppClock.ToPhilippineTime(Model.BookingPayment.VerifiedAt.Value).ToString("yyyy-MM-dd HH:mm") : "N/A")
+                                        @if (!string.IsNullOrWhiteSpace(Model.BookingPayment.VerifiedByUserId))
+                                        {
+                                            <span>by @Model.BookingPayment.VerifiedByUserId</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.BookingPayment.PaymentStatus == PaymentStatus.Rejected)
+                        {
+                            <div class="alert alert-danger mb-0">
+                                <div class="fw-bold"><i class="bi bi-x-circle me-1"></i>Payment Rejected</div>
+                                @if (!string.IsNullOrWhiteSpace(Model.BookingPayment.Notes))
+                                {
+                                    <div class="small mt-1">Reason: @Model.BookingPayment.Notes</div>
+                                }
+                            </div>
+                        }
+                        else if (Model.BookingPayment.PaymentStatus == PaymentStatus.Submitted || !string.IsNullOrWhiteSpace(Model.BookingPayment.ReferenceNumber))
+                        {
+                            <!-- In-line Verification Action Controls -->
+                            <div class="p-3 rounded-3 bg-light border mt-3">
+                                <span class="small fw-bold text-dark d-block mb-2">In-Line Payment Action</span>
+                                <div class="d-flex flex-column flex-sm-row gap-2">
+                                    <form method="post" asp-page-handler="VerifyPayment" class="m-0 flex-grow-1">
+                                        <input type="hidden" name="id" value="@Model.Booking.Id" />
+                                        <input type="hidden" name="paymentId" value="@Model.BookingPayment.Id" />
+                                        <button type="submit" class="btn btn-success w-100 fw-semibold py-2">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Verify & Confirm Booking
+                                        </button>
+                                    </form>
+                                    <button type="button" class="btn btn-outline-danger fw-semibold py-2"
+                                            data-bs-toggle="modal" data-bs-target="#rejectPaymentModal">
+                                        <i class="bi bi-x-circle me-1"></i>Reject
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+        </div>
+    </div>
+}
+
+<!-- ── Rejection Modal ────────────────────────────────────────────────────────── -->
+@if (Model.Booking is not null && Model.BookingPayment is not null)
+{
+    <div class="modal fade" id="rejectPaymentModal" tabindex="-1" aria-labelledby="rejectPaymentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="post" asp-page-handler="RejectPayment">
+                    <input type="hidden" name="id" value="@Model.Booking.Id" />
+                    <input type="hidden" name="paymentId" value="@Model.BookingPayment.Id" />
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold text-danger" id="rejectPaymentModalLabel">
+                            <i class="bi bi-x-circle me-1"></i>Reject Payment
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                }
+                    <div class="modal-body">
+                        <p class="text-muted small">
+                            Please provide a reason for rejecting this payment (e.g. invalid reference number, unverified transaction).
+                        </p>
+                        <div class="mb-3">
+                            <label for="rejectionNotes" class="form-label small fw-semibold">Rejection Notes / Reason</label>
+                            <textarea id="rejectionNotes" name="notes" class="form-control" rows="3"
+                                      placeholder="e.g. Reference number does not match GCash portal record..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger btn-sm px-3 fw-semibold">Confirm Rejection</button>
+                    </div>
+                </form>
             </div>
         </div>
-    }
+    </div>
+}
 
-</div>
-
-<!-- ── Action Buttons ─────────────────────────────────────────── -->
-<div class="btn-group mt-4" role="group">
-    <a asp-page="Index" class="btn btn-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Back to Bookings
-    </a>
-    @if (Model.Booking!.BookingStatus == BookingStatus.Pending)
-    {
-        <form method="post" asp-page-handler="Confirm" style="display:inline;">
-            <input type="hidden" name="id" value="@Model.Booking.Id" />
-            <button type="submit" class="btn btn-success">
-                <i class="bi bi-check-circle me-1"></i>Confirm Booking
-            </button>
-        </form>
-    }
-    @if (Model.Booking.BookingStatus is BookingStatus.Pending or BookingStatus.Confirmed)
-    {
-        <form method="post" asp-page-handler="Cancel" style="display:inline;"
-              data-pb-confirm="Cancel booking @Model.Booking.BookingReference for @Model.Booking.CustomerName? This will release the booked time slot(s) and cannot be undone."
-              data-pb-confirm-title="Cancel booking"
-              data-pb-confirm-ok="Cancel booking">
-            <input type="hidden" name="id" value="@Model.Booking.Id" />
-            <button type="submit" class="btn btn-danger">
-                <i class="bi bi-x-circle me-1"></i>Cancel Booking
-            </button>
-        </form>
-    }
-    @if (Model.Booking.BookingStatus == BookingStatus.Confirmed)
-    {
-        <form method="post" asp-page-handler="Complete" style="display:inline;">
-            <input type="hidden" name="id" value="@Model.Booking.Id" />
-            <button type="submit" class="btn btn-success">
-                <i class="bi bi-check2-all me-1"></i>Complete Booking
-            </button>
-        </form>
-    }
-</div>
-
+<!-- ── Proof Zoom Lightbox Modal ──────────────────────────────────────────────── -->
 @if (!string.IsNullOrWhiteSpace(Model.ProofSignedUrl))
 {
-    <!-- Proof Zoom Modal -->
-    <div class="modal fade" id="proofZoomModal" tabindex="-1"
-         aria-labelledby="proofZoomModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" style="max-width:min(95vw,640px)">
+    <div class="modal fade" id="proofZoomModal" tabindex="-1" aria-labelledby="proofZoomModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-1">
-                    <h5 class="modal-title" id="proofZoomModalLabel">
-                        <i class="bi bi-image me-2 text-info"></i>Proof of Payment
+                    <h5 class="modal-title fw-bold" id="proofZoomModalLabel">
+                        <i class="bi bi-image text-primary me-2"></i>Proof of Payment
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body text-center pt-0">
-                    <img src="@Model.ProofSignedUrl"
-                         alt="Payment proof screenshot"
-                         class="img-fluid rounded"
-                         style="width:100%;max-width:600px;border:2px solid #0dcaf0;" />
+                <div class="modal-body text-center p-2">
+                    <img src="@Model.ProofSignedUrl" alt="Payment proof screenshot"
+                         class="img-fluid rounded border shadow-sm"
+                         style="max-height:75vh; width:auto; object-fit:contain;" />
                 </div>
                 <div class="modal-footer border-0 justify-content-center pt-0">
-                    <a href="@Model.ProofSignedUrl"
-                       download="payment-proof"
-                       class="btn btn-info">
-                        <i class="bi bi-download me-1"></i>Download
+                    <a href="@Model.ProofSignedUrl" download="payment-proof" class="btn btn-primary btn-sm px-3">
+                        <i class="bi bi-download me-1"></i>Download Proof
                     </a>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            'use strict';
+            // 1-Tap Copy with instant visual feedback
+            document.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', async function (e) {
+                    e.preventDefault();
+                    const text = this.dataset.copy;
+                    if (!text) return;
+
+                    const originalHtml = this.innerHTML;
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        this.innerHTML = '<span class="text-success"><i class="bi bi-check-lg me-1"></i>Copied!</span>';
+                        setTimeout(() => { this.innerHTML = originalHtml; }, 2000);
+                    } catch (err) {
+                        const ta = document.createElement('textarea');
+                        ta.value = text;
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        this.innerHTML = '<span class="text-success"><i class="bi bi-check-lg me-1"></i>Copied!</span>';
+                        setTimeout(() => { this.innerHTML = originalHtml; }, 2000);
+                    }
+                });
+            });
+        })();
+    </script>
 }
