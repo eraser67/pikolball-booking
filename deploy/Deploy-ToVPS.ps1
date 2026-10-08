@@ -34,8 +34,8 @@ if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed with exit code $LASTEXITCODE"
 }
 
-$sshOpts = @("-p", $SshPort)
-$scpOpts = @("-P", $SshPort)
+$sshOpts = @("-p", $SshPort, "-o", "StrictHostKeyChecking=no")
+$scpOpts = @("-P", $SshPort, "-o", "StrictHostKeyChecking=no")
 
 if ($SshKeyPath -ne "") {
     $sshOpts += @("-i", $SshKeyPath)
