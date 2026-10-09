@@ -26,6 +26,12 @@ public class Court
 
     public CourtStatus Status { get; set; } = CourtStatus.Active;
 
+    /// <summary>
+    /// Comma-separated specs or badges to display on the court card (e.g. "Cushioned Acrylic, Pro LED Lights, Covered Venue").
+    /// </summary>
+    [MaxLength(500)]
+    public string? Features { get; set; }
+
     [MaxLength(500)]
     public string? MaintenanceNote { get; set; }
 

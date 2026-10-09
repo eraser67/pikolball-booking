@@ -10,9 +10,9 @@ public interface ICourtService
 
     Task<Court?> GetByIdAsync(int id);
 
-    Task<Court> CreateAsync(string name, string? description);
+    Task<Court> CreateAsync(string name, string? description, string? features = null);
 
-    Task<bool> UpdateAsync(int id, string name, string? description, string? maintenanceNote = null);
+    Task<bool> UpdateAsync(int id, string name, string? description, string? maintenanceNote = null, string? features = null);
 
     Task<bool> SetStatusAsync(int id, CourtStatus status, string? maintenanceNote = null);
 

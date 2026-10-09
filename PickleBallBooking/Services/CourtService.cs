@@ -36,7 +36,7 @@ public class CourtService : ICourtService
         return await _context.Courts.FirstOrDefaultAsync(c => c.Id == id);
     }
 
-    public async Task<Court> CreateAsync(string name, string? description)
+    public async Task<Court> CreateAsync(string name, string? description, string? features = null)
     {
         // Phase 21: the context's write guard stamps the current organization's id on
         // the new court. Callers cannot choose the tenant.
@@ -44,6 +44,7 @@ public class CourtService : ICourtService
         {
             Name        = name,
             Description = description,
+            Features    = features,
             Status      = CourtStatus.Active,
             CreatedAt   = DateTime.UtcNow,
             UpdatedAt   = DateTime.UtcNow,
@@ -61,7 +62,7 @@ public class CourtService : ICourtService
         return court;
     }
 
-    public async Task<bool> UpdateAsync(int id, string name, string? description, string? maintenanceNote = null)
+    public async Task<bool> UpdateAsync(int id, string name, string? description, string? maintenanceNote = null, string? features = null)
     {
         var court = await _context.Courts.FirstOrDefaultAsync(c => c.Id == id);
         if (court is null)
@@ -72,6 +73,7 @@ public class CourtService : ICourtService
         court.Name            = name;
         court.Description     = description;
         court.MaintenanceNote = maintenanceNote;
+        court.Features        = features;
         court.UpdatedAt       = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

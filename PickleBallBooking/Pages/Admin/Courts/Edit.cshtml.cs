@@ -40,6 +40,7 @@ public class EditModel : PageModel
         {
             Name            = court.Name,
             Description     = court.Description,
+            Features        = court.Features,
             MaintenanceNote = court.MaintenanceNote,
         };
         CurrentImageUrl = _imageStorage.GetPublicUrl(court.ImagePath);
@@ -55,7 +56,7 @@ public class EditModel : PageModel
             return Page();
         }
 
-        var updated = await _courtService.UpdateAsync(Id, Court.Name, Court.Description, Court.MaintenanceNote);
+        var updated = await _courtService.UpdateAsync(Id, Court.Name, Court.Description, Court.MaintenanceNote, Court.Features);
         if (!updated)
         {
             return NotFound();
@@ -146,6 +147,10 @@ public class EditModel : PageModel
         [MaxLength(500)]
         [Display(Name = "Description")]
         public string? Description { get; set; }
+
+        [MaxLength(500)]
+        [Display(Name = "Court Specs / Features")]
+        public string? Features { get; set; }
 
         [MaxLength(500)]
         [Display(Name = "Maintenance / Closure Note")]

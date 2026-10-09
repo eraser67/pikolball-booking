@@ -100,6 +100,33 @@ public class CourtManagementTests
     }
 
     [Fact]
+    public async Task CreateAsync_WithFeatures_PersistsFeatures()
+    {
+        using var ctx = TestDbContextFactory.CreateInMemory("create_court_features", organizationId: 10);
+        var service = new CourtService(ctx);
+
+        var court = await service.CreateAsync("Court A", "Indoor", "Cushioned Acrylic, LED Lighting, Covered");
+
+        Assert.Equal("Cushioned Acrylic, LED Lighting, Covered", court.Features);
+        var persisted = await ctx.Courts.FirstAsync();
+        Assert.Equal("Cushioned Acrylic, LED Lighting, Covered", persisted.Features);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithFeatures_UpdatesFeatures()
+    {
+        using var ctx = TestDbContextFactory.CreateInMemory("update_court_features", organizationId: 10);
+        var service = new CourtService(ctx);
+        var court = await service.CreateAsync("Court 1", "Outdoor", "Acrylic");
+
+        var result = await service.UpdateAsync(court.Id, "Court 1", "Outdoor", null, "Covered Venue, Pro LED Lights");
+
+        Assert.True(result);
+        var updated = await ctx.Courts.FirstAsync();
+        Assert.Equal("Covered Venue, Pro LED Lights", updated.Features);
+    }
+
+    [Fact]
     public async Task UpdateAsync_UnknownId_ReturnsFalse()
     {
         using var ctx = TestDbContextFactory.CreateInMemory("update_unknown", organizationId: 10);

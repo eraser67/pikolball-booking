@@ -55,8 +55,18 @@ else
                             </div>
                         }
                     </td>
-                    <td data-label="Name">@court.Name</td>
-                    <td data-label="Description">@court.Description</td>
+                    <td data-label="Description">
+                        <div>@court.Description</div>
+                        @if (!string.IsNullOrWhiteSpace(court.Features))
+                        {
+                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                @foreach (var spec in court.Features.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                                {
+                                    <span class="badge bg-light text-dark border font-monospace" style="font-size:0.7rem;">@spec</span>
+                                }
+                            </div>
+                        }
+                    </td>
                     <td data-label="Status">
                         @if (court.Status == PickleBallBooking.Models.CourtStatus.Active)
                         {

@@ -1440,11 +1440,16 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Initial page state
+    // Initial page state: read initial time filter from query string if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTimeFilter = (urlParams.get('timeFilter') || urlParams.get('timePref') || urlParams.get('time') || 'all').toLowerCase();
+    const validFilters = ['all', 'morning', 'afternoon', 'evening'];
+    const activeFilter = validFilters.includes(initialTimeFilter) ? initialTimeFilter : 'all';
+
     updateCardAppearance();
     updateSummary();
     updateFilterCounts();
-    applyTimeFilter('all');
+    applyTimeFilter(activeFilter);
     syncDatePillsWithInput(bookingDateInput ? bookingDateInput.value : '');
     initRememberMe();
     updateMobileProceedState();

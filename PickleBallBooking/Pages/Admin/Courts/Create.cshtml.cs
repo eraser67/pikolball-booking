@@ -33,7 +33,7 @@ public class CreateModel : PageModel
         }
 
         // Create court (no image yet — keeps create atomic; image added afterwards).
-        var court = await _courtService.CreateAsync(Court.Name, Court.Description);
+        var court = await _courtService.CreateAsync(Court.Name, Court.Description, Court.Features);
 
         // Phase 24: optional image upload on creation.
         if (Court.Image is not null && Court.Image.Length > 0)
@@ -67,6 +67,10 @@ public class CreateModel : PageModel
         [MaxLength(500)]
         [Display(Name = "Description")]
         public string? Description { get; set; }
+
+        [MaxLength(500)]
+        [Display(Name = "Court Specs / Features")]
+        public string? Features { get; set; }
 
         /// <summary>Optional court image. Validated server-side for type and size.</summary>
         [Display(Name = "Court Image")]

@@ -25,6 +25,16 @@
             </div>
 
             <div class="mb-3">
+                <label asp-for="Court.Features" class="form-label fw-semibold"></label>
+                <input asp-for="Court.Features" class="form-control"
+                       placeholder="e.g. Cushioned Acrylic, Pro LED Lights, Covered Venue" />
+                <div class="form-text">
+                    Comma-separated specs or badges to display on the court card (e.g. <code>Cushioned Acrylic, Pro LED Lights, Covered Venue</code>).
+                </div>
+                <span asp-validation-for="Court.Features" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
                 <label asp-for="Court.Image" class="form-label fw-semibold"></label>
                 <input asp-for="Court.Image" type="file" class="form-control"
                        accept="image/jpeg,image/png,image/webp"

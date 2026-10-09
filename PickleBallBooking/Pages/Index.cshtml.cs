@@ -18,6 +18,7 @@ namespace PickleBallBooking.Pages
         private readonly ICourtImageStorage _imageStorage;
         private readonly IOrganizationService _organizationService;
         private readonly ActivityService _activityService;
+        private readonly IPricingService? _pricingService;
 
         public IndexModel(
             ICourtService courtService,
@@ -25,7 +26,8 @@ namespace PickleBallBooking.Pages
             ITimeSlotService timeSlotService,
             ICourtImageStorage imageStorage,
             IOrganizationService organizationService,
-            ActivityService activityService)
+            ActivityService activityService,
+            IPricingService? pricingService = null)
         {
             _courtService        = courtService;
             _bookingService      = bookingService;
@@ -33,6 +35,7 @@ namespace PickleBallBooking.Pages
             _imageStorage        = imageStorage;
             _organizationService = organizationService;
             _activityService     = activityService;
+            _pricingService      = pricingService;
         }
 
         /// <summary>Active courts loaded dynamically from the database.</summary>
@@ -40,6 +43,15 @@ namespace PickleBallBooking.Pages
 
         /// <summary>Date the preview availability refers to (today).</summary>
         public DateOnly PreviewDate { get; set; }
+
+        /// <summary>Starting hourly rate for courts.</summary>
+        public decimal StartingPrice { get; set; } = 300m;
+
+        /// <summary>Next earliest available slot text across all courts for today.</summary>
+        public string? FirstAvailableSlotText { get; set; }
+
+        /// <summary>Total open slots across all courts today.</summary>
+        public int TotalAvailableSlotsToday { get; set; }
 
         // ── Location (from Organization settings) ──
         public string OrgName { get; set; } = "Our Pickleball Club";
@@ -119,6 +131,20 @@ namespace PickleBallBooking.Pages
                 }
             }
 
+            // Query active pricing for starting rate
+            if (_pricingService is not null)
+            {
+                try
+                {
+                    var pricingRules = await _pricingService.GetActiveAsync();
+                    if (pricingRules.Count > 0)
+                    {
+                        StartingPrice = pricingRules.Min(p => p.Price);
+                    }
+                }
+                catch { /* default StartingPrice remains 300m */ }
+            }
+
             var courts = await _courtService.GetAllAsync();
             var timeSlots = await _timeSlotService.GetActiveAsync();
 
@@ -137,16 +163,38 @@ namespace PickleBallBooking.Pages
                 : await _bookingService.GetAvailabilityForAllCourtsAsync(activeCourts.Select(c => c.Id), PreviewDate);
 
             var index = 0;
+            TimeSpan? earliestAvailableSlotTime = null;
+
             foreach (var court in courts)
             {
                 var totalSlots = timeSlots.Count;
                 var availableSlots = 0;
+                var morningSlots = 0;
+                var afternoonSlots = 0;
+                var eveningSlots = 0;
+                string? nextSlotTime = null;
                 var isCourtActive = court.Status == CourtStatus.Active;
 
                 if (isCourtActive && availabilityByCourt is not null
                     && availabilityByCourt.TryGetValue(court.Id, out var slots))
                 {
-                    availableSlots = slots.Count(s => s.IsAvailable);
+                    var openSlots = slots.Where(s => s.IsAvailable).ToList();
+                    availableSlots = openSlots.Count;
+                    morningSlots = openSlots.Count(s => s.StartTime < TimeSpan.FromHours(12));
+                    afternoonSlots = openSlots.Count(s => s.StartTime >= TimeSpan.FromHours(12) && s.StartTime < TimeSpan.FromHours(17));
+                    eveningSlots = openSlots.Count(s => s.StartTime >= TimeSpan.FromHours(17));
+
+                    var firstOpen = openSlots.OrderBy(s => s.StartTime).FirstOrDefault();
+                    if (firstOpen is not null)
+                    {
+                        var dt = DateTime.Today.Add(firstOpen.StartTime);
+                        nextSlotTime = dt.ToString("h:mm tt");
+
+                        if (!earliestAvailableSlotTime.HasValue || firstOpen.StartTime < earliestAvailableSlotTime.Value)
+                        {
+                            earliestAvailableSlotTime = firstOpen.StartTime;
+                        }
+                    }
                 }
 
                 // Phase 24: use the uploaded Supabase image when available;
@@ -159,10 +207,21 @@ namespace PickleBallBooking.Pages
                     ImageUrl = uploadedUrl ?? CourtImageFor(index),
                     TotalSlots = totalSlots,
                     AvailableSlots = availableSlots,
+                    MorningSlots = morningSlots,
+                    AfternoonSlots = afternoonSlots,
+                    EveningSlots = eveningSlots,
+                    NextSlotTime = nextSlotTime,
                     HasAvailabilityData = isCourtActive && availabilityByCourt is not null
                 });
 
                 index++;
+            }
+
+            TotalAvailableSlotsToday = Courts.Sum(c => c.AvailableSlots);
+            if (earliestAvailableSlotTime.HasValue)
+            {
+                var dt = DateTime.Today.Add(earliestAvailableSlotTime.Value);
+                FirstAvailableSlotText = dt.ToString("h:mm tt");
             }
         }
 
@@ -189,6 +248,10 @@ namespace PickleBallBooking.Pages
             public string ImageUrl { get; set; } = string.Empty;
             public int TotalSlots { get; set; }
             public int AvailableSlots { get; set; }
+            public int MorningSlots { get; set; }
+            public int AfternoonSlots { get; set; }
+            public int EveningSlots { get; set; }
+            public string? NextSlotTime { get; set; }
             public bool HasAvailabilityData { get; set; }
 
             /// <summary>True when at least one slot is still open today (preview only).</summary>
