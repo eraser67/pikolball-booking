@@ -260,7 +260,7 @@ The platform is deployed on an Ubuntu Linux VPS with Nginx and Let's Encrypt wil
 ### Automated Deployment Script
 Deploy updates from your local development environment:
 ```powershell
-.\deploy\Deploy-ToVPS.ps1 -VpsIp "187.127.223.93" -VpsUser "root" -Domain "punitbola.tech"
+.\deploy\Deploy-ToVPS.ps1 -VpsIp "179.197.240.189" -VpsUser "root" -Domain "punitbola.tech" -SkipProvisioning
 ```
 
 The script automatically:

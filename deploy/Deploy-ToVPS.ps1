@@ -11,8 +11,7 @@
     Path to the SSH private key (optional).
 #>
 param (
-    [Parameter(Mandatory = $true)]
-    [string]$VpsIp,
+    [string]$VpsIp = "179.197.240.189",
 
     [string]$SshUser = "root",
     [string]$VpsUser = "",
