@@ -82,9 +82,12 @@ public class ConfirmationModel : PageModel
             QRCodeUrl = _proofStorage.GetQRCodePublicUrl(PaymentSettings.QRCodeImagePath);
         }
 
-        // Auto-create a pending payment record for this booking so the customer
-        // has something to submit a reference number against.
-        if (SelectedPaymentOption is not null || PaymentSettings?.IsActive == true)
+        // Load payment record for this booking so the pass and status are always accurate.
+        Payment = await _context.Payments
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.BookingId == Booking.Id);
+
+        if (Payment is null && (SelectedPaymentOption is not null || PaymentSettings?.IsActive == true))
         {
             Payment = await _paymentService.CreateForBookingAsync(Booking.Id);
         }

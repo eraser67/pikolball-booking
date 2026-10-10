@@ -132,7 +132,7 @@ builder.Services.AddHttpClient<ICourtImageStorage, SupabaseCourtImageStorage>();
 // Phase 25: manual GCash payment workflow.
 // PaymentProofOptions is SEPARATE from SupabaseStorageOptions:
 //   - Court images: 3 MB (SupabaseStorageOptions.MaxCourtImageSizeBytes)
-//   - Payment proofs: 1 MB (PaymentProofOptions.MaxFileSizeBytes)
+//   - Payment proofs: 3 MB (PaymentProofOptions.MaxFileSizeBytes)
 builder.Services.Configure<PaymentProofOptions>(builder.Configuration.GetSection(PaymentProofOptions.SectionName));
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddHttpClient<IPaymentProofStorage, SupabasePaymentProofStorage>();

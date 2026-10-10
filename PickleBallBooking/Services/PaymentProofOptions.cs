@@ -6,7 +6,7 @@ namespace PickleBallBooking.Services;
 ///
 /// IMPORTANT: These limits are INDEPENDENT from SupabaseStorageOptions (court images).
 /// - Court images: 3 MB (MaxCourtImageSizeBytes in SupabaseStorageOptions)
-/// - Payment proofs: 1 MB (MaxFileSizeBytes here)
+/// - Payment proofs: 3 MB (MaxFileSizeBytes here)
 /// Do NOT merge or share these configurations.
 /// </summary>
 public class PaymentProofOptions
@@ -21,8 +21,8 @@ public class PaymentProofOptions
 
     /// <summary>
     /// Maximum allowed size in bytes for a customer payment proof image.
-    /// Default: 1,048,576 bytes (exactly 1 MB).
-    /// A file of exactly this size is accepted; 1,048,577 or more is rejected.
+    /// Default: 3,145,728 bytes (exactly 3 MB).
+    /// A file of exactly this size is accepted; 3,145,729 or more is rejected.
     /// </summary>
-    public long MaxFileSizeBytes { get; set; } = 1_048_576;
+    public long MaxFileSizeBytes { get; set; } = 3_145_728;
 }

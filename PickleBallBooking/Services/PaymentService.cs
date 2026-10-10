@@ -393,7 +393,7 @@ public sealed class PaymentService : IPaymentService
                         .FirstOrDefaultAsync(ct);
                 }
 
-                _emailService?.SendPaymentSubmittedToCustomerAsync(bookingForEmail, payment, orgForEmail, paymentOptionLabel);
+                // Only notify venue/org that a payment is waiting for review; customer is notified once confirmed.
                 _emailService?.SendPaymentSubmittedToOrgAsync(bookingForEmail, payment, orgForEmail, paymentOptionLabel);
                 _telegramService?.SendPaymentSubmittedAlertAsync(bookingForEmail, payment, orgForEmail, paymentOptionLabel);
             }

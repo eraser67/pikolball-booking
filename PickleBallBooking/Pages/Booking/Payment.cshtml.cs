@@ -56,14 +56,13 @@ public class PaymentModel : PageModel
         if (PaymentInfo.Status == Models.PaymentStatus.Submitted ||
             PaymentInfo.Status == Models.PaymentStatus.Verified)
         {
-            // Already submitted — redirect to confirmation.
-            return RedirectToPage("/Booking/PaymentConfirmation",
-                new { reference, alreadySubmitted = true });
+            // Already submitted or verified — redirect to confirmation.
+            return RedirectToPage("/Booking/Confirmation", new { reference });
         }
 
         if (PaymentInfo.Status != Models.PaymentStatus.Pending)
         {
-            return RedirectToPage("/Booking/PaymentConfirmation", new { reference });
+            return RedirectToPage("/Booking/Confirmation", new { reference });
         }
 
         await LoadSettingsAsync(reference);
@@ -85,7 +84,7 @@ public class PaymentModel : PageModel
 
         if (PaymentInfo.Status != Models.PaymentStatus.Pending)
         {
-            return RedirectToPage("/Booking/PaymentConfirmation", new { reference = Input.Reference });
+            return RedirectToPage("/Booking/Confirmation", new { reference = Input.Reference });
         }
 
         // Upload proof if provided.
@@ -154,7 +153,7 @@ public class PaymentModel : PageModel
             return Page();
         }
 
-        return RedirectToPage("/Booking/PaymentConfirmation", new { reference = Input.Reference });
+        return RedirectToPage("/Booking/Confirmation", new { reference = Input.Reference });
     }
 
     private async Task LoadSettingsAsync(string reference)

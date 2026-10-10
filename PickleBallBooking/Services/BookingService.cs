@@ -355,7 +355,8 @@ public class BookingService : IBookingService
                         await transaction.CommitAsync();
                     }
 
-                    // Phase 26: fire customer + org notifications (email + SMS) after successful booking.
+                    // Only notify once confirmed (e.g. free courts or auto-confirmed bookings).
+                    // Premature "booking received / please pay" emails to customer and admin are removed per requirements.
                     try
                     {
                         var orgForEmail = await _context.Organizations
@@ -363,18 +364,12 @@ public class BookingService : IBookingService
                         if (orgForEmail is not null)
                         {
                             booking.Court = await _context.Courts.FindAsync(courtId);
-                            string? paymentOptionLabel = null;
-                            if (booking.SelectedPaymentOptionId.HasValue)
+
+                            if (booking.BookingStatus == BookingStatus.Confirmed)
                             {
-                                paymentOptionLabel = await _context.TenantPaymentOptions
-                                    .IgnoreQueryFilters()
-                                    .Where(o => o.Id == booking.SelectedPaymentOptionId.Value)
-                                    .Select(o => o.Label)
-                                    .FirstOrDefaultAsync();
+                                _emailService?.SendPaymentVerifiedAsync(booking, orgForEmail);
+                                _smsService?.SendPaymentVerifiedAsync(booking, orgForEmail);
                             }
-                            _emailService?.SendBookingReceivedAsync(booking, orgForEmail, paymentOptionLabel);
-                            _emailService?.SendNewBookingToOrgAsync(booking, orgForEmail);
-                            _smsService?.SendBookingReceivedAsync(booking, orgForEmail);
                             _telegramService?.SendNewBookingAlertAsync(booking, orgForEmail);
                         }
                     }

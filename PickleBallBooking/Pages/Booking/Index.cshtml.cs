@@ -220,6 +220,11 @@ public class IndexModel : PageModel
             return Page();
         }
 
+        if (result.Booking!.Price > 0 && result.Booking.BookingStatus != BookingStatus.Confirmed)
+        {
+            return RedirectToPage("Payment", new { reference = result.Booking.BookingReference });
+        }
+
         return RedirectToPage("Confirmation", new { reference = result.Booking!.BookingReference });
     }
 

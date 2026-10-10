@@ -223,12 +223,16 @@ public sealed class SupabasePaymentProofStorage : IPaymentProofStorage
         if (file is null || file.Length == 0)
             throw new CourtImageValidationException("No file was provided or the file is empty.");
 
-        // AUTHORITATIVE server-side size check (1 MB).
+        // AUTHORITATIVE server-side size check.
         if (file.Length > _proofOpts.MaxFileSizeBytes)
+        {
+            var maxMb = _proofOpts.MaxFileSizeBytes / (1024 * 1024);
+            var limitStr = maxMb > 0 ? $"{maxMb} MB" : $"{_proofOpts.MaxFileSizeBytes:N0} bytes";
             throw new CourtImageValidationException(
-                $"Payment proof must be 1 MB or smaller " +
+                $"Payment proof must be {limitStr} or smaller " +
                 $"(max {_proofOpts.MaxFileSizeBytes:N0} bytes). " +
                 $"The uploaded file is {file.Length:N0} bytes.");
+        }
 
         using var ms = new MemoryStream((int)file.Length);
         await file.CopyToAsync(ms, ct);

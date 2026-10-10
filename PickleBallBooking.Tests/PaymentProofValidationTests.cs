@@ -14,7 +14,7 @@ namespace PickleBallBooking.Tests;
 /// the court image 3 MB limit. The two limits must never share configuration.
 ///
 /// Court image max: 3,145,728 bytes (SupabaseStorageOptions.MaxCourtImageSizeBytes)
-/// Payment proof max: 1,048,576 bytes (PaymentProofOptions.MaxFileSizeBytes)
+/// Payment proof max: 3,145,728 bytes (PaymentProofOptions.MaxFileSizeBytes)
 /// </summary>
 public class PaymentProofValidationTests
 {
@@ -70,7 +70,7 @@ public class PaymentProofValidationTests
 
     // ─── Helpers ────────────────────────────────────────────────────────────
 
-    private const long ProofMaxBytes = 1_048_576; // 1 MB exactly
+    private const long ProofMaxBytes = 3_145_728; // 3 MB exactly
 
     private static SupabasePaymentProofStorage CreateStorage(long maxProofBytes = ProofMaxBytes)
     {
@@ -116,14 +116,14 @@ public class PaymentProofValidationTests
         return bytes;
     }
 
-    // ─── Size boundary tests (PROOF = 1 MB) ─────────────────────────────────
+    // ─── Size boundary tests (PROOF = 3 MB) ─────────────────────────────────
 
-    /// <summary>Test 3 — Below 1 MB: accepted.</summary>
+    /// <summary>Test 3 — Below 3 MB: accepted.</summary>
     [Fact]
     public async Task UploadProofAsync_BelowMaxSize_IsAccepted()
     {
         var storage = CreateStorage();
-        var content = MakeImageBytes(ValidJpegHeader, 512 * 1024); // 512 KB
+        var content = MakeImageBytes(ValidJpegHeader, 1024 * 1024); // 1 MB
         var file    = MakeFile(content, "image/jpeg", "proof.jpg");
 
         // Should NOT throw CourtImageValidationException.
@@ -131,50 +131,50 @@ public class PaymentProofValidationTests
         Assert.IsNotType<CourtImageValidationException>(ex);
     }
 
-    /// <summary>Test 1 — Exactly 1 MB (1,048,576 bytes): accepted.</summary>
+    /// <summary>Test 1 — Exactly 3 MB (3,145,728 bytes): accepted.</summary>
     [Fact]
-    public async Task UploadProofAsync_ExactlyOneMB_IsAccepted()
+    public async Task UploadProofAsync_ExactlyThreeMB_IsAccepted()
     {
         var storage = CreateStorage();
-        var content = MakeImageBytes(ValidJpegHeader, ProofMaxBytes); // exactly 1,048,576 bytes
+        var content = MakeImageBytes(ValidJpegHeader, ProofMaxBytes); // exactly 3,145,728 bytes
         var file    = MakeFile(content, "image/jpeg", "proof.jpg");
 
         var ex = await Record.ExceptionAsync(() => storage.UploadProofAsync(1, 1, file));
         Assert.IsNotType<CourtImageValidationException>(ex);
     }
 
-    /// <summary>Test 2 — One byte over 1 MB (1,048,577 bytes): rejected.</summary>
+    /// <summary>Test 2 — One byte over 3 MB (3,145,729 bytes): rejected.</summary>
     [Fact]
-    public async Task UploadProofAsync_OneBytOverOneM_IsRejected()
+    public async Task UploadProofAsync_OneBytOverThreeM_IsRejected()
     {
         var storage = CreateStorage();
-        var content = MakeImageBytes(ValidJpegHeader, ProofMaxBytes + 1); // 1,048,577 bytes
+        var content = MakeImageBytes(ValidJpegHeader, ProofMaxBytes + 1); // 3,145,729 bytes
         var file    = MakeFile(content, "image/jpeg", "proof.jpg");
 
         await Assert.ThrowsAsync<CourtImageValidationException>(() => storage.UploadProofAsync(1, 1, file));
     }
 
-    /// <summary>Test 4 — Over 1 MB: rejected.</summary>
+    /// <summary>Test 4 — Over 3 MB: rejected.</summary>
     [Fact]
-    public async Task UploadProofAsync_OverOneM_IsRejected()
+    public async Task UploadProofAsync_OverThreeM_IsRejected()
     {
         var storage = CreateStorage();
-        var content = MakeImageBytes(ValidJpegHeader, 2 * 1024 * 1024); // 2 MB
+        var content = MakeImageBytes(ValidJpegHeader, 4 * 1024 * 1024); // 4 MB
         var file    = MakeFile(content, "image/jpeg", "proof.jpg");
 
         await Assert.ThrowsAsync<CourtImageValidationException>(() => storage.UploadProofAsync(1, 1, file));
     }
 
-    /// <summary>Validation message for oversized proof mentions "1 MB".</summary>
+    /// <summary>Validation message for oversized proof mentions "3 MB".</summary>
     [Fact]
-    public async Task UploadProofAsync_OversizedMessage_Mentions1MB()
+    public async Task UploadProofAsync_OversizedMessage_Mentions3MB()
     {
         var storage = CreateStorage();
         var content = MakeImageBytes(ValidJpegHeader, ProofMaxBytes + 1);
         var file    = MakeFile(content, "image/jpeg", "proof.jpg");
 
         var ex = await Assert.ThrowsAsync<CourtImageValidationException>(() => storage.UploadProofAsync(1, 1, file));
-        Assert.Contains("1 MB", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("3 MB", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     // ─── Magic-byte / MIME validation ────────────────────────────────────────
@@ -250,13 +250,12 @@ public class PaymentProofValidationTests
         Assert.NotEqual(1_048_576L, opts.MaxCourtImageSizeBytes);
     }
 
-    /// <summary>Payment proof limit must be exactly 1 MB — NOT 3 MB.</summary>
+    /// <summary>Payment proof limit must be exactly 3 MB.</summary>
     [Fact]
-    public void PaymentProofOptions_ProofLimit_IsOneMB()
+    public void PaymentProofOptions_ProofLimit_IsThreeMB()
     {
         var opts = new PaymentProofOptions();
-        Assert.Equal(1_048_576L, opts.MaxFileSizeBytes);
-        Assert.NotEqual(3_145_728L, opts.MaxFileSizeBytes);
+        Assert.Equal(3_145_728L, opts.MaxFileSizeBytes);
     }
 
     // ─── Storage path verification ────────────────────────────────────────────
