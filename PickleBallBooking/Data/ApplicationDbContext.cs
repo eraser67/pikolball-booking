@@ -78,6 +78,9 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     /// <summary>Tenant-configured payment options (GCash, Maya, Bank QR, etc.). Each has its own QR image.</summary>
     public DbSet<TenantPaymentOption> TenantPaymentOptions => Set<TenantPaymentOption>();
 
+    /// <summary>Tenant-specific time slot status overrides (Active/Inactive per tenant).</summary>
+    public DbSet<TenantTimeSlot> TenantTimeSlots => Set<TenantTimeSlot>();
+
     // Phase 26: subscription tables (global — no tenant query filter)
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
 
@@ -144,6 +147,8 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
         typeof(MatchScoreAudit),
         // Tenant payment options (multi-method support)
         typeof(TenantPaymentOption),
+        // Tenant-specific time slot status overrides
+        typeof(TenantTimeSlot),
     };
 
     public override int SaveChanges()
@@ -508,6 +513,28 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
                 .WithMany()
                 .HasForeignKey(o => o.OrganizationId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Tenant-specific time slot status overrides (active/inactive per tenant).
+        modelBuilder.Entity<TenantTimeSlot>(entity =>
+        {
+            entity.HasKey(tts => tts.Id);
+
+            entity.HasIndex(tts => new { tts.OrganizationId, tts.TimeSlotId })
+                .IsUnique()
+                .HasDatabaseName("IX_TenantTimeSlot_OrganizationId_TimeSlotId");
+
+            entity.HasOne(tts => tts.TimeSlot)
+                .WithMany()
+                .HasForeignKey(tts => tts.TimeSlotId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(tts => tts.Organization)
+                .WithMany()
+                .HasForeignKey(tts => tts.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(tts => CurrentOrganizationId != null && tts.OrganizationId == CurrentOrganizationId);
         });
 
         // Phase 26: subscription plan + subscription configuration.

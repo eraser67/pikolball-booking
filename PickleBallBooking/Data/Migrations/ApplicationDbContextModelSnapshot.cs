@@ -1674,6 +1674,40 @@ namespace PickleBallBooking.Data.Migrations
                     b.ToTable("TenantPaymentOptions");
                 });
 
+            modelBuilder.Entity("PickleBallBooking.Models.TenantTimeSlot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TimeSlotId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TimeSlotId");
+
+                    b.HasIndex("OrganizationId", "TimeSlotId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_TenantTimeSlot_OrganizationId_TimeSlotId");
+
+                    b.ToTable("TenantTimeSlots");
+                });
+
             modelBuilder.Entity("PickleBallBooking.Models.TimeSlot", b =>
                 {
                     b.Property<int>("Id")
@@ -2105,6 +2139,25 @@ namespace PickleBallBooking.Data.Migrations
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PickleBallBooking.Models.TenantTimeSlot", b =>
+                {
+                    b.HasOne("PickleBallBooking.Models.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PickleBallBooking.Models.TimeSlot", "TimeSlot")
+                        .WithMany()
+                        .HasForeignKey("TimeSlotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("TimeSlot");
                 });
 
             modelBuilder.Entity("PickleBallBooking.Models.Activity", b =>

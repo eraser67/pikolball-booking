@@ -15,6 +15,7 @@ public class BookingService : IBookingService
     private readonly BookingTelegramService? _telegramService;
     private readonly ISubscriptionService? _subscriptionService;
     private readonly ILogger<BookingService>? _logger;
+    private readonly ITimeSlotService? _timeSlotService;
 
     public BookingService(
         ApplicationDbContext context,
@@ -22,7 +23,8 @@ public class BookingService : IBookingService
         ISubscriptionService? subscriptionService = null,
         ILogger<BookingService>? logger = null,
         BookingSmsService? smsService = null,
-        BookingTelegramService? telegramService = null)
+        BookingTelegramService? telegramService = null,
+        ITimeSlotService? timeSlotService = null)
     {
         _context             = context;
         _emailService        = emailService;
@@ -30,6 +32,7 @@ public class BookingService : IBookingService
         _logger              = logger;
         _smsService          = smsService;
         _telegramService     = telegramService;
+        _timeSlotService     = timeSlotService;
     }
 
     public async Task<bool> IsAvailableAsync(int courtId, DateOnly bookingDate, TimeSpan startTime, TimeSpan endTime)
@@ -434,11 +437,13 @@ public class BookingService : IBookingService
 
         public async Task<List<SlotAvailability>> GetAvailableSlotsAsync(int courtId, DateOnly bookingDate)
     {
-        // Get all active TimeSlots
-        var timeSlots = await _context.TimeSlots
-            .Where(ts => ts.Status == TimeSlotStatus.Active)
-            .OrderBy(ts => ts.StartTime)
-            .ToListAsync();
+        // Get all active TimeSlots for the current tenant
+        var timeSlots = _timeSlotService != null
+            ? await _timeSlotService.GetActiveAsync()
+            : await _context.TimeSlots
+                .Where(ts => ts.Status == TimeSlotStatus.Active)
+                .OrderBy(ts => ts.StartTime)
+                .ToListAsync();
 
         // Get booked slot IDs and customer names for this court on this date (IsActive = true)
         var bookedSlots = await _context.BookingTimeSlots
@@ -467,10 +472,12 @@ public class BookingService : IBookingService
     {
         var courtIdList = courtIds.Distinct().ToList();
 
-        var timeSlots = await _context.TimeSlots
-            .Where(ts => ts.Status == TimeSlotStatus.Active)
-            .OrderBy(ts => ts.StartTime)
-            .ToListAsync();
+        var timeSlots = _timeSlotService != null
+            ? await _timeSlotService.GetActiveAsync()
+            : await _context.TimeSlots
+                .Where(ts => ts.Status == TimeSlotStatus.Active)
+                .OrderBy(ts => ts.StartTime)
+                .ToListAsync();
 
         // Booked slots for all requested courts in a single query with customer display name.
         var bookedByCourt = (await _context.BookingTimeSlots
@@ -829,20 +836,39 @@ public class BookingService : IBookingService
             return (false, "Duplicate TimeSlots were selected.");
         }
 
-        // Get all selected TimeSlots
-        var rawSlots = await _context.TimeSlots
-            .Where(ts => timeSlotIds.Contains(ts.Id))
-            .ToListAsync();
-
-        if (rawSlots.Count != timeSlotIds.Count)
+        // Get all selected TimeSlots respecting tenant overrides
+        List<TimeSlot> rawSlots;
+        if (_timeSlotService != null)
         {
-            return (false, "One or more selected TimeSlots do not exist.");
+            var activeSlots = await _timeSlotService.GetActiveAsync();
+            rawSlots = activeSlots.Where(ts => timeSlotIds.Contains(ts.Id)).ToList();
+            if (rawSlots.Count != timeSlotIds.Count)
+            {
+                var allSlots = await _timeSlotService.GetAllAsync();
+                var existsCount = allSlots.Count(ts => timeSlotIds.Contains(ts.Id));
+                if (existsCount != timeSlotIds.Count)
+                {
+                    return (false, "One or more selected TimeSlots do not exist.");
+                }
+                return (false, "One or more selected TimeSlots are inactive.");
+            }
         }
-
-        // Only active slots are bookable.
-        if (rawSlots.Any(s => s.Status != TimeSlotStatus.Active))
+        else
         {
-            return (false, "One or more selected TimeSlots are inactive.");
+            rawSlots = await _context.TimeSlots
+                .Where(ts => timeSlotIds.Contains(ts.Id))
+                .ToListAsync();
+
+            if (rawSlots.Count != timeSlotIds.Count)
+            {
+                return (false, "One or more selected TimeSlots do not exist.");
+            }
+
+            // Only active slots are bookable.
+            if (rawSlots.Any(s => s.Status != TimeSlotStatus.Active))
+            {
+                return (false, "One or more selected TimeSlots are inactive.");
+            }
         }
 
         if (rawSlots.Count == 1)

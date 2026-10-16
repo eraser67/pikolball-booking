@@ -380,4 +380,83 @@ public class TenantIsolationTests
         CreatedAt = DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow
     };
+
+    [Fact]
+    public async Task TenantTimeSlots_TenantASeesOnlyItsOwnOverrides()
+    {
+        var database = NewDatabase();
+
+        await SeedAsync(database, TenantA, seed =>
+        {
+            seed.TenantTimeSlots.Add(new TenantTimeSlot { OrganizationId = TenantA, TimeSlotId = 1, Status = TimeSlotStatus.Inactive });
+        });
+        await SeedAsync(database, TenantB, seed =>
+        {
+            seed.TenantTimeSlots.Add(new TenantTimeSlot { OrganizationId = TenantB, TimeSlotId = 2, Status = TimeSlotStatus.Inactive });
+        });
+
+        await using var tenantA = TestDbContextFactory.CreateInMemory(database, TenantA);
+        await using var tenantB = TestDbContextFactory.CreateInMemory(database, TenantB);
+
+        var aSlots = await tenantA.TenantTimeSlots.ToListAsync();
+        var bSlots = await tenantB.TenantTimeSlots.ToListAsync();
+
+        Assert.Single(aSlots);
+        Assert.Equal(1, aSlots[0].TimeSlotId);
+
+        Assert.Single(bSlots);
+        Assert.Equal(2, bSlots[0].TimeSlotId);
+    }
+
+    [Fact]
+    public async Task TimeSlotService_DeactivatingSlotForTenantA_DoesNotAffectTenantB()
+    {
+        var database = NewDatabase();
+
+        // Seed master global time slots
+        await SeedAsync(database, TenantA, seed =>
+        {
+            seed.TimeSlots.Add(new TimeSlot { Id = 1, StartTime = new TimeSpan(6, 0, 0), EndTime = new TimeSpan(7, 0, 0), Status = TimeSlotStatus.Active });
+            seed.TimeSlots.Add(new TimeSlot { Id = 2, StartTime = new TimeSpan(7, 0, 0), EndTime = new TimeSpan(8, 0, 0), Status = TimeSlotStatus.Active });
+        });
+
+        await using var contextA = TestDbContextFactory.CreateInMemory(database, TenantA);
+        await using var contextB = TestDbContextFactory.CreateInMemory(database, TenantB);
+
+        var serviceA = new TimeSlotService(contextA);
+        var serviceB = new TimeSlotService(contextB);
+
+        // Initially both tenants see both slots active
+        var activeAInitial = await serviceA.GetActiveAsync();
+        var activeBInitial = await serviceB.GetActiveAsync();
+        Assert.Equal(2, activeAInitial.Count);
+        Assert.Equal(2, activeBInitial.Count);
+
+        // Tenant A deactivates slot 1
+        var deactivated = await serviceA.SetStatusAsync(1, TimeSlotStatus.Inactive);
+        Assert.True(deactivated);
+
+        // Tenant A now only has slot 2 active
+        var activeAAfter = await serviceA.GetActiveAsync();
+        var allAAfter = await serviceA.GetAllAsync();
+        Assert.Single(activeAAfter);
+        Assert.Equal(2, activeAAfter[0].Id);
+        Assert.Equal(TimeSlotStatus.Inactive, allAAfter.First(s => s.Id == 1).Status);
+        Assert.Equal(TimeSlotStatus.Active, allAAfter.First(s => s.Id == 2).Status);
+
+        // Tenant B STILL has both slots active!
+        var activeBAfter = await serviceB.GetActiveAsync();
+        var allBAfter = await serviceB.GetAllAsync();
+        Assert.Equal(2, activeBAfter.Count);
+        Assert.Equal(TimeSlotStatus.Active, allBAfter.First(s => s.Id == 1).Status);
+        Assert.Equal(TimeSlotStatus.Active, allBAfter.First(s => s.Id == 2).Status);
+
+        // Tenant A reactivates slot 1
+        var reactivated = await serviceA.SetStatusAsync(1, TimeSlotStatus.Active);
+        Assert.True(reactivated);
+
+        var activeAFinal = await serviceA.GetActiveAsync();
+        Assert.Equal(2, activeAFinal.Count);
+    }
 }
+
