@@ -333,6 +333,15 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    if (context.Database.IsRelational())
+    {
+        await context.Database.MigrateAsync();
+    }
+}
+
 await AdminSeeder.SeedAsync(app);
 await DemoDataSeeder.SeedAsync(app);
 await SubscriptionSeeder.SeedAsync(app); // Phase 26: seed default plans and assign orgs.
