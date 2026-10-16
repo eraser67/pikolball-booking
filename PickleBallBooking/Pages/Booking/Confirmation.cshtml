@@ -120,12 +120,12 @@
                                 <i class="bi bi-arrow-right"></i>
                             </a>
                         </div>
-                    }           }
+                    }
                 </div>
 
                 <!-- ─── DIGITAL COURT PASS (Ticket Card) ─── -->
                 <div class="court-ticket-card shadow-sm rounded-4 overflow-hidden mb-4 border">
-                    <div class="ticket-header p-3 bg-primary text-white d-flex justify-content-between align-items-center">
+                    <div class="ticket-header p-3 @(isCancelled ? "bg-secondary" : "bg-primary") text-white d-flex justify-content-between align-items-center">
                         <div>
                             <span class="ticket-eyebrow text-uppercase text-white-50 small fw-semibold d-block">Digital Court Pass</span>
                             <h2 class="h5 mb-0 fw-bold">@Model.Booking.Court?.Name</h2>
@@ -183,6 +183,10 @@
                                     {
                                         <span class="badge bg-info text-dark fw-semibold"><i class="bi bi-hourglass me-1"></i>Verifying</span>
                                     }
+                                    else if (isCancelled)
+                                    {
+                                        <span class="badge bg-danger fw-semibold"><i class="bi bi-x-circle me-1"></i>Expired / Cancelled</span>
+                                    }
                                     else
                                     {
                                         <span class="badge bg-warning text-dark fw-semibold"><i class="bi bi-clock me-1"></i>Pending</span>
@@ -202,21 +206,57 @@
                             </div>
                         }
 
-                        <!-- Front Desk Check-in QR Code -->
-                        <div class="text-center p-3 rounded-3 bg-light border mt-2">
-                            <p class="text-muted small fw-semibold mb-2">
-                                <i class="bi bi-qr-code me-1 text-primary"></i>Venue Check-in QR Pass
-                            </p>
-                            <div class="d-inline-block bg-white p-2 rounded-3 shadow-sm border mb-2">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&amp;margin=6&amp;data=@Uri.EscapeDataString($"BOOKING:{Model.Booking.BookingReference}")"
-                                     alt="Booking Check-In QR"
-                                     class="img-fluid"
-                                     style="width: 160px; height: 160px;" />
+                        <!-- Front Desk Check-in QR Code (Only active when booking is confirmed) -->
+                        @if (isConfirmed)
+                        {
+                            <div class="text-center p-3 rounded-3 bg-light border mt-2">
+                                <p class="text-muted small fw-semibold mb-2">
+                                    <i class="bi bi-qr-code me-1 text-primary"></i>Venue Check-in QR Pass
+                                </p>
+                                <div class="d-inline-block bg-white p-2 rounded-3 shadow-sm border mb-2">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&amp;margin=6&amp;data=@Uri.EscapeDataString($"BOOKING:{Model.Booking.BookingReference}")"
+                                         alt="Booking Check-In QR"
+                                         class="img-fluid"
+                                         style="width: 160px; height: 160px;" />
+                                </div>
+                                <span class="d-block text-muted" style="font-size:0.75rem;">
+                                    Present this QR code at the front desk when arriving at the court.
+                                </span>
                             </div>
-                            <span class="d-block text-muted" style="font-size:0.75rem;">
-                                Present this QR code at the front desk when arriving at the court.
-                            </span>
-                        </div>
+                        }
+                        else if (isCancelled)
+                        {
+                            <div class="text-center p-3 rounded-3 bg-danger-subtle border border-danger-subtle mt-2">
+                                <p class="text-danger small fw-semibold mb-1">
+                                    <i class="bi bi-x-circle me-1"></i>Check-in QR Pass Inactive
+                                </p>
+                                <span class="d-block text-muted small" style="font-size:0.75rem;">
+                                    This reservation has expired or was cancelled. Check-in QR pass is disabled.
+                                </span>
+                            </div>
+                        }
+                        else if (isSubmitted)
+                        {
+                            <div class="text-center p-3 rounded-3 bg-warning-subtle border border-warning-subtle mt-2">
+                                <p class="text-warning-emphasis small fw-semibold mb-1">
+                                    <i class="bi bi-hourglass-split me-1"></i>Check-in QR Pass Pending Verification
+                                </p>
+                                <span class="d-block text-muted small" style="font-size:0.75rem;">
+                                    Your check-in QR pass will be activated automatically once payment verification is completed.
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center p-3 rounded-3 bg-light border mt-2">
+                                <p class="text-muted small fw-semibold mb-1">
+                                    <i class="bi bi-wallet2 me-1 text-primary"></i>Payment Required
+                                </p>
+                                <span class="d-block text-muted small" style="font-size:0.75rem;">
+                                    Complete payment to activate your venue check-in pass.
+                                </span>
+                            </div>
+                        }
                     </div>
                 </div>
 
@@ -229,9 +269,12 @@
                             <i class="bi bi-wallet2 me-1"></i>Complete Payment Now
                         </a>
                     }
-                    <button type="button" class="btn btn-outline-primary py-2 px-3" onclick="window.print()">
-                        <i class="bi bi-printer me-1"></i>Print / Save Pass
-                    </button>
+                    @if (isConfirmed)
+                    {
+                        <button type="button" class="btn btn-outline-primary py-2 px-3" onclick="window.print()">
+                            <i class="bi bi-printer me-1"></i>Print / Save Pass
+                        </button>
+                    }
                     <a asp-page="/Booking/Index" class="btn btn-outline-secondary py-2 px-3">
                         <i class="bi bi-calendar-plus me-1"></i>Book Another Court
                     </a>
