@@ -17,19 +17,22 @@ public class IndexModel : PageModel
     private readonly ITimeSlotService _timeSlotService;
     private readonly ApplicationDbContext _context;
     private readonly IPaymentService _paymentService;
+    private readonly IBookingRateLimiter? _rateLimiter;
 
     public IndexModel(
         IBookingService bookingService,
         ICourtService courtService,
         ITimeSlotService timeSlotService,
         ApplicationDbContext context,
-        IPaymentService paymentService)
+        IPaymentService paymentService,
+        IBookingRateLimiter? rateLimiter = null)
     {
         _bookingService = bookingService;
         _courtService   = courtService;
         _timeSlotService = timeSlotService;
         _context        = context;
         _paymentService = paymentService;
+        _rateLimiter    = rateLimiter;
     }
 
     [BindProperty]
@@ -168,6 +171,21 @@ public class IndexModel : PageModel
         await LoadCalendarAsync();
         await LoadTimeSlotAvailabilityAsync();
 
+        // Check IP rate limit (max 3 bookings per 10 minutes)
+        if (_rateLimiter != null)
+        {
+            var clientIp = _rateLimiter.GetClientIp(HttpContext);
+            if (!_rateLimiter.IsAllowed(clientIp, out var retryAfter))
+            {
+                var minutes = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalMinutes));
+                var rateLimitMsg = $"Too many booking attempts. To prevent spam, bookings are limited to 3 per 10 minutes. Please try again in {minutes} minute{(minutes == 1 ? "" : "s")}.";
+                await TryCalculatePriceAsync();
+                ErrorMessage = rateLimitMsg;
+                ModelState.AddModelError("", ErrorMessage);
+                return Page();
+            }
+        }
+
         // Validate that at least one slot is selected
         if (SelectedSlotIds.Length == 0)
         {
@@ -220,6 +238,13 @@ public class IndexModel : PageModel
             ErrorMessage = result.ErrorMessage;
             await TryCalculatePriceAsync();
             return Page();
+        }
+
+        // Record successful booking confirmation against the client's IP rate limit
+        if (_rateLimiter != null)
+        {
+            var clientIp = _rateLimiter.GetClientIp(HttpContext);
+            _rateLimiter.RecordAttempt(clientIp);
         }
 
         if (result.Booking!.Price > 0 && result.Booking.BookingStatus != BookingStatus.Confirmed)
