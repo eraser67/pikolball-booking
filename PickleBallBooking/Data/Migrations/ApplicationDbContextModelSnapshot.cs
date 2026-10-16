@@ -1685,6 +1685,15 @@ namespace PickleBallBooking.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<TimeSpan?>("CustomEndTime")
+                        .HasColumnType("interval");
+
+                    b.Property<TimeSpan?>("CustomStartTime")
+                        .HasColumnType("interval");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("OrganizationId")
                         .HasColumnType("integer");
 

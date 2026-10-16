@@ -113,7 +113,8 @@ public class IndexModel : PageModel
             return new JsonResult(new { success = false, message = errorMsg });
         }
 
-        var rawSlots = _context.TimeSlots
+        var activeSlots = await _timeSlotService.GetActiveAsync();
+        var rawSlots = activeSlots
             .Where(ts => slotIds.Contains(ts.Id))
             .ToList();
 
@@ -190,7 +191,8 @@ public class IndexModel : PageModel
         }
 
         // Get the slots to determine StartTime and EndTime
-        var rawSlots = _context.TimeSlots
+        var activeSlots = await _timeSlotService.GetActiveAsync();
+        var rawSlots = activeSlots
             .Where(ts => SelectedSlotIds.Contains(ts.Id))
             .ToList();
 
@@ -260,7 +262,8 @@ public class IndexModel : PageModel
             return;
         }
 
-        var rawSlots = _context.TimeSlots
+        var activeSlots = await _timeSlotService.GetActiveAsync();
+        var rawSlots = activeSlots
             .Where(ts => SelectedSlotIds.Contains(ts.Id))
             .ToList();
 
@@ -302,7 +305,8 @@ public class IndexModel : PageModel
             return (false, contError ?? "Selected time slots must be continuous (no gaps allowed).");
         }
 
-        var rawSlots = _context.TimeSlots
+        var activeSlots = await _timeSlotService.GetActiveAsync();
+        var rawSlots = activeSlots
             .Where(ts => slotIds.Contains(ts.Id))
             .ToList();
 

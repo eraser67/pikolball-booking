@@ -27,7 +27,7 @@ public class TimeSlotService : ITimeSlotService
                 Id = t.Id,
                 StartTime = t.StartTime,
                 EndTime = t.EndTime,
-                Status = t.Status
+                Status = TimeSlotStatus.Active // Master slots default to Active
             })
             .ToListAsync();
 
@@ -37,15 +37,35 @@ public class TimeSlotService : ITimeSlotService
             var overrides = await _context.TenantTimeSlots
                 .AsNoTracking()
                 .Where(tts => tts.OrganizationId == orgId.Value)
-                .ToDictionaryAsync(tts => tts.TimeSlotId, tts => tts.Status);
+                .ToListAsync();
 
+            var overrideDict = overrides.ToDictionary(tts => tts.TimeSlotId);
+
+            var result = new List<TimeSlot>();
             foreach (var slot in slots)
             {
-                if (overrides.TryGetValue(slot.Id, out var tenantStatus))
+                if (overrideDict.TryGetValue(slot.Id, out var tenantOverride))
                 {
-                    slot.Status = tenantStatus;
+                    if (tenantOverride.IsDeleted)
+                    {
+                        continue; // Hidden/deleted for this tenant
+                    }
+
+                    slot.Status = tenantOverride.Status;
+                    if (tenantOverride.CustomStartTime.HasValue)
+                    {
+                        slot.StartTime = tenantOverride.CustomStartTime.Value;
+                    }
+                    if (tenantOverride.CustomEndTime.HasValue)
+                    {
+                        slot.EndTime = tenantOverride.CustomEndTime.Value;
+                    }
                 }
+
+                result.Add(slot);
             }
+
+            return result.OrderBy(t => t.StartTime).ToList();
         }
 
         return slots;
@@ -67,7 +87,7 @@ public class TimeSlotService : ITimeSlotService
                 Id = t.Id,
                 StartTime = t.StartTime,
                 EndTime = t.EndTime,
-                Status = t.Status
+                Status = TimeSlotStatus.Active
             })
             .FirstOrDefaultAsync();
 
@@ -79,15 +99,27 @@ public class TimeSlotService : ITimeSlotService
         var orgId = CurrentOrgId;
         if (orgId.HasValue)
         {
-            var overrideStatus = await _context.TenantTimeSlots
+            var tenantOverride = await _context.TenantTimeSlots
                 .AsNoTracking()
                 .Where(tts => tts.OrganizationId == orgId.Value && tts.TimeSlotId == id)
-                .Select(tts => (TimeSlotStatus?)tts.Status)
                 .FirstOrDefaultAsync();
 
-            if (overrideStatus.HasValue)
+            if (tenantOverride != null)
             {
-                slot.Status = overrideStatus.Value;
+                if (tenantOverride.IsDeleted)
+                {
+                    return null; // Deleted for this tenant
+                }
+
+                slot.Status = tenantOverride.Status;
+                if (tenantOverride.CustomStartTime.HasValue)
+                {
+                    slot.StartTime = tenantOverride.CustomStartTime.Value;
+                }
+                if (tenantOverride.CustomEndTime.HasValue)
+                {
+                    slot.EndTime = tenantOverride.CustomEndTime.Value;
+                }
             }
         }
 
@@ -111,14 +143,46 @@ public class TimeSlotService : ITimeSlotService
 
     public async Task<bool> UpdateAsync(int id, TimeSpan startTime, TimeSpan endTime)
     {
-        var timeSlot = await _context.TimeSlots.FindAsync(id);
-        if (timeSlot is null)
+        var masterExists = await _context.TimeSlots.AnyAsync(t => t.Id == id);
+        if (!masterExists)
         {
             return false;
         }
 
-        timeSlot.StartTime = startTime;
-        timeSlot.EndTime = endTime;
+        var orgId = CurrentOrgId;
+        if (!orgId.HasValue)
+        {
+            var masterSlot = await _context.TimeSlots.FindAsync(id);
+            if (masterSlot is null) return false;
+            masterSlot.StartTime = startTime;
+            masterSlot.EndTime = endTime;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        var tenantSlot = await _context.TenantTimeSlots
+            .FirstOrDefaultAsync(tts => tts.TimeSlotId == id && tts.OrganizationId == orgId.Value);
+
+        if (tenantSlot is null)
+        {
+            tenantSlot = new TenantTimeSlot
+            {
+                OrganizationId = orgId.Value,
+                TimeSlotId = id,
+                CustomStartTime = startTime,
+                CustomEndTime = endTime,
+                Status = TimeSlotStatus.Active,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.TenantTimeSlots.Add(tenantSlot);
+        }
+        else
+        {
+            tenantSlot.CustomStartTime = startTime;
+            tenantSlot.CustomEndTime = endTime;
+            tenantSlot.UpdatedAt = DateTime.UtcNow;
+        }
 
         await _context.SaveChangesAsync();
         return true;
@@ -169,37 +233,88 @@ public class TimeSlotService : ITimeSlotService
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var timeSlot = await _context.TimeSlots.FindAsync(id);
-        if (timeSlot is null)
+        var masterExists = await _context.TimeSlots.AnyAsync(t => t.Id == id);
+        if (!masterExists)
         {
             return false;
         }
 
-        var hasBookings = await _context.BookingTimeSlots.AnyAsync(bts => bts.TimeSlotId == id);
-        if (hasBookings)
+        var orgId = CurrentOrgId;
+        if (!orgId.HasValue)
         {
+            var timeSlot = await _context.TimeSlots.FindAsync(id);
+            if (timeSlot is null) return false;
+
+            var hasBookings = await _context.BookingTimeSlots.AnyAsync(bts => bts.TimeSlotId == id);
+            if (hasBookings)
+            {
+                throw new InvalidOperationException(
+                    $"Time slot {AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime)} cannot be deleted because it has existing bookings. Deactivate it instead.");
+            }
+
+            var courtTimeSlots = await _context.CourtTimeSlots
+                .Where(cts => cts.TimeSlotId == id)
+                .ToListAsync();
+            if (courtTimeSlots.Count > 0)
+            {
+                _context.CourtTimeSlots.RemoveRange(courtTimeSlots);
+            }
+
+            var tenantTimeSlots = await _context.TenantTimeSlots
+                .IgnoreQueryFilters()
+                .Where(tts => tts.TimeSlotId == id)
+                .ToListAsync();
+            if (tenantTimeSlots.Count > 0)
+            {
+                _context.TenantTimeSlots.RemoveRange(tenantTimeSlots);
+            }
+
+            _context.TimeSlots.Remove(timeSlot);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        var hasTenantBookings = await _context.BookingTimeSlots
+            .AnyAsync(bts => bts.TimeSlotId == id && bts.OrganizationId == orgId.Value);
+        if (hasTenantBookings)
+        {
+            var slot = await GetByIdAsync(id);
+            var label = slot != null ? AppClock.To12HourRange(slot.StartTime, slot.EndTime) : id.ToString();
             throw new InvalidOperationException(
-                $"Time slot {AppClock.To12HourRange(timeSlot.StartTime, timeSlot.EndTime)} cannot be deleted because it has existing bookings. Deactivate it instead.");
+                $"Time slot {label} cannot be deleted because it has existing bookings for your organization. Deactivate it instead.");
         }
 
-        var courtTimeSlots = await _context.CourtTimeSlots
-            .Where(cts => cts.TimeSlotId == id)
+        var tenantCourtSlots = await _context.CourtTimeSlots
+            .Where(cts => cts.TimeSlotId == id && cts.OrganizationId == orgId.Value)
             .ToListAsync();
-        if (courtTimeSlots.Count > 0)
+        if (tenantCourtSlots.Count > 0)
         {
-            _context.CourtTimeSlots.RemoveRange(courtTimeSlots);
+            _context.CourtTimeSlots.RemoveRange(tenantCourtSlots);
         }
 
-        var tenantTimeSlots = await _context.TenantTimeSlots
-            .IgnoreQueryFilters()
-            .Where(tts => tts.TimeSlotId == id)
-            .ToListAsync();
-        if (tenantTimeSlots.Count > 0)
+        var tenantSlot = await _context.TenantTimeSlots
+            .FirstOrDefaultAsync(tts => tts.TimeSlotId == id && tts.OrganizationId == orgId.Value);
+
+        if (tenantSlot is null)
         {
-            _context.TenantTimeSlots.RemoveRange(tenantTimeSlots);
+            tenantSlot = new TenantTimeSlot
+            {
+                OrganizationId = orgId.Value,
+                TimeSlotId = id,
+                Status = TimeSlotStatus.Inactive,
+                IsDeleted = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.TenantTimeSlots.Add(tenantSlot);
+        }
+        else
+        {
+            tenantSlot.IsDeleted = true;
+            tenantSlot.Status = TimeSlotStatus.Inactive;
+            tenantSlot.UpdatedAt = DateTime.UtcNow;
         }
 
-        _context.TimeSlots.Remove(timeSlot);
         await _context.SaveChangesAsync();
         return true;
     }

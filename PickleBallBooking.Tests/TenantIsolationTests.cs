@@ -458,5 +458,78 @@ public class TenantIsolationTests
         var activeAFinal = await serviceA.GetActiveAsync();
         Assert.Equal(2, activeAFinal.Count);
     }
+
+    [Fact]
+    public async Task TimeSlotService_UpdatingSlotTimesForTenantA_DoesNotAffectTenantB()
+    {
+        var database = NewDatabase();
+
+        // Seed master global time slots
+        await SeedAsync(database, TenantA, seed =>
+        {
+            seed.TimeSlots.Add(new TimeSlot { Id = 1, StartTime = new TimeSpan(6, 0, 0), EndTime = new TimeSpan(7, 0, 0), Status = TimeSlotStatus.Active });
+            seed.TimeSlots.Add(new TimeSlot { Id = 2, StartTime = new TimeSpan(7, 0, 0), EndTime = new TimeSpan(8, 0, 0), Status = TimeSlotStatus.Active });
+        });
+
+        await using var contextA = TestDbContextFactory.CreateInMemory(database, TenantA);
+        await using var contextB = TestDbContextFactory.CreateInMemory(database, TenantB);
+
+        var serviceA = new TimeSlotService(contextA);
+        var serviceB = new TimeSlotService(contextB);
+
+        // Tenant A updates slot 1 to 06:30 - 07:30
+        var newStart = new TimeSpan(6, 30, 0);
+        var newEnd = new TimeSpan(7, 30, 0);
+        var updated = await serviceA.UpdateAsync(1, newStart, newEnd);
+        Assert.True(updated);
+
+        // Tenant A sees updated times
+        var slot1A = await serviceA.GetByIdAsync(1);
+        Assert.NotNull(slot1A);
+        Assert.Equal(newStart, slot1A.StartTime);
+        Assert.Equal(newEnd, slot1A.EndTime);
+
+        // Tenant B STILL sees the original master times (06:00 - 07:00)!
+        var slot1B = await serviceB.GetByIdAsync(1);
+        Assert.NotNull(slot1B);
+        Assert.Equal(new TimeSpan(6, 0, 0), slot1B.StartTime);
+        Assert.Equal(new TimeSpan(7, 0, 0), slot1B.EndTime);
+    }
+
+    [Fact]
+    public async Task TimeSlotService_DeletingSlotForTenantA_DoesNotAffectTenantB()
+    {
+        var database = NewDatabase();
+
+        // Seed master global time slots
+        await SeedAsync(database, TenantA, seed =>
+        {
+            seed.TimeSlots.Add(new TimeSlot { Id = 1, StartTime = new TimeSpan(6, 0, 0), EndTime = new TimeSpan(7, 0, 0), Status = TimeSlotStatus.Active });
+            seed.TimeSlots.Add(new TimeSlot { Id = 2, StartTime = new TimeSpan(7, 0, 0), EndTime = new TimeSpan(8, 0, 0), Status = TimeSlotStatus.Active });
+        });
+
+        await using var contextA = TestDbContextFactory.CreateInMemory(database, TenantA);
+        await using var contextB = TestDbContextFactory.CreateInMemory(database, TenantB);
+
+        var serviceA = new TimeSlotService(contextA);
+        var serviceB = new TimeSlotService(contextB);
+
+        // Tenant A deletes slot 1
+        var deleted = await serviceA.DeleteAsync(1);
+        Assert.True(deleted);
+
+        // Tenant A no longer sees slot 1 in GetAllAsync or GetByIdAsync
+        var allA = await serviceA.GetAllAsync();
+        Assert.Single(allA);
+        Assert.Equal(2, allA[0].Id);
+        Assert.Null(await serviceA.GetByIdAsync(1));
+
+        // Tenant B STILL sees both slot 1 and slot 2!
+        var allB = await serviceB.GetAllAsync();
+        Assert.Equal(2, allB.Count);
+        Assert.NotNull(await serviceB.GetByIdAsync(1));
+    }
 }
+
+
 

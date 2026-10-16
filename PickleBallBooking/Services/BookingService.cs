@@ -176,10 +176,19 @@ public class BookingService : IBookingService
         }
 
         // Get the TimeSlots to build StartTime and EndTime
-        var slots = await _context.TimeSlots
-                        .Where(ts => timeSlotIds.Contains(ts.Id))
-            .OrderBy(ts => ts.StartTime)
-            .ToListAsync();
+        List<TimeSlot> slots;
+        if (_timeSlotService != null)
+        {
+            var tenantSlots = await _timeSlotService.GetAllAsync();
+            slots = tenantSlots.Where(ts => timeSlotIds.Contains(ts.Id)).OrderBy(ts => ts.StartTime).ToList();
+        }
+        else
+        {
+            slots = await _context.TimeSlots
+                .Where(ts => timeSlotIds.Contains(ts.Id))
+                .OrderBy(ts => ts.StartTime)
+                .ToListAsync();
+        }
 
         if (slots.Count != timeSlotIds.Count)
         {
