@@ -206,12 +206,22 @@
                                 Selected slots must be <strong>continuous</strong> with no gaps.
                             </p>
 
-                            <div class="pb-legend mb-3" aria-hidden="true">
-                                <span class="pb-legend-item"><span class="pb-legend-swatch is-available"></span>Available</span>
-                                <span class="pb-legend-item"><span class="pb-legend-swatch is-selected"></span>Selected</span>
-                                <span class="pb-legend-item"><span class="pb-legend-swatch is-booked"></span>Booked</span>
-                                <span class="pb-legend-item"><span class="pb-legend-swatch is-maintenance"></span>Maintenance</span>
-                                <span class="pb-legend-item"><span class="pb-legend-swatch is-past"></span>Passed</span>
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                                <div class="pb-legend mb-0" aria-hidden="true">
+                                    <span class="pb-legend-item"><span class="pb-legend-swatch is-available"></span>Available</span>
+                                    <span class="pb-legend-item"><span class="pb-legend-swatch is-selected"></span>Selected</span>
+                                    <span class="pb-legend-item"><span class="pb-legend-swatch is-booked"></span>Booked</span>
+                                    <span class="pb-legend-item"><span class="pb-legend-swatch is-maintenance"></span>Maintenance</span>
+                                    <span class="pb-legend-item"><span class="pb-legend-swatch is-past"></span>Passed</span>
+                                </div>
+
+                                <!-- Hide Passed Toggle (Enabled by default) -->
+                                <div class="form-check form-switch d-inline-flex align-items-center gap-2 mb-0 py-1 px-2 rounded-2 bg-light border">
+                                    <input class="form-check-input ms-0 mt-0" type="checkbox" role="switch" id="toggleHidePassed" checked>
+                                    <label class="form-check-label small fw-semibold text-dark mb-0" for="toggleHidePassed" style="cursor: pointer; user-select: none;">
+                                        Hide passed
+                                    </label>
+                                </div>
                             </div>
 
                             <!-- Time of Day Filter Chips -->
@@ -263,6 +273,12 @@
                                  role="group"
                                  aria-label="Available time slots">
 
+                                <div id="noVisibleSlotsAlert" class="text-center py-4 text-muted w-100 d-none" style="grid-column: 1 / -1;">
+                                    <i class="bi bi-clock-history fs-3 d-block mb-2 text-secondary"></i>
+                                    <p class="mb-1 fw-semibold small">All time slots for this selection have passed.</p>
+                                    <p class="small text-muted mb-0">Uncheck <strong>Hide passed</strong> above to view earlier slots, or choose another date.</p>
+                                </div>
+
                                 @foreach (var slot in Model.TimeSlotAvailabilities)
                                 {
                                     var slotStatusClass = slot.Status switch
@@ -294,7 +310,9 @@
                                            title="@ariaLabel"
                                            data-slot-id="@slot.TimeSlotId"
                                            data-start-minutes="@startMinutes"
-                                           data-end-minutes="@endMinutes">
+                                           data-end-minutes="@endMinutes"
+                                           data-is-past="@(slot.IsPast ? "true" : "false")"
+                                           style="@(slot.IsPast && !slot.IsSelected ? "display: none;" : "")">
 
                                         <input type="checkbox"
                                                name="SelectedSlotIds"

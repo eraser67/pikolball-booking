@@ -3831,6 +3831,23 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
   border: 1px solid #e2e8f0;
 }
 
+/* Submit Payment CTA button (Mobile responsive) */
+.btn-submit-payment {
+  min-height: 48px;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.btn-submit-payment:active {
+  transform: scale(0.98);
+}
+@media (min-width: 576px) {
+  .btn-submit-payment {
+    min-height: 52px;
+    font-size: 1.05rem;
+  }
+}
+
 /* ============================================================
    PRO ATHLETIC CLUB HOMEPAGE ENHANCEMENTS
    ============================================================ */

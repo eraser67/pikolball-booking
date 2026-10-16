@@ -252,47 +252,68 @@
                                 }
                             </label>
 
-                            <!-- Hidden file input triggered by custom dropzone -->
+                            <!-- Hidden file input triggered by custom upload actions -->
                             <input asp-for="Input.ProofImage" type="file"
                                    accept="image/jpeg,image/png,image/webp"
                                    id="proofImageInput"
                                    class="d-none" />
 
-                            <!-- Custom Interactive Dropzone -->
-                            <div class="receipt-dropzone p-3 rounded-3 text-center border border-2 border-dashed bg-light"
-                                 id="receiptDropzone">
-                                
+                            <!-- Mobile-First Receipt Upload Card -->
+                            <div class="receipt-upload-card p-3 rounded-4 border bg-white shadow-xs" id="receiptUploadCard">
                                 <!-- Empty state -->
-                                <div id="dropzoneEmptyState">
-                                    <div class="dropzone-icon mb-2">
-                                        <i class="bi bi-camera-fill fs-2 text-primary"></i>
+                                <div id="dropzoneEmptyState" class="text-center">
+                                    <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle mb-2" style="width: 48px; height: 48px;">
+                                        <i class="bi bi-receipt-cutoff fs-4"></i>
                                     </div>
-                                    <p class="fw-semibold small mb-1 text-dark">
-                                        Tap to upload GCash receipt screenshot
+                                    <h6 class="fw-bold text-dark mb-1" style="font-size: 0.95rem;">
+                                        Attach @methodLabel Receipt Screenshot
+                                    </h6>
+                                    <p class="text-muted small mb-3" style="font-size: 0.78rem;">
+                                        JPG, PNG, or WEBP &bull; Max 3 MB
                                     </p>
-                                    <span class="text-muted d-block" style="font-size: 0.75rem;">
-                                        Supports JPG, PNG, WEBP (Max 3 MB)
+
+                                    <!-- Touch Action Buttons -->
+                                    <div class="row g-2">
+                                        <div class="col-12 col-sm-7">
+                                            <button type="button" class="btn btn-primary w-100 py-2 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2 rounded-3 shadow-xs" id="btnChoosePhoto">
+                                                <i class="bi bi-images fs-6"></i>
+                                                <span>Choose from Photos</span>
+                                            </button>
+                                        </div>
+                                        <div class="col-12 col-sm-5">
+                                            <button type="button" class="btn btn-outline-secondary w-100 py-2 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2 rounded-3" id="btnPasteImage">
+                                                <i class="bi bi-clipboard-plus fs-6 text-primary"></i>
+                                                <span id="btnPasteImageText">Paste Screenshot</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <span class="text-muted d-block mt-2" style="font-size: 0.72rem;">
+                                        Tip: Take a screenshot in your @methodLabel app, then tap <strong>Paste Screenshot</strong> or <strong>Choose from Photos</strong>.
                                     </span>
                                 </div>
 
                                 <!-- Selected Preview state -->
-                                <div id="dropzonePreviewState" class="d-none">
+                                <div id="dropzonePreviewState" class="d-none text-center">
                                     <div class="position-relative d-inline-block mb-2">
                                         <img id="proofPreviewImg" src="#" alt="Receipt preview"
                                              class="img-fluid rounded-3 shadow-sm border"
-                                             style="max-height: 180px; max-width: 100%; object-fit: contain;" />
+                                             style="max-height: 190px; max-width: 100%; object-fit: contain;" />
                                     </div>
-                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                    <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
                                         <span class="badge bg-success py-1 px-2" id="proofFileName">
                                             <i class="bi bi-check2 me-1"></i>Receipt attached
                                         </span>
+                                        <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2" id="btnChangeProof" style="font-size: 0.78rem;">
+                                            <i class="bi bi-arrow-repeat me-1"></i>Change
+                                        </button>
                                         <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" id="btnRemoveProof" style="font-size: 0.78rem;">
                                             <i class="bi bi-trash me-1"></i>Remove
                                         </button>
                                     </div>
                                 </div>
-
                             </div>
+
+                            <div id="proofPasteFeedback" class="small mt-1" style="display:none;"></div>
 
                             <div id="proofSizeError" class="text-danger small mt-1" style="display:none;">
                                 <i class="bi bi-exclamation-circle me-1"></i>File too large. Maximum allowed size is 3 MB.
@@ -313,10 +334,13 @@
 
                         <!-- Submit CTA Button -->
                         <div class="pt-2">
-                            <button type="submit" class="btn btn-success btn-lg w-100 py-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" id="btnSubmitPayment">
-                                <span class="spinner-border spinner-border-sm d-none" id="btnSpinner" role="status" aria-hidden="true"></span>
-                                <i class="bi bi-shield-check fs-5" id="btnIcon"></i>
-                                <span id="btnText">Submit Payment Proof &amp; Confirm Booking</span>
+                            <button type="submit" class="btn btn-success w-100 py-2 py-md-3 px-3 fw-bold rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2 btn-submit-payment" id="btnSubmitPayment">
+                                <span class="spinner-border spinner-border-sm flex-shrink-0 d-none" id="btnSpinner" role="status" aria-hidden="true"></span>
+                                <i class="bi bi-shield-check fs-5 flex-shrink-0" id="btnIcon"></i>
+                                <span id="btnText" class="lh-sm text-center">
+                                    <span class="d-inline d-sm-none">Submit Proof &amp; Confirm</span>
+                                    <span class="d-none d-sm-inline">Submit Payment Proof &amp; Confirm Booking</span>
+                                </span>
                             </button>
                             <p class="text-muted text-center small mt-2 mb-0" style="font-size: 0.78rem;">
                                 <i class="bi bi-ticket-perforated me-1 text-primary"></i>Your digital court pass will be ready immediately upon submission.
@@ -379,12 +403,16 @@
 
         const MAX = 3 * 1024 * 1024; // 3 MB
         const fileInput = document.getElementById('proofImageInput');
-        const dropzone = document.getElementById('receiptDropzone');
+        const uploadCard = document.getElementById('receiptUploadCard');
         const emptyState = document.getElementById('dropzoneEmptyState');
         const previewState = document.getElementById('dropzonePreviewState');
         const previewImg = document.getElementById('proofPreviewImg');
         const fileNameBadge = document.getElementById('proofFileName');
+        const btnChoosePhoto = document.getElementById('btnChoosePhoto');
+        const btnChangeProof = document.getElementById('btnChangeProof');
         const btnRemoveProof = document.getElementById('btnRemoveProof');
+        const btnPasteImage = document.getElementById('btnPasteImage');
+        const pasteFeedback = document.getElementById('proofPasteFeedback');
         const sizeError = document.getElementById('proofSizeError');
         const btnPasteRef = document.getElementById('btnPasteReference');
         const inputGCashRef = document.getElementById('inputGCashRef');
@@ -394,38 +422,24 @@
         const btnIcon = document.getElementById('btnIcon');
         const btnText = document.getElementById('btnText');
 
-        // Dropzone click triggers file input
-        if (dropzone && fileInput) {
-            dropzone.addEventListener('click', function (e) {
-                if (e.target.closest('#btnRemoveProof')) return;
-                fileInput.click();
-            });
-        }
+        function setProofFile(file) {
+            if (!file) return;
+            if (file.size > MAX) {
+                if (sizeError) sizeError.style.display = 'block';
+                clearFileInput();
+                return;
+            }
+            if (sizeError) sizeError.style.display = 'none';
+            if (pasteFeedback) pasteFeedback.style.display = 'none';
 
-        // Live image preview
-        if (fileInput) {
-            fileInput.addEventListener('change', function () {
-                if (this.files && this.files.length > 0) {
-                    const file = this.files[0];
-                    if (file.size > MAX) {
-                        sizeError.style.display = 'block';
-                        clearFileInput();
-                        return;
-                    }
-
-                    sizeError.style.display = 'none';
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        if (previewImg) previewImg.src = e.target.result;
-                        if (emptyState) emptyState.classList.add('d-none');
-                        if (previewState) previewState.classList.remove('d-none');
-                        if (fileNameBadge) fileNameBadge.innerHTML = '<i class="bi bi-check2 me-1"></i>' + file.name;
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    clearFileInput();
-                }
-            });
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                if (previewImg) previewImg.src = e.target.result;
+                if (emptyState) emptyState.classList.add('d-none');
+                if (previewState) previewState.classList.remove('d-none');
+                if (fileNameBadge) fileNameBadge.innerHTML = '<i class="bi bi-check2 me-1"></i>' + (file.name || 'Receipt attached');
+            };
+            reader.readAsDataURL(file);
         }
 
         function clearFileInput() {
@@ -433,14 +447,139 @@
             if (previewImg) previewImg.src = '#';
             if (emptyState) emptyState.classList.remove('d-none');
             if (previewState) previewState.classList.add('d-none');
+            if (pasteFeedback) pasteFeedback.style.display = 'none';
         }
 
+        // Choose / Change Photo
+        if (btnChoosePhoto && fileInput) {
+            btnChoosePhoto.addEventListener('click', function () {
+                fileInput.click();
+            });
+        }
+        if (btnChangeProof && fileInput) {
+            btnChangeProof.addEventListener('click', function () {
+                fileInput.click();
+            });
+        }
+
+        // Live image preview from file input
+        if (fileInput) {
+            fileInput.addEventListener('change', function () {
+                if (this.files && this.files.length > 0) {
+                    setProofFile(this.files[0]);
+                } else {
+                    clearFileInput();
+                }
+            });
+        }
+
+        // Remove proof
         if (btnRemoveProof) {
             btnRemoveProof.addEventListener('click', function (e) {
                 e.stopPropagation();
                 clearFileInput();
             });
         }
+
+        // Paste image helper
+        function applyImageBlob(blob, defaultName) {
+            const ext = blob.type.includes('png') ? 'png' : (blob.type.includes('webp') ? 'webp' : 'jpg');
+            const fileName = defaultName || ('receipt-screenshot.' + ext);
+            let file;
+            try {
+                file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+            } catch (err) {
+                file = blob;
+                file.name = fileName;
+            }
+
+            try {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileInput.files = dt.files;
+            } catch (err) {
+                console.warn('DataTransfer files assignment fallback:', err);
+            }
+
+            setProofFile(file);
+        }
+
+        function showPasteNotice(msg, isSuccess) {
+            if (!pasteFeedback) return;
+            pasteFeedback.className = isSuccess ? 'text-success small mt-1' : 'text-danger small mt-1';
+            pasteFeedback.innerHTML = (isSuccess ? '<i class="bi bi-check-circle me-1"></i>' : '<i class="bi bi-exclamation-circle me-1"></i>') + msg;
+            pasteFeedback.style.display = 'block';
+        }
+
+        // 1-Tap Paste Screenshot button
+        if (btnPasteImage) {
+            btnPasteImage.addEventListener('click', async function () {
+                if (pasteFeedback) pasteFeedback.style.display = 'none';
+                try {
+                    if (navigator.clipboard && navigator.clipboard.read) {
+                        const items = await navigator.clipboard.read();
+                        let found = false;
+                        for (const item of items) {
+                            for (const type of item.types) {
+                                if (type.startsWith('image/')) {
+                                    const blob = await item.getType(type);
+                                    applyImageBlob(blob, 'pasted-screenshot.' + (type.split('/')[1] || 'png'));
+                                    showPasteNotice('Screenshot pasted from clipboard!', true);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (found) break;
+                        }
+                        if (!found) {
+                            showPasteNotice('No image found in clipboard. Copy a screenshot first or tap "Choose from Photos".', false);
+                        }
+                    } else {
+                        showPasteNotice('Direct clipboard image access is not supported by this browser. Tap "Choose from Photos".', false);
+                    }
+                } catch (err) {
+                    showPasteNotice('Could not access clipboard image. Tap "Choose from Photos".', false);
+                }
+            });
+        }
+
+        // Drag and drop support on the card
+        if (uploadCard) {
+            uploadCard.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                uploadCard.classList.add('border-primary', 'bg-light');
+            });
+            uploadCard.addEventListener('dragleave', function () {
+                uploadCard.classList.remove('border-primary', 'bg-light');
+            });
+            uploadCard.addEventListener('drop', function (e) {
+                e.preventDefault();
+                uploadCard.classList.remove('border-primary', 'bg-light');
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    const file = e.dataTransfer.files[0];
+                    if (file.type.startsWith('image/')) {
+                        fileInput.files = e.dataTransfer.files;
+                        setProofFile(file);
+                    }
+                }
+            });
+        }
+
+        // Global Paste Listener (Ctrl+V / Cmd+V / Mobile Paste)
+        document.addEventListener('paste', function (e) {
+            if (!e.clipboardData || !e.clipboardData.items) return;
+            for (let i = 0; i < e.clipboardData.items.length; i++) {
+                const item = e.clipboardData.items[i];
+                if (item.type.indexOf('image') !== -1) {
+                    const file = item.getAsFile();
+                    if (file) {
+                        applyImageBlob(file, file.name || 'pasted-screenshot.png');
+                        showPasteNotice('Screenshot pasted from clipboard!', true);
+                        break;
+                    }
+                }
+            }
+        });
 
         // 1-Tap Paste Reference Number
         if (btnPasteRef && inputGCashRef) {
@@ -578,6 +717,8 @@
             });
         });
 
+        const submitBtnDefaultHtml = '<span class="d-inline d-sm-none">Submit Proof &amp; Confirm</span><span class="d-none d-sm-inline">Submit Payment Proof &amp; Confirm Booking</span>';
+
         // Submit loading state to prevent double-click
         if (form && btnSubmit) {
             form.addEventListener('submit', function (e) {
@@ -596,7 +737,7 @@
                     btnSubmit.disabled = false;
                     if (btnSpinner) btnSpinner.classList.add('d-none');
                     if (btnIcon) btnIcon.classList.remove('d-none');
-                    if (btnText) btnText.textContent = 'Submit Payment Proof & Confirm Booking';
+                    if (btnText) btnText.innerHTML = submitBtnDefaultHtml;
                 }
             });
         }

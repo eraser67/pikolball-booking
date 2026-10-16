@@ -981,7 +981,9 @@ document.addEventListener('DOMContentLoaded', function () {
                            title="${ariaLabel}"
                            data-slot-id="${slot.timeSlotId}"
                            data-start-minutes="${slot.startMinutes}"
-                           data-end-minutes="${slot.endMinutes}">
+                           data-end-minutes="${slot.endMinutes}"
+                           data-is-past="${slot.isPast ? 'true' : 'false'}"
+                           style="${slot.isPast && !isSelected && hidePassed ? 'display: none;' : ''}">
 
                         <input type="checkbox"
                                name="SelectedSlotIds"
@@ -1055,8 +1057,18 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // ─── Time-of-Day Filter Chips ────────────────────────────────────────
+    // ─── Time-of-Day Filter Chips & Hide Passed Toggle ──────────────────
     let currentTimeFilter = 'all';
+    let hidePassed = true;
+
+    const toggleHidePassed = document.getElementById('toggleHidePassed');
+    if (toggleHidePassed) {
+        hidePassed = toggleHidePassed.checked;
+        toggleHidePassed.addEventListener('change', function () {
+            hidePassed = this.checked;
+            applyTimeFilter(currentTimeFilter);
+        });
+    }
 
     function applyTimeFilter(filter) {
         currentTimeFilter = filter;
@@ -1069,11 +1081,20 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         const slotCards = document.querySelectorAll('.timeslot-btn');
+        let visibleCount = 0;
+
         slotCards.forEach(function (card) {
             const isChecked = card.classList.contains('selected') || card.querySelector('.timeslot-checkbox')?.checked;
             if (isChecked) {
                 // Never hide selected slots
                 card.style.display = '';
+                visibleCount++;
+                return;
+            }
+
+            const isPast = card.classList.contains('past') || card.dataset.isPast === 'true';
+            if (hidePassed && isPast) {
+                card.style.display = 'none';
                 return;
             }
 
@@ -1087,7 +1108,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 visible = startMin >= 1020 || startMin < 360; // 5pm onwards / overnight
             }
             card.style.display = visible ? '' : 'none';
+            if (visible) visibleCount++;
         });
+
+        const noSlotsAlert = document.getElementById('noVisibleSlotsAlert');
+        if (noSlotsAlert) {
+            noSlotsAlert.classList.toggle('d-none', slotCards.length === 0 || visibleCount > 0);
+        }
     }
 
     function updateFilterCounts() {
