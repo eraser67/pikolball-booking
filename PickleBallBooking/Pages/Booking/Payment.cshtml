@@ -580,12 +580,23 @@
 
         // Submit loading state to prevent double-click
         if (form && btnSubmit) {
-            form.addEventListener('submit', function () {
-                if (form.checkValidity()) {
+            form.addEventListener('submit', function (e) {
+                // Use jQuery Validation (data-val-required) instead of native checkValidity()
+                // because ASP.NET [Required] does NOT add the HTML5 required attribute.
+                var $form = $(form);
+                var isValid = $form.valid ? $form.valid() : form.checkValidity();
+
+                if (isValid) {
                     btnSubmit.disabled = true;
                     if (btnSpinner) btnSpinner.classList.remove('d-none');
                     if (btnIcon) btnIcon.classList.add('d-none');
                     if (btnText) btnText.textContent = 'Verifying & Submitting...';
+                } else {
+                    // Validation failed — ensure button stays interactive
+                    btnSubmit.disabled = false;
+                    if (btnSpinner) btnSpinner.classList.add('d-none');
+                    if (btnIcon) btnIcon.classList.remove('d-none');
+                    if (btnText) btnText.textContent = 'Submit Payment Proof & Confirm Booking';
                 }
             });
         }

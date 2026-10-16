@@ -1020,6 +1020,11 @@
             btnToggle.classList.replace('btn-outline-success', 'btn-outline-secondary');
             isCameraActive = true;
 
+            // Auto-scroll to camera feed on mobile so it's visible without manual scrolling
+            setTimeout(() => {
+                container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 150);
+
             try {
                 if (typeof Html5Qrcode !== 'undefined') {
                     if (!html5QrCode) {
