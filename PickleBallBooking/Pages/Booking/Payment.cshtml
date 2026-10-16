@@ -301,23 +301,15 @@
                                         JPG, PNG, or WEBP &bull; Max 3 MB
                                     </p>
 
-                                    <!-- Touch Action Buttons -->
-                                    <div class="row g-2">
-                                        <div class="col-12 col-sm-7">
-                                            <button type="button" class="btn btn-primary w-100 py-2 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2 rounded-3 shadow-xs" id="btnChoosePhoto">
-                                                <i class="bi bi-images fs-6"></i>
-                                                <span>Choose from Photos</span>
-                                            </button>
-                                        </div>
-                                        <div class="col-12 col-sm-5">
-                                            <button type="button" class="btn btn-outline-secondary w-100 py-2 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2 rounded-3" id="btnPasteImage">
-                                                <i class="bi bi-clipboard-plus fs-6 text-primary"></i>
-                                                <span id="btnPasteImageText">Paste Screenshot</span>
-                                            </button>
-                                        </div>
+                                    <!-- Touch Action Button -->
+                                    <div class="mb-2">
+                                        <button type="button" class="btn btn-primary w-100 py-2 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2 rounded-3 shadow-xs" id="btnChoosePhoto">
+                                            <i class="bi bi-images fs-6"></i>
+                                            <span>Choose from Photos</span>
+                                        </button>
                                     </div>
-                                    <span class="text-muted d-block mt-2" style="font-size: 0.72rem;">
-                                        Tip: Take a screenshot in your @methodLabel app, then tap <strong>Paste Screenshot</strong> or <strong>Choose from Photos</strong>.
+                                    <span class="text-muted d-block" style="font-size: 0.72rem;">
+                                        Tip: Take a screenshot in your @methodLabel app, then tap <strong>Choose from Photos</strong>.
                                     </span>
                                 </div>
 
@@ -440,7 +432,6 @@
         const btnChoosePhoto = document.getElementById('btnChoosePhoto');
         const btnChangeProof = document.getElementById('btnChangeProof');
         const btnRemoveProof = document.getElementById('btnRemoveProof');
-        const btnPasteImage = document.getElementById('btnPasteImage');
         const pasteFeedback = document.getElementById('proofPasteFeedback');
         const sizeError = document.getElementById('proofSizeError');
         const btnPasteRef = document.getElementById('btnPasteReference');
@@ -538,38 +529,6 @@
             pasteFeedback.className = isSuccess ? 'text-success small mt-1' : 'text-danger small mt-1';
             pasteFeedback.innerHTML = (isSuccess ? '<i class="bi bi-check-circle me-1"></i>' : '<i class="bi bi-exclamation-circle me-1"></i>') + msg;
             pasteFeedback.style.display = 'block';
-        }
-
-        // 1-Tap Paste Screenshot button
-        if (btnPasteImage) {
-            btnPasteImage.addEventListener('click', async function () {
-                if (pasteFeedback) pasteFeedback.style.display = 'none';
-                try {
-                    if (navigator.clipboard && navigator.clipboard.read) {
-                        const items = await navigator.clipboard.read();
-                        let found = false;
-                        for (const item of items) {
-                            for (const type of item.types) {
-                                if (type.startsWith('image/')) {
-                                    const blob = await item.getType(type);
-                                    applyImageBlob(blob, 'pasted-screenshot.' + (type.split('/')[1] || 'png'));
-                                    showPasteNotice('Screenshot pasted from clipboard!', true);
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (found) break;
-                        }
-                        if (!found) {
-                            showPasteNotice('No image found in clipboard. Copy a screenshot first or tap "Choose from Photos".', false);
-                        }
-                    } else {
-                        showPasteNotice('Direct clipboard image access is not supported by this browser. Tap "Choose from Photos".', false);
-                    }
-                } catch (err) {
-                    showPasteNotice('Could not access clipboard image. Tap "Choose from Photos".', false);
-                }
-            });
         }
 
         // Drag and drop support on the card
