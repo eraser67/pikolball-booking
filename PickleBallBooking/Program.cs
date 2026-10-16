@@ -136,6 +136,7 @@ builder.Services.AddHttpClient<ICourtImageStorage, SupabaseCourtImageStorage>();
 builder.Services.Configure<PaymentProofOptions>(builder.Configuration.GetSection(PaymentProofOptions.SectionName));
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddHttpClient<IPaymentProofStorage, SupabasePaymentProofStorage>();
+builder.Services.AddHostedService<PaymentHoldWorker>();
 
 // AI payment verification cascade (Gemini Flash → Gemini Pro → Deepseek → rule-based).
 // Uses a shared HttpClient (typed) so connections are pooled across providers.

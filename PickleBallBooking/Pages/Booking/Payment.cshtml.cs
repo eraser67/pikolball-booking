@@ -45,6 +45,10 @@ public class PaymentModel : PageModel
     [BindProperty]
     public PaymentInput Input { get; set; } = new();
 
+    public bool IsExpired { get; set; }
+
+    public int RemainingSeconds { get; set; } = 600;
+
     [TempData]
     public string? ErrorMessage { get; set; }
 
@@ -60,9 +64,32 @@ public class PaymentModel : PageModel
             return RedirectToPage("/Booking/Confirmation", new { reference });
         }
 
+        if (PaymentInfo.Status == Models.PaymentStatus.Cancelled)
+        {
+            IsExpired = true;
+            RemainingSeconds = 0;
+            Input.Reference = reference;
+            await LoadSettingsAsync(reference);
+            return Page();
+        }
+
         if (PaymentInfo.Status != Models.PaymentStatus.Pending)
         {
             return RedirectToPage("/Booking/Confirmation", new { reference });
+        }
+
+        if (PaymentInfo.ExpiresAt.HasValue)
+        {
+            var diff = (PaymentInfo.ExpiresAt.Value - DateTime.UtcNow).TotalSeconds;
+            RemainingSeconds = Math.Max(0, (int)diff);
+            if (RemainingSeconds <= 0)
+            {
+                IsExpired = true;
+            }
+        }
+        else
+        {
+            RemainingSeconds = 600;
         }
 
         await LoadSettingsAsync(reference);
@@ -130,6 +157,12 @@ public class PaymentModel : PageModel
             var methodName = SelectedPaymentOption?.Label ?? "payment";
             switch (result)
             {
+                case PaymentSubmitResult.Expired:
+                    IsExpired = true;
+                    RemainingSeconds = 0;
+                    ModelState.AddModelError(string.Empty,
+                        "Your 10-minute payment hold has expired and this time slot has been released for other players. Please return to the booking page to reserve a slot.");
+                    break;
                 case PaymentSubmitResult.DuplicateReference:
                     ModelState.AddModelError("Input.GCashReference",
                         $"This {methodName} reference number has already been used for another booking. Please check your transaction receipt and enter your unique reference number.");

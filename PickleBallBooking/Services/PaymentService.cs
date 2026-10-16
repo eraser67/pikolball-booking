@@ -66,6 +66,13 @@ public interface IPaymentService
     /// </summary>
     Task CancelForBookingAsync(int bookingId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Checks and automatically releases any pending bookings older than the payment hold duration (10 minutes).
+    /// Sets BookingTimeSlot.IsActive = false, BookingStatus = Cancelled, PaymentStatus = Cancelled.
+    /// Returns the number of expired bookings released.
+    /// </summary>
+    Task<int> CleanupExpiredPendingBookingsAsync(CancellationToken ct = default);
+
     /// <summary>Returns all payments for the current tenant, newest first.</summary>
     Task<List<PaymentSummary>> GetAllForTenantAsync(PaymentStatus? statusFilter = null, CancellationToken ct = default);
 
@@ -155,7 +162,8 @@ public enum PaymentSubmitResult
     NotPending,
     EmptyReference,
     DuplicateReference,
-    DatabaseError
+    DatabaseError,
+    Expired
 }
 
 /// <summary>Payment + booking details for the customer-facing payment page.</summary>
@@ -176,7 +184,9 @@ public sealed record PaymentLookup(
     PaymentStatus Status,
     string? ReferenceNumber,
     DateTime? SubmittedAt = null,
-    int? SelectedPaymentOptionId = null);
+    int? SelectedPaymentOptionId = null,
+    DateTime? CreatedAt = null,
+    DateTime? ExpiresAt = null);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Implementation
@@ -253,6 +263,8 @@ public sealed class PaymentService : IPaymentService
         return payment;
     }
 
+    public const int PaymentHoldDurationMinutes = 10;
+
     public async Task<PaymentLookup?> GetByBookingReferenceAsync(string bookingReference, CancellationToken ct = default)
     {
         // Intentionally ignores the tenant query filter so customers can look up
@@ -262,6 +274,8 @@ public sealed class PaymentService : IPaymentService
             .IgnoreQueryFilters()
             .Include(p => p.Booking)
                 .ThenInclude(b => b!.Court)
+            .Include(p => p.Booking)
+                .ThenInclude(b => b!.TimeSlots)
             .FirstOrDefaultAsync(p => p.Booking!.BookingReference == bookingReference, ct);
 
         if (result?.Booking is null)
@@ -270,6 +284,7 @@ public sealed class PaymentService : IPaymentService
             var booking = await _context.Bookings
                 .IgnoreQueryFilters()
                 .Include(b => b.Court)
+                .Include(b => b.TimeSlots)
                 .FirstOrDefaultAsync(b => b.BookingReference == bookingReference, ct);
 
             if (booking is null) return null;
@@ -277,6 +292,7 @@ public sealed class PaymentService : IPaymentService
             var createdPayment = await CreateForBookingAsync(booking.Id, ct);
             if (createdPayment is null) return null;
 
+            var holdExpiresAt = booking.CreatedAt.AddMinutes(PaymentHoldDurationMinutes);
             return new PaymentLookup(
                 createdPayment.Id,
                 createdPayment.OrganizationId,
@@ -290,7 +306,34 @@ public sealed class PaymentService : IPaymentService
                 createdPayment.PaymentStatus,
                 createdPayment.ReferenceNumber,
                 createdPayment.SubmittedAt,
-                booking.SelectedPaymentOptionId);
+                booking.SelectedPaymentOptionId,
+                booking.CreatedAt,
+                holdExpiresAt);
+        }
+
+        var expiresAt = result.Booking.CreatedAt.AddMinutes(PaymentHoldDurationMinutes);
+        if (result.PaymentStatus == PaymentStatus.Pending && DateTime.UtcNow >= expiresAt)
+        {
+            result.PaymentStatus = PaymentStatus.Cancelled;
+            result.Notes = "Payment hold expired (10 minutes).";
+            result.Booking.BookingStatus = BookingStatus.Cancelled;
+            result.Booking.UpdatedAt = DateTime.UtcNow;
+            foreach (var bts in result.Booking.TimeSlots)
+            {
+                bts.IsActive = false;
+                bts.UpdatedAt = DateTime.UtcNow;
+            }
+
+            var prev = _context.SuppressTenantWriteGuard;
+            _context.SuppressTenantWriteGuard = true;
+            try
+            {
+                await _context.SaveChangesAsync(ct);
+            }
+            finally
+            {
+                _context.SuppressTenantWriteGuard = prev;
+            }
         }
 
         return new PaymentLookup(
@@ -306,7 +349,9 @@ public sealed class PaymentService : IPaymentService
             result.PaymentStatus,
             result.ReferenceNumber,
             result.SubmittedAt,
-            result.Booking.SelectedPaymentOptionId);
+            result.Booking.SelectedPaymentOptionId,
+            result.Booking.CreatedAt,
+            expiresAt);
     }
 
     public async Task<Payment?> GetByIdAsync(int paymentId, CancellationToken ct = default)
@@ -323,9 +368,39 @@ public sealed class PaymentService : IPaymentService
         // submit without being on a specific subdomain (they arrived via email / QR link).
         var payment = await _context.Payments
             .IgnoreQueryFilters()
+            .Include(p => p.Booking)
+                .ThenInclude(b => b!.TimeSlots)
             .FirstOrDefaultAsync(p => p.Id == paymentId, ct);
 
         if (payment is null) return PaymentSubmitResult.NotFound;
+
+        // Check if hold has expired (10 minutes)
+        if (payment.PaymentStatus == PaymentStatus.Pending && payment.Booking != null &&
+            payment.Booking.CreatedAt <= DateTime.UtcNow.AddMinutes(-PaymentHoldDurationMinutes))
+        {
+            payment.PaymentStatus = PaymentStatus.Cancelled;
+            payment.Notes = "Payment hold expired (10 minutes).";
+            payment.Booking.BookingStatus = BookingStatus.Cancelled;
+            payment.Booking.UpdatedAt = DateTime.UtcNow;
+            foreach (var bts in payment.Booking.TimeSlots)
+            {
+                bts.IsActive = false;
+                bts.UpdatedAt = DateTime.UtcNow;
+            }
+
+            var guardPrev = _context.SuppressTenantWriteGuard;
+            _context.SuppressTenantWriteGuard = true;
+            try
+            {
+                await _context.SaveChangesAsync(ct);
+            }
+            finally
+            {
+                _context.SuppressTenantWriteGuard = guardPrev;
+            }
+
+            return PaymentSubmitResult.Expired;
+        }
 
         // Only Pending payments can be submitted.
         if (payment.PaymentStatus != PaymentStatus.Pending) return PaymentSubmitResult.NotPending;
@@ -920,6 +995,76 @@ public sealed class PaymentService : IPaymentService
         _context.TenantPaymentOptions.Remove(option);
         await _context.SaveChangesAsync(ct);
         return true;
+    }
+
+    public async Task<int> CleanupExpiredPendingBookingsAsync(CancellationToken ct = default)
+    {
+        var cutoff = DateTime.UtcNow.AddMinutes(-PaymentHoldDurationMinutes);
+
+        var expiredPayments = await _context.Payments
+            .IgnoreQueryFilters()
+            .Include(p => p.Booking)
+                .ThenInclude(b => b!.TimeSlots)
+            .Where(p => p.PaymentStatus == PaymentStatus.Pending
+                     && p.Booking != null
+                     && p.Booking.BookingStatus == BookingStatus.Pending
+                     && p.Booking.CreatedAt <= cutoff)
+            .ToListAsync(ct);
+
+        var orphanExpiredBookings = await _context.Bookings
+            .IgnoreQueryFilters()
+            .Include(b => b.TimeSlots)
+            .Where(b => b.BookingStatus == BookingStatus.Pending
+                     && b.Price > 0
+                     && b.CreatedAt <= cutoff
+                     && !_context.Payments.Any(p => p.BookingId == b.Id))
+            .ToListAsync(ct);
+
+        if (expiredPayments.Count == 0 && orphanExpiredBookings.Count == 0) return 0;
+
+        foreach (var payment in expiredPayments)
+        {
+            payment.PaymentStatus = PaymentStatus.Cancelled;
+            payment.Notes = "Payment hold expired (10 minutes).";
+
+            if (payment.Booking != null)
+            {
+                payment.Booking.BookingStatus = BookingStatus.Cancelled;
+                payment.Booking.UpdatedAt = DateTime.UtcNow;
+
+                foreach (var bts in payment.Booking.TimeSlots)
+                {
+                    bts.IsActive = false;
+                    bts.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+        }
+
+        foreach (var booking in orphanExpiredBookings)
+        {
+            booking.BookingStatus = BookingStatus.Cancelled;
+            booking.UpdatedAt = DateTime.UtcNow;
+            foreach (var bts in booking.TimeSlots)
+            {
+                bts.IsActive = false;
+                bts.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        var prev = _context.SuppressTenantWriteGuard;
+        _context.SuppressTenantWriteGuard = true;
+        try
+        {
+            await _context.SaveChangesAsync(ct);
+        }
+        finally
+        {
+            _context.SuppressTenantWriteGuard = prev;
+        }
+
+        var total = expiredPayments.Count + orphanExpiredBookings.Count;
+        _logger?.LogInformation("Released {Count} expired booking time slot holds older than {Minutes} minutes.", total, PaymentHoldDurationMinutes);
+        return total;
     }
 }
 

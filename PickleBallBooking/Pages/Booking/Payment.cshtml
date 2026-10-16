@@ -62,13 +62,42 @@
         <div class="col-12 col-md-8 col-lg-6">
 
             <!-- ─── SLOT HOLD URGENCY & REASSURANCE BANNER ─── -->
-            <div class="alert alert-warning border-warning-subtle shadow-sm rounded-4 mb-3 d-flex align-items-center gap-3 py-2 px-3">
-                <span class="spinner-grow spinner-grow-sm text-warning flex-shrink-0" role="status" aria-hidden="true"></span>
-                <div class="small">
-                    <strong>Slot Temporarily Held (15 Minutes)</strong><br />
-                    <span class="text-muted">Complete payment below to lock in your court reservation.</span>
+            @if (Model.IsExpired)
+            {
+                <div class="alert alert-danger border-danger-subtle shadow-sm rounded-4 mb-3 p-3">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <span class="d-inline-flex p-2 bg-danger-subtle text-danger rounded-circle flex-shrink-0">
+                            <i class="bi bi-clock-history fs-4"></i>
+                        </span>
+                        <div>
+                            <strong class="fs-6 text-danger">Time Slot Hold Expired</strong>
+                            <p class="small text-muted mb-0">The 10-minute hold on this court slot has expired and the slot has been released for other players.</p>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mt-3 pt-2 border-top">
+                        <a asp-page="/Booking/Index" class="btn btn-primary btn-sm px-3 fw-semibold">
+                            <i class="bi bi-calendar-plus me-1"></i>Select a New Time Slot
+                        </a>
+                    </div>
                 </div>
-            </div>
+            }
+            else
+            {
+                <div class="alert alert-warning border-warning-subtle shadow-sm rounded-4 mb-3 d-flex align-items-center justify-content-between gap-3 py-2 px-3" id="holdAlert">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="spinner-grow spinner-grow-sm text-warning flex-shrink-0" id="holdSpinner" role="status" aria-hidden="true"></span>
+                        <div class="small">
+                            <strong id="holdTitle">Slot Temporarily Held (10 Minutes)</strong><br />
+                            <span class="text-muted" id="holdSubtitle">Complete payment below to lock in your court reservation.</span>
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 text-end">
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-2 py-1 fs-6 font-monospace" id="countdownBadge">
+                            <i class="bi bi-stopwatch me-1"></i><span id="countdownDisplay">--:--</span>
+                        </span>
+                    </div>
+                </div>
+            }
 
             <!-- ─── TOP CONTEXT BAR (Mobile-Friendly Booking Reminder) ─── -->
             <div class="card booking-summary-strip border-0 shadow-sm rounded-4 mb-3 mb-md-4 bg-white overflow-hidden">
@@ -719,9 +748,64 @@
 
         const submitBtnDefaultHtml = '<span class="d-inline d-sm-none">Submit Proof &amp; Confirm</span><span class="d-none d-sm-inline">Submit Payment Proof &amp; Confirm Booking</span>';
 
+        // ─── 10-Minute Hold Countdown Timer ───
+        let remainingSeconds = @Model.RemainingSeconds;
+        const countdownDisplay = document.getElementById('countdownDisplay');
+        const countdownBadge = document.getElementById('countdownBadge');
+        const holdTitle = document.getElementById('holdTitle');
+        const holdSubtitle = document.getElementById('holdSubtitle');
+        const holdSpinner = document.getElementById('holdSpinner');
+        const holdAlert = document.getElementById('holdAlert');
+
+        function updateCountdown() {
+            if (!countdownDisplay) return;
+            if (remainingSeconds <= 0) {
+                countdownDisplay.textContent = "00:00";
+                if (countdownBadge) {
+                    countdownBadge.className = "badge bg-danger text-white border border-danger px-2 py-1 fs-6 font-monospace";
+                }
+                if (holdTitle) {
+                    holdTitle.textContent = "Time Slot Hold Expired";
+                    holdTitle.className = "text-danger";
+                }
+                if (holdSubtitle) {
+                    holdSubtitle.textContent = "This slot has been released for other players. Please return to the booking page.";
+                }
+                if (holdSpinner) holdSpinner.classList.add('d-none');
+                if (holdAlert) {
+                    holdAlert.className = "alert alert-danger border-danger-subtle shadow-sm rounded-4 mb-3 d-flex align-items-center justify-content-between gap-3 py-2 px-3";
+                }
+                if (btnSubmit) {
+                    btnSubmit.disabled = true;
+                    btnSubmit.classList.add('disabled');
+                    btnSubmit.innerHTML = '<i class="bi bi-clock-history me-1"></i>Hold Expired — Please Rebook';
+                }
+                return;
+            }
+
+            const mins = Math.floor(remainingSeconds / 60);
+            const secs = remainingSeconds % 60;
+            countdownDisplay.textContent = String(mins).padStart(2, '0') + ":" + String(secs).padStart(2, '0');
+
+            if (remainingSeconds <= 120 && countdownBadge) {
+                countdownBadge.className = "badge bg-danger-subtle text-danger border border-danger px-2 py-1 fs-6 font-monospace";
+            }
+
+            remainingSeconds--;
+            setTimeout(updateCountdown, 1000);
+        }
+
+        if (countdownDisplay) {
+            updateCountdown();
+        }
+
         // Submit loading state to prevent double-click
         if (form && btnSubmit) {
             form.addEventListener('submit', function (e) {
+                if (remainingSeconds <= 0 && countdownDisplay) {
+                    e.preventDefault();
+                    return;
+                }
                 // Use jQuery Validation (data-val-required) instead of native checkValidity()
                 // because ASP.NET [Required] does NOT add the HTML5 required attribute.
                 var $form = $(form);
