@@ -1,0 +1,503 @@
+@page
+@model PickleBallBooking.Pages.Admin.Reports.IndexModel
+@{
+    ViewData["Title"] = $"Monthly Report - {Model.Report.MonthName}";
+    var currentYear = DateTime.UtcNow.Year;
+    var currentMonth = DateTime.UtcNow.Month;
+    var prevMonthDate = new DateTime(Model.Year, Model.Month, 1).AddMonths(-1);
+    var nextMonthDate = new DateTime(Model.Year, Model.Month, 1).AddMonths(1);
+    var maxDailyRevenue = Model.Report.DailyStats.Any() ? Math.Max(1m, Model.Report.DailyStats.Max(d => d.Revenue)) : 1m;
+}
+
+<div class="container-fluid py-4 px-md-4">
+
+    <!-- ─── HEADER BAR ─── -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill small fw-semibold">
+                    <i class="bi bi-buildings me-1"></i>@Model.Report.OrganizationName
+                </span>
+                <span class="badge bg-light text-muted border px-2 py-1 rounded-pill small">
+                    Tenant ID: #@Model.Report.OrganizationId
+                </span>
+            </div>
+            <h1 class="h3 fw-bold text-dark mt-1 mb-0">
+                <i class="bi bi-bar-chart-line-fill text-primary me-2"></i>Monthly Booking &amp; Revenue Report
+            </h1>
+            <p class="text-muted small mb-0">Financial metrics, conversion statistics, and court utilization for <strong>@Model.Report.MonthName</strong>.</p>
+        </div>
+
+        <!-- Export & Print Actions -->
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a asp-page-handler="ExportCsv" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
+               class="btn btn-outline-success fw-semibold shadow-xs d-inline-flex align-items-center gap-1 rounded-3">
+                <i class="bi bi-file-earmark-spreadsheet fs-6"></i>
+                <span>Export CSV</span>
+            </a>
+            <button type="button" class="btn btn-outline-secondary fw-semibold shadow-xs d-inline-flex align-items-center gap-1 rounded-3" onclick="window.print()">
+                <i class="bi bi-printer fs-6"></i>
+                <span class="d-none d-sm-inline">Print Report</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ─── MONTH SELECTOR & QUICK FILTERS ─── -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+        <div class="card-body p-3">
+            <form method="get" class="row g-2 align-items-center">
+                <!-- Month Step Navigation -->
+                <div class="col-auto">
+                    <div class="btn-group" role="group">
+                        <a asp-page="./Index" asp-route-year="@prevMonthDate.Year" asp-route-month="@prevMonthDate.Month"
+                           class="btn btn-outline-secondary btn-sm" title="Previous Month">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                        <a asp-page="./Index" asp-route-year="@nextMonthDate.Year" asp-route-month="@nextMonthDate.Month"
+                           class="btn btn-outline-secondary btn-sm @(nextMonthDate > DateTime.UtcNow.AddMonths(1) ? "disabled" : "")" title="Next Month">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Month Picker Dropdown -->
+                <div class="col-6 col-sm-auto">
+                    <select name="Month" class="form-select form-select-sm fw-semibold rounded-3" onchange="this.form.submit()">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            var dt = new DateTime(2026, m, 1);
+                            <option value="@m" selected="@(m == Model.Month)">@dt.ToString("MMMM")</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Year Picker Dropdown -->
+                <div class="col-6 col-sm-auto">
+                    <select name="Year" class="form-select form-select-sm fw-semibold rounded-3" onchange="this.form.submit()">
+                        @for (int y = currentYear - 2; y <= currentYear + 1; y++)
+                        {
+                            <option value="@y" selected="@(y == Model.Year)">@y</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Quick Presets -->
+                <div class="col-auto d-flex gap-1 ms-auto">
+                    <a asp-page="./Index" asp-route-year="@currentYear" asp-route-month="@currentMonth"
+                       class="btn btn-sm @(Model.Year == currentYear && Model.Month == currentMonth ? "btn-primary" : "btn-light border") rounded-3">
+                        This Month
+                    </a>
+                    @{
+                        var lastMonth = DateTime.UtcNow.AddMonths(-1);
+                    }
+                    <a asp-page="./Index" asp-route-year="@lastMonth.Year" asp-route-month="@lastMonth.Month"
+                       class="btn btn-sm @(Model.Year == lastMonth.Year && Model.Month == lastMonth.Month ? "btn-primary" : "btn-light border") rounded-3">
+                        Last Month
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ─── EXECUTIVE KPI CARDS ─── -->
+    <div class="row g-3 mb-4">
+        <!-- 1. Total Revenue Collected -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Gross Revenue</span>
+                        <div class="p-2 bg-success-subtle text-success rounded-circle">
+                            <i class="bi bi-cash-stack fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold text-success mb-1">₱@Model.Report.TotalRevenueCollected.ToString("N2")</h3>
+                    <div class="small text-muted d-flex align-items-center gap-1">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <span>Confirmed &amp; Completed Bookings</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Total Bookings & Conversion -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Confirmed Bookings</span>
+                        <div class="p-2 bg-primary-subtle text-primary rounded-circle">
+                            <i class="bi bi-calendar2-check-fill fs-5"></i>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2 mb-1">
+                        <h3 class="fw-bold text-dark mb-0">@(Model.Report.ConfirmedCount + Model.Report.CompletedCount)</h3>
+                        <span class="text-muted small">/ @Model.Report.TotalBookingsCount total</span>
+                    </div>
+                    <div class="small text-muted d-flex align-items-center gap-1">
+                        <span class="badge bg-primary-subtle text-primary px-1.5 py-0.5">@Model.Report.ConversionRate%</span>
+                        <span>conversion rate</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Uncollected & Pending -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Pending / In-Hold</span>
+                        <div class="p-2 bg-warning-subtle text-warning-emphasis rounded-circle">
+                            <i class="bi bi-hourglass-split fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold text-warning-emphasis mb-1">₱@Model.Report.PendingRevenue.ToString("N2")</h3>
+                    <div class="small text-muted d-flex align-items-center gap-1">
+                        <span class="fw-semibold text-dark">@Model.Report.PendingCount</span>
+                        <span>unpaid or verifying holds</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Operational Hours & ABV -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Court Time &amp; ABV</span>
+                        <div class="p-2 bg-info-subtle text-info rounded-circle">
+                            <i class="bi bi-clock-history fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-1">@Model.Report.TotalBookedHours.ToString("N1") <span class="fs-6 text-muted fw-normal">hrs</span></h3>
+                    <div class="small text-muted d-flex align-items-center gap-1">
+                        <span>Avg Value:</span>
+                        <span class="fw-semibold text-dark">₱@Model.Report.AverageBookingValue.ToString("N2")</span>
+                        <span>/ booking</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── STATUS BREAKDOWN ROW ─── -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+        <div class="card-body p-3 p-md-4">
+            <h6 class="fw-bold text-dark mb-3">Booking Status Distribution</h6>
+            <div class="row g-2 text-center">
+                <div class="col-6 col-md-2">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <span class="text-muted small d-block">Confirmed</span>
+                        <span class="fs-5 fw-bold text-success">@Model.Report.ConfirmedCount</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <span class="text-muted small d-block">Completed</span>
+                        <span class="fs-5 fw-bold text-primary">@Model.Report.CompletedCount</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <span class="text-muted small d-block">Pending Hold</span>
+                        <span class="fs-5 fw-bold text-warning-emphasis">@Model.Report.PendingCount</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <span class="text-muted small d-block">Cancelled/Expired</span>
+                        <span class="fs-5 fw-bold text-danger">@Model.Report.CancelledCount</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <span class="text-muted small d-block">No-Shows</span>
+                        <span class="fs-5 fw-bold text-secondary">@Model.Report.NoShowCount</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <span class="text-muted small d-block">Expired Loss</span>
+                        <span class="fs-5 fw-bold text-muted">₱@Model.Report.LostCancelledRevenue.ToString("N0")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── TWO COLUMN: COURT BREAKDOWN & PAYMENT METHODS ─── -->
+    <div class="row g-3 mb-4">
+        <!-- Court Utilization & Performance -->
+        <div class="col-12 col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-header bg-white border-0 pt-3 px-3 px-md-4 pb-0 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>Court Performance &amp; Revenue</h6>
+                    <span class="badge bg-light text-muted border small">@Model.Report.CourtStats.Count Courts</span>
+                </div>
+                <div class="card-body p-3 p-md-4">
+                    @if (!Model.Report.CourtStats.Any())
+                    {
+                        <div class="text-center py-4 text-muted small">
+                            <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>No court bookings found for this month.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small text-uppercase text-muted">
+                                    <tr>
+                                        <th>Court</th>
+                                        <th class="text-center">Bookings</th>
+                                        <th class="text-center">Hours Booked</th>
+                                        <th class="text-end">Revenue</th>
+                                        <th class="text-end">Share</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var c in Model.Report.CourtStats)
+                                    {
+                                        var share = Model.Report.TotalRevenueCollected > 0
+                                            ? (c.TotalRevenue / Model.Report.TotalRevenueCollected * 100m)
+                                            : 0m;
+                                        <tr>
+                                            <td class="fw-semibold text-dark">
+                                                <i class="bi bi-trophy text-primary me-1"></i>@c.CourtName
+                                            </td>
+                                            <td class="text-center font-monospace">@c.TotalBookings</td>
+                                            <td class="text-center font-monospace">@c.TotalHours.ToString("N1") hrs</td>
+                                            <td class="text-end font-monospace fw-semibold text-success">₱@c.TotalRevenue.ToString("N2")</td>
+                                            <td class="text-end">
+                                                <div class="d-inline-flex align-items-center gap-1">
+                                                    <span class="small font-monospace">@share.ToString("F1")%</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Channels Breakdown -->
+        <div class="col-12 col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-header bg-white border-0 pt-3 px-3 px-md-4 pb-0 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-credit-card-fill text-primary me-2"></i>Payment Channels</h6>
+                    <span class="badge bg-light text-muted border small">Verified Revenue</span>
+                </div>
+                <div class="card-body p-3 p-md-4">
+                    @if (!Model.Report.PaymentMethodStats.Any())
+                    {
+                        <div class="text-center py-4 text-muted small">
+                            <i class="bi bi-wallet2 fs-3 d-block mb-2"></i>No payment transactions recorded for this period.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small text-uppercase text-muted">
+                                    <tr>
+                                        <th>Method</th>
+                                        <th class="text-center">Count</th>
+                                        <th class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var pm in Model.Report.PaymentMethodStats)
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold text-dark">
+                                                <span class="badge bg-light text-dark border me-1">@pm.MethodName</span>
+                                            </td>
+                                            <td class="text-center font-monospace">@pm.TransactionCount</td>
+                                            <td class="text-end font-monospace fw-semibold text-success">₱@pm.TotalAmount.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── DAILY TRENDS (BAR VISUALIZER) ─── -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+        <div class="card-header bg-white border-0 pt-3 px-3 px-md-4 pb-0 d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold text-dark mb-0"><i class="bi bi-graph-up text-primary me-2"></i>Daily Revenue Activity (@Model.Report.MonthName)</h6>
+            <span class="text-muted small">Peak Day: ₱@maxDailyRevenue.ToString("N0")</span>
+        </div>
+        <div class="card-body p-3 p-md-4">
+            <div class="d-flex align-items-end gap-1 overflow-x-auto pb-2" style="min-height: 140px;">
+                @foreach (var d in Model.Report.DailyStats)
+                {
+                    var barHeight = maxDailyRevenue > 0 ? (int)Math.Max(6, (d.Revenue / maxDailyRevenue * 100)) : 6;
+                    var isToday = d.Date == PickleBallBooking.Services.AppClock.TodayLocal;
+                    <div class="text-center flex-grow-1" style="min-width: 26px;" title="@d.Date.ToString("MMM dd"): ₱@d.Revenue.ToString("N2") (@d.ConfirmedOrCompleted bookings)">
+                        <div class="d-flex flex-column align-items-center justify-content-end" style="height: 100px;">
+                            <div class="w-100 rounded-top @(d.Revenue > 0 ? (isToday ? "bg-primary" : "bg-success") : "bg-light border")"
+                                 style="height: @(barHeight)px; transition: height 0.3s ease;">
+                            </div>
+                        </div>
+                        <span class="d-block font-monospace mt-1 @(isToday ? "fw-bold text-primary" : "text-muted")" style="font-size: 0.68rem;">
+                            @d.DayNumber
+                        </span>
+                    </div>
+                }
+            </div>
+            <div class="d-flex justify-content-between text-muted small mt-2 pt-2 border-top">
+                <span><i class="bi bi-square-fill text-success me-1"></i>Confirmed Revenue</span>
+                <span><i class="bi bi-square-fill text-primary me-1"></i>Today</span>
+                <span><i class="bi bi-square-fill text-light border me-1"></i>No Revenue</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── BOOKINGS LEDGER TABLE ─── -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+        <div class="card-header bg-white border-bottom p-3 p-md-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div>
+                    <h5 class="fw-bold text-dark mb-0">Booking Ledger</h5>
+                    <span class="text-muted small">Showing @Model.Report.Bookings.Count records in @Model.Report.MonthName</span>
+                </div>
+
+                <!-- Ledger Search and Status Filter -->
+                <form method="get" class="d-flex flex-wrap gap-2">
+                    <input type="hidden" name="Year" value="@Model.Year" />
+                    <input type="hidden" name="Month" value="@Model.Month" />
+
+                    <select name="StatusFilter" class="form-select form-select-sm rounded-3" style="width: auto;" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        <option value="Confirmed" selected="@(Model.StatusFilter == PickleBallBooking.Models.BookingStatus.Confirmed)">Confirmed</option>
+                        <option value="Completed" selected="@(Model.StatusFilter == PickleBallBooking.Models.BookingStatus.Completed)">Completed</option>
+                        <option value="Pending" selected="@(Model.StatusFilter == PickleBallBooking.Models.BookingStatus.Pending)">Pending</option>
+                        <option value="Cancelled" selected="@(Model.StatusFilter == PickleBallBooking.Models.BookingStatus.Cancelled)">Cancelled</option>
+                    </select>
+
+                    <div class="input-group input-group-sm">
+                        <input type="text" name="SearchQuery" value="@Model.SearchQuery" class="form-control rounded-start-3"
+                               placeholder="Search customer / ref..." />
+                        <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+                    </div>
+
+                    @if (Model.StatusFilter.HasValue || !string.IsNullOrWhiteSpace(Model.SearchQuery))
+                    {
+                        <a asp-page="./Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month" class="btn btn-sm btn-outline-danger rounded-3" title="Clear search">
+                            <i class="bi bi-x-circle"></i>
+                        </a>
+                    }
+                </form>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small text-uppercase text-muted">
+                    <tr>
+                        <th class="ps-3 ps-md-4">Reference</th>
+                        <th>Date &amp; Time</th>
+                        <th>Court</th>
+                        <th>Customer</th>
+                        <th class="text-end">Price</th>
+                        <th class="text-center">Status</th>
+                        <th>Payment</th>
+                        <th class="text-center">Check-In</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Report.Bookings.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                No booking records match the selected month and filter.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var b in Model.Report.Bookings)
+                    {
+                        <tr>
+                            <td class="ps-3 ps-md-4">
+                                <a asp-page="/Admin/Bookings/Details" asp-route-id="@b.BookingId" class="font-monospace fw-bold text-decoration-none text-primary">
+                                    @b.BookingReference
+                                </a>
+                            </td>
+                            <td>
+                                <span class="d-block fw-semibold text-dark">@b.BookingDate.ToString("ddd, MMM dd")</span>
+                                <span class="small text-muted font-monospace">@b.TimeRange</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">@b.CourtName</span>
+                            </td>
+                            <td>
+                                <span class="d-block fw-semibold text-dark">@b.CustomerName</span>
+                                <span class="small text-muted font-monospace">@b.CustomerPhone</span>
+                            </td>
+                            <td class="text-end font-monospace fw-bold @(b.Status is PickleBallBooking.Models.BookingStatus.Confirmed or PickleBallBooking.Models.BookingStatus.Completed ? "text-success" : "text-muted")">
+                                ₱@b.Price.ToString("N2")
+                            </td>
+                            <td class="text-center">
+                                @switch (b.Status)
+                                {
+                                    case PickleBallBooking.Models.BookingStatus.Confirmed:
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Confirmed</span>
+                                        break;
+                                    case PickleBallBooking.Models.BookingStatus.Completed:
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-flag me-1"></i>Completed</span>
+                                        break;
+                                    case PickleBallBooking.Models.BookingStatus.Pending:
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"><i class="bi bi-hourglass-split me-1"></i>Pending</span>
+                                        break;
+                                    case PickleBallBooking.Models.BookingStatus.Cancelled:
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Cancelled</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-light text-muted border">@b.Status</span>
+                                        break;
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(b.PaymentReference))
+                                {
+                                    <span class="d-block font-monospace small fw-semibold text-dark">@b.PaymentReference</span>
+                                    <span class="badge bg-light text-muted border" style="font-size: 0.68rem;">@b.PaymentMethod</span>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(b.PaymentMethod))
+                                {
+                                    <span class="badge bg-light text-muted border">@b.PaymentMethod</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">—</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (b.CheckedIn)
+                                {
+                                    <span class="badge bg-success py-1 px-2" title="Checked In at Venue"><i class="bi bi-check2"></i></span>
+                                }
+                                else if (b.IsNoShow)
+                                {
+                                    <span class="badge bg-danger py-1 px-2" title="Marked as No-Show"><i class="bi bi-x"></i></span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

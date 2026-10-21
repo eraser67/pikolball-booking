@@ -138,6 +138,7 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddHttpClient<IPaymentProofStorage, SupabasePaymentProofStorage>();
 builder.Services.AddHostedService<PaymentHoldWorker>();
 builder.Services.AddSingleton<IBookingRateLimiter, BookingRateLimiter>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 // AI payment verification cascade (Gemini Flash → Gemini Pro → Deepseek → rule-based).
 // Uses a shared HttpClient (typed) so connections are pooled across providers.
