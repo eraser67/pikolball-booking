@@ -42,69 +42,64 @@
         </div>
     </div>
 
-    <!-- ─── REPORT SELECTION TABS (3-CARD SEGMENTED SELECTOR) ─── -->
+    <!-- ─── REPORT SELECTION TABS (4-CARD SEGMENTED SELECTOR) ─── -->
     <div class="report-tabs-wrapper mb-4">
-        <div class="row g-3">
+        <div class="row g-2 g-md-3">
             <!-- Tab 1: Monthly Revenue & Ledger (Active) -->
-            <div class="col-12 col-lg-4">
+            <div class="col-6 col-xl-3">
                 <a asp-page="./Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
-                   class="report-tab-card active revenue-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none shadow-xs">
-                    <div class="tab-icon-box rounded-3 me-3 d-flex align-items-center justify-content-center flex-shrink-0">
-                        <i class="bi bi-wallet2 fs-4 text-success"></i>
+                   class="report-tab-card active revenue-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none shadow-xs h-100">
+                    <div class="tab-icon-box rounded-3 me-2 me-md-3 d-flex align-items-center justify-content-center flex-shrink-0">
+                        <i class="bi bi-wallet2 fs-5 text-success"></i>
                     </div>
                     <div class="flex-grow-1 min-w-0">
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <span class="tab-title fw-bold text-dark">Revenue &amp; Ledger</span>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small px-2">Active View</span>
+                        <div class="d-flex align-items-center gap-1 mb-1">
+                            <span class="tab-title fw-bold text-dark d-block text-truncate">Revenue &amp; Ledger</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small px-2 d-none d-sm-inline">Active</span>
                         </div>
-                        <span class="tab-desc text-muted small d-block text-truncate">
-                            Income, payments &amp; ledger
-                        </span>
-                    </div>
-                    <div class="tab-arrow text-success ms-2 flex-shrink-0">
-                        <i class="bi bi-arrow-right-circle-fill fs-5"></i>
+                        <span class="tab-desc text-muted small d-none d-md-block text-truncate">Financial audit</span>
                     </div>
                 </a>
             </div>
 
             <!-- Tab 2: Court Utilization & Peak Hours -->
-            <div class="col-12 col-lg-4">
+            <div class="col-6 col-xl-3">
                 <a asp-page="./Utilization" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
-                   class="report-tab-card utilization-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none">
-                    <div class="tab-icon-box rounded-3 me-3 d-flex align-items-center justify-content-center flex-shrink-0">
-                        <i class="bi bi-fire fs-4 text-muted"></i>
+                   class="report-tab-card utilization-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none h-100">
+                    <div class="tab-icon-box rounded-3 me-2 me-md-3 d-flex align-items-center justify-content-center flex-shrink-0">
+                        <i class="bi bi-fire fs-5 text-muted"></i>
                     </div>
                     <div class="flex-grow-1 min-w-0">
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <span class="tab-title fw-bold text-dark">Utilization &amp; Peak</span>
-                        </div>
-                        <span class="tab-desc text-muted small d-block text-truncate">
-                            Hourly heatmaps &amp; RevPAH
-                        </span>
-                    </div>
-                    <div class="tab-arrow text-muted ms-2 flex-shrink-0">
-                        <i class="bi bi-chevron-right fs-5"></i>
+                        <span class="tab-title fw-bold text-dark d-block text-truncate">Utilization &amp; Peak</span>
+                        <span class="tab-desc text-muted small d-none d-md-block text-truncate">Hourly heatmaps</span>
                     </div>
                 </a>
             </div>
 
             <!-- Tab 3: Attendance & No-Shows -->
-            <div class="col-12 col-lg-4">
+            <div class="col-6 col-xl-3">
                 <a asp-page="./Attendance" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
-                   class="report-tab-card attendance-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none">
-                    <div class="tab-icon-box rounded-3 me-3 d-flex align-items-center justify-content-center flex-shrink-0">
-                        <i class="bi bi-person-check-fill fs-4 text-muted"></i>
+                   class="report-tab-card attendance-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none h-100">
+                    <div class="tab-icon-box rounded-3 me-2 me-md-3 d-flex align-items-center justify-content-center flex-shrink-0">
+                        <i class="bi bi-person-check-fill fs-5 text-muted"></i>
                     </div>
                     <div class="flex-grow-1 min-w-0">
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <span class="tab-title fw-bold text-dark">Attendance &amp; No-Shows</span>
-                        </div>
-                        <span class="tab-desc text-muted small d-block text-truncate">
-                            Arrivals, punctuality &amp; no-show risk
-                        </span>
+                        <span class="tab-title fw-bold text-dark d-block text-truncate">Attendance &amp; No-Shows</span>
+                        <span class="tab-desc text-muted small d-none d-md-block text-truncate">Arrivals &amp; QR</span>
                     </div>
-                    <div class="tab-arrow text-muted ms-2 flex-shrink-0">
-                        <i class="bi bi-chevron-right fs-5"></i>
+                </a>
+            </div>
+
+            <!-- Tab 4: Customer & Player Insights -->
+            <div class="col-6 col-xl-3">
+                <a asp-page="./Customers" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
+                   class="report-tab-card customers-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none h-100">
+                    <div class="tab-icon-box rounded-3 me-2 me-md-3 d-flex align-items-center justify-content-center flex-shrink-0">
+                        <i class="bi bi-people-fill fs-5 text-muted"></i>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <span class="tab-title fw-bold text-dark d-block text-truncate">Customer Insights</span>
+                        <span class="tab-desc text-muted small d-none d-md-block text-truncate">VIPs &amp; Retention</span>
                     </div>
                 </a>
             </div>

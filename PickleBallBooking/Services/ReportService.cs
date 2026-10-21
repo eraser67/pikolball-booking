@@ -842,6 +842,266 @@ public class ReportService : IReportService
         return utf8WithBom.GetBytes(sb.ToString());
     }
 
+    public async Task<CustomerInsightsReport> GetCustomerInsightsReportAsync(int organizationId, int year, int month)
+    {
+        if (year < 2000 || year > 2100) year = DateTime.UtcNow.Year;
+        if (month < 1 || month > 12) month = DateTime.UtcNow.Month;
+
+        var startDate = new DateOnly(year, month, 1);
+        var daysInMonth = DateTime.DaysInMonth(year, month);
+        var endDate = new DateOnly(year, month, daysInMonth);
+
+        // Fetch organization name
+        var orgName = await _context.Organizations
+            .IgnoreQueryFilters()
+            .Where(o => o.Id == organizationId)
+            .Select(o => o.Name)
+            .FirstOrDefaultAsync() ?? $"Tenant #{organizationId}";
+
+        // Strict tenant isolation: fetch current month confirmed & completed bookings
+        var monthBookings = await _context.Bookings
+            .AsNoTracking()
+            .Where(b => b.OrganizationId == organizationId
+                        && b.BookingDate >= startDate
+                        && b.BookingDate <= endDate
+                        && (b.BookingStatus == BookingStatus.Confirmed || b.BookingStatus == BookingStatus.Completed))
+            .Include(b => b.Court)
+            .OrderBy(b => b.BookingDate)
+            .ThenBy(b => b.StartTime)
+            .ToListAsync();
+
+        // Strict tenant isolation: fetch prior confirmed & completed bookings for this tenant
+        var priorBookings = await _context.Bookings
+            .AsNoTracking()
+            .Where(b => b.OrganizationId == organizationId
+                        && b.BookingDate < startDate
+                        && (b.BookingStatus == BookingStatus.Confirmed || b.BookingStatus == BookingStatus.Completed))
+            .Select(b => new
+            {
+                b.CustomerName,
+                b.CustomerPhone,
+                b.CustomerEmail,
+                b.BookingDate,
+                b.Price
+            })
+            .ToListAsync();
+
+        var priorCustomerKeys = new HashSet<string>(priorBookings.Select(b =>
+            !string.IsNullOrWhiteSpace(b.CustomerPhone) ? b.CustomerPhone.Trim() : b.CustomerName.Trim().ToLowerInvariant()));
+
+        // Group month bookings by unique customer key (phone preferred, or name)
+        var monthGroups = monthBookings
+            .GroupBy(b => !string.IsNullOrWhiteSpace(b.CustomerPhone) ? b.CustomerPhone.Trim() : b.CustomerName.Trim().ToLowerInvariant())
+            .ToList();
+
+        int totalUniqueCustomers = monthGroups.Count;
+        int returningCustomers = monthGroups.Count(g => priorCustomerKeys.Contains(g.Key));
+        int newCustomers = totalUniqueCustomers - returningCustomers;
+        decimal totalRevenue = monthBookings.Sum(b => b.Price);
+
+        int vipCount = monthGroups.Count(g => g.Count() >= 5);
+        int regularCount = monthGroups.Count(g => g.Count() >= 2 && g.Count() < 5);
+        int occasionalCount = monthGroups.Count(g => g.Count() == 1);
+
+        // Build VIP Players Ranking
+        var topPlayers = new List<VipPlayerItem>();
+        int rank = 1;
+
+        var sortedGroups = monthGroups
+            .OrderByDescending(g => g.Sum(b => b.Price))
+            .ThenByDescending(g => g.Count())
+            .ToList();
+
+        foreach (var g in sortedGroups)
+        {
+            var first = g.First();
+            var totalSpend = g.Sum(b => b.Price);
+            var totalHours = g.Sum(b =>
+            {
+                var h = b.DurationHours ?? (decimal)(b.EndTime - b.StartTime).TotalHours;
+                if (h <= 0 && b.EndTime == TimeSpan.Zero) h = (decimal)(TimeSpan.FromHours(24) - b.StartTime).TotalHours;
+                return Math.Max(0m, h);
+            });
+
+            // Calculate Preferred Court (most frequently booked court by this player)
+            var preferredCourt = g
+                .GroupBy(b => b.Court?.Name ?? "Court")
+                .OrderByDescending(cg => cg.Count())
+                .First().Key;
+
+            // Calculate Preferred Playing Time
+            var preferredTime = g
+                .GroupBy(b => AppClock.To12Hour(b.StartTime))
+                .OrderByDescending(tg => tg.Count())
+                .First().Key;
+
+            topPlayers.Add(new VipPlayerItem
+            {
+                Rank = rank++,
+                CustomerName = first.CustomerName,
+                CustomerPhone = first.CustomerPhone,
+                CustomerEmail = first.CustomerEmail,
+                FacebookName = first.FacebookName,
+                TotalBookings = g.Count(),
+                TotalHours = totalHours,
+                TotalSpend = totalSpend,
+                PreferredCourt = preferredCourt,
+                PreferredTimeSlot = preferredTime,
+                FirstBookingDate = g.Min(b => b.BookingDate),
+                LatestBookingDate = g.Max(b => b.BookingDate),
+                IsNewCustomerThisMonth = !priorCustomerKeys.Contains(g.Key)
+            });
+        }
+
+        // Top 10 customer revenue share
+        decimal topTenRevenue = topPlayers.Take(10).Sum(p => p.TotalSpend);
+        decimal topTenShare = totalRevenue > 0 ? Math.Round(topTenRevenue / totalRevenue * 100m, 1) : 0m;
+
+        // Detect At-Risk / Inactive Customers (booked in 90 days before startDate, but 0 bookings this month)
+        var cutoffDate = startDate.AddDays(-90);
+        var monthCustomerKeys = new HashSet<string>(monthGroups.Select(g => g.Key));
+
+        var atRiskCustomers = priorBookings
+            .Where(b => b.BookingDate >= cutoffDate)
+            .GroupBy(b => !string.IsNullOrWhiteSpace(b.CustomerPhone) ? b.CustomerPhone.Trim() : b.CustomerName.Trim().ToLowerInvariant())
+            .Where(g => !monthCustomerKeys.Contains(g.Key))
+            .Select(g =>
+            {
+                var first = g.First();
+                var lastDate = g.Max(b => b.BookingDate);
+                var daysSince = (int)(startDate.ToDateTime(TimeOnly.MinValue) - lastDate.ToDateTime(TimeOnly.MinValue)).TotalDays;
+                return new InactiveCustomerItem
+                {
+                    CustomerName = first.CustomerName,
+                    CustomerPhone = first.CustomerPhone,
+                    CustomerEmail = first.CustomerEmail,
+                    LifetimeBookings = g.Count(),
+                    LifetimeSpend = g.Sum(b => b.Price),
+                    LastActiveDate = lastDate,
+                    DaysSinceLastBooking = Math.Max(1, daysSince)
+                };
+            })
+            .OrderByDescending(c => c.LifetimeSpend)
+            .ThenByDescending(c => c.LifetimeBookings)
+            .Take(30)
+            .ToList();
+
+        // Strategic Recommendations
+        var recs = new List<string>();
+        if (topTenShare >= 50m && topPlayers.Count >= 10)
+        {
+            recs.Add($"High Revenue Concentration: Top 10 players generate {topTenShare:F1}% of monthly revenue. Consider a VIP loyalty perks program or invitation-only club events to maintain their retention.");
+        }
+        if (totalUniqueCustomers > 0)
+        {
+            var repeatRate = Math.Round((decimal)returningCustomers / totalUniqueCustomers * 100m, 1);
+            if (repeatRate < 35m)
+            {
+                recs.Add($"Low Repeat Rate ({repeatRate:F1}%): Most bookings come from one-time players. Offer a bounce-back voucher (e.g. 10% off if booked within 14 days) to drive repeat frequency.");
+            }
+            else
+            {
+                recs.Add($"Healthy Player Retention: {repeatRate:F1}% repeat booking rate indicates satisfied, loyal customers.");
+            }
+        }
+        if (atRiskCustomers.Count >= 5)
+        {
+            recs.Add($"Win-Back Opportunity: {atRiskCustomers.Count} previously active players haven't booked this month. Download the At-Risk directory to send re-engagement SMS or off-peak promotions.");
+        }
+        if (newCustomers > 0)
+        {
+            recs.Add($"New Player Acquisition: Welcomed {newCustomers} first-time players this month ({Math.Round((decimal)newCustomers / Math.Max(1, totalUniqueCustomers) * 100m, 1)}% of customer base).");
+        }
+        if (!recs.Any())
+        {
+            recs.Add("Customer activity is steady. Continue nurturing repeat player relationships with seasonal round robins.");
+        }
+
+        return new CustomerInsightsReport
+        {
+            OrganizationId = organizationId,
+            OrganizationName = orgName,
+            Year = year,
+            Month = month,
+            TotalUniqueCustomersInMonth = totalUniqueCustomers,
+            NewCustomersInMonth = newCustomers,
+            ReturningCustomersInMonth = returningCustomers,
+            TotalRevenue = totalRevenue,
+            TopTenCustomerRevenueShare = topTenShare,
+            VipPlayersCount = vipCount,
+            RegularPlayersCount = regularCount,
+            OccasionalPlayersCount = occasionalCount,
+            TopPlayers = topPlayers,
+            AtRiskCustomers = atRiskCustomers,
+            StrategicRecommendations = recs
+        };
+    }
+
+    public async Task<byte[]> ExportCustomerDirectoryCsvAsync(int organizationId, int year, int month)
+    {
+        var report = await GetCustomerInsightsReportAsync(organizationId, year, month);
+
+        var sb = new StringBuilder();
+
+        // Metadata Header
+        sb.AppendLine($"# Customer & Repeat Player Directory");
+        sb.AppendLine($"# Organization: {EscapeCsv(report.OrganizationName)} (ID: {report.OrganizationId})");
+        sb.AppendLine($"# Period: {report.MonthName}");
+        sb.AppendLine($"# Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+        sb.AppendLine($"# Total Unique Players: {report.TotalUniqueCustomersInMonth}");
+        sb.AppendLine($"# Repeat Retention Rate: {report.RepeatCustomerRate:F1}%");
+        sb.AppendLine($"# VIP Players (>= 5 bookings): {report.VipPlayersCount}");
+        sb.AppendLine($"# Regular Players (2-4 bookings): {report.RegularPlayersCount}");
+        sb.AppendLine($"# New Players This Month: {report.NewCustomersInMonth}");
+        sb.AppendLine($"# Total Realized Spend: ₱{report.TotalRevenue:N2}");
+        sb.AppendLine();
+
+        // 1. VIP & Active Players Directory
+        sb.AppendLine("## Active & Frequent Players Directory");
+        sb.AppendLine("Rank,Customer Name,Phone,Email,Facebook,Loyalty Tier,Customer Type,Monthly Bookings,Total Hours,Total Spend (PHP),Preferred Court,Preferred Time,First Booking,Latest Booking");
+
+        foreach (var p in report.TopPlayers)
+        {
+            sb.AppendLine(string.Join(",",
+                p.Rank,
+                EscapeCsv(p.CustomerName),
+                EscapeCsv(p.CustomerPhone),
+                EscapeCsv(p.CustomerEmail),
+                EscapeCsv(p.FacebookName ?? ""),
+                p.LoyaltyTier,
+                p.IsNewCustomerThisMonth ? "New Player" : "Returning Player",
+                p.TotalBookings,
+                p.TotalHours.ToString("F1"),
+                p.TotalSpend.ToString("F2"),
+                EscapeCsv(p.PreferredCourt),
+                EscapeCsv(p.PreferredTimeSlot),
+                p.FirstBookingDate.ToString("yyyy-MM-dd"),
+                p.LatestBookingDate.ToString("yyyy-MM-dd")
+            ));
+        }
+        sb.AppendLine();
+
+        // 2. At-Risk Players Directory
+        sb.AppendLine("## Inactive / At-Risk Players (Win-Back List)");
+        sb.AppendLine("Customer Name,Phone,Email,Prior Bookings,Lifetime Spend (PHP),Last Active Date,Days Inactive");
+
+        foreach (var a in report.AtRiskCustomers)
+        {
+            sb.AppendLine(string.Join(",",
+                EscapeCsv(a.CustomerName),
+                EscapeCsv(a.CustomerPhone),
+                EscapeCsv(a.CustomerEmail),
+                a.LifetimeBookings,
+                a.LifetimeSpend.ToString("F2"),
+                a.LastActiveDate.ToString("yyyy-MM-dd"),
+                a.DaysSinceLastBooking
+            ));
+        }
+
+        var utf8WithBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+        return utf8WithBom.GetBytes(sb.ToString());
+    }
+
     private static string EscapeCsv(string value)
     {
         if (string.IsNullOrEmpty(value)) return "";

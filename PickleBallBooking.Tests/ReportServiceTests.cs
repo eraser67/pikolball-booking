@@ -776,4 +776,306 @@ public class ReportServiceTests
         Assert.Contains("Checked-In", csvText);
         Assert.Contains("QrScan", csvText);
     }
+
+    [Fact]
+    public async Task GetCustomerInsightsReportAsync_CalculatesAccurateRetentionAndVIPs()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+
+        var court1 = new Court { Id = 1, Name = "VIP Court 1", Status = CourtStatus.Active, OrganizationId = Org1 };
+        var court2 = new Court { Id = 2, Name = "Standard Court 2", Status = CourtStatus.Active, OrganizationId = Org1 };
+        context.Courts.AddRange(court1, court2);
+
+        // Historical prior booking (September 2026): Customer "Alice" booked before (so she is a Returning Player in October)
+        var priorAlice = new Booking
+        {
+            Id = 1,
+            OrganizationId = Org1,
+            BookingReference = "PB-PRIOR-01",
+            CustomerName = "Alice VIP",
+            CustomerPhone = "09170001111",
+            CustomerEmail = "alice@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 9, 15),
+            StartTime = new TimeSpan(18, 0, 0),
+            EndTime = new TimeSpan(19, 0, 0),
+            Price = 500m,
+            BookingStatus = BookingStatus.Completed
+        };
+
+        // Prior booking for Customer "Lost Player" (August 2026) - No bookings in October (At-Risk Player)
+        var priorLost = new Booking
+        {
+            Id = 2,
+            OrganizationId = Org1,
+            BookingReference = "PB-PRIOR-02",
+            CustomerName = "Inactive Bob",
+            CustomerPhone = "09170002222",
+            CustomerEmail = "bob@test.com",
+            CourtId = 2,
+            BookingDate = new DateOnly(2026, 8, 20),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(12, 0, 0),
+            Price = 1200m,
+            BookingStatus = BookingStatus.Completed
+        };
+
+        // October 2026 Bookings for Alice (5 bookings in Oct -> VIP Tier, Total Spend: ₱3,500)
+        var octAlice1 = new Booking
+        {
+            Id = 10,
+            OrganizationId = Org1,
+            BookingReference = "PB-OCT-A1",
+            CustomerName = "Alice VIP",
+            CustomerPhone = "09170001111",
+            CustomerEmail = "alice@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 2),
+            StartTime = new TimeSpan(18, 0, 0),
+            EndTime = new TimeSpan(19, 0, 0),
+            Price = 700m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+        var octAlice2 = new Booking
+        {
+            Id = 11,
+            OrganizationId = Org1,
+            BookingReference = "PB-OCT-A2",
+            CustomerName = "Alice VIP",
+            CustomerPhone = "09170001111",
+            CustomerEmail = "alice@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 9),
+            StartTime = new TimeSpan(18, 0, 0),
+            EndTime = new TimeSpan(19, 0, 0),
+            Price = 700m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+        var octAlice3 = new Booking
+        {
+            Id = 12,
+            OrganizationId = Org1,
+            BookingReference = "PB-OCT-A3",
+            CustomerName = "Alice VIP",
+            CustomerPhone = "09170001111",
+            CustomerEmail = "alice@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 16),
+            StartTime = new TimeSpan(18, 0, 0),
+            EndTime = new TimeSpan(19, 0, 0),
+            Price = 700m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+        var octAlice4 = new Booking
+        {
+            Id = 13,
+            OrganizationId = Org1,
+            BookingReference = "PB-OCT-A4",
+            CustomerName = "Alice VIP",
+            CustomerPhone = "09170001111",
+            CustomerEmail = "alice@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 23),
+            StartTime = new TimeSpan(18, 0, 0),
+            EndTime = new TimeSpan(19, 0, 0),
+            Price = 700m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+        var octAlice5 = new Booking
+        {
+            Id = 14,
+            OrganizationId = Org1,
+            BookingReference = "PB-OCT-A5",
+            CustomerName = "Alice VIP",
+            CustomerPhone = "09170001111",
+            CustomerEmail = "alice@test.com",
+            CourtId = 2,
+            BookingDate = new DateOnly(2026, 10, 30),
+            StartTime = new TimeSpan(18, 0, 0),
+            EndTime = new TimeSpan(19, 0, 0),
+            Price = 700m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+
+        // October Booking for Charlie (New Customer this month, 1 booking)
+        var octCharlie = new Booking
+        {
+            Id = 20,
+            OrganizationId = Org1,
+            BookingReference = "PB-OCT-C1",
+            CustomerName = "Charlie Newbie",
+            CustomerPhone = "09170003333",
+            CustomerEmail = "charlie@test.com",
+            CourtId = 2,
+            BookingDate = new DateOnly(2026, 10, 15),
+            StartTime = new TimeSpan(14, 0, 0),
+            EndTime = new TimeSpan(15, 0, 0),
+            Price = 500m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+
+        context.Bookings.AddRange(priorAlice, priorLost, octAlice1, octAlice2, octAlice3, octAlice4, octAlice5, octCharlie);
+        await context.SaveChangesAsync();
+
+        var service = new ReportService(context);
+
+        // Act
+        var report = await service.GetCustomerInsightsReportAsync(Org1, 2026, 10);
+
+        // Assert
+        Assert.Equal(Org1, report.OrganizationId);
+        Assert.Equal(2, report.TotalUniqueCustomersInMonth); // Alice & Charlie
+        Assert.Equal(1, report.ReturningCustomersInMonth); // Alice
+        Assert.Equal(1, report.NewCustomersInMonth); // Charlie
+        Assert.Equal(50.0m, report.RepeatCustomerRate); // 1 / 2 = 50%
+        Assert.Equal(4000m, report.TotalRevenue); // 3500 + 500
+        Assert.Equal(2000m, report.AverageSpendPerCustomer); // 4000 / 2
+
+        // Tier distribution
+        Assert.Equal(1, report.VipPlayersCount); // Alice (5 bookings)
+        Assert.Equal(0, report.RegularPlayersCount);
+        Assert.Equal(1, report.OccasionalPlayersCount); // Charlie (1 booking)
+
+        // VIP Player Ranking
+        Assert.Equal(2, report.TopPlayers.Count);
+        var rank1 = report.TopPlayers[0];
+        Assert.Equal("Alice VIP", rank1.CustomerName);
+        Assert.Equal(1, rank1.Rank);
+        Assert.Equal(5, rank1.TotalBookings);
+        Assert.Equal(3500m, rank1.TotalSpend);
+        Assert.Equal("VIP Court 1", rank1.PreferredCourt); // 4 out of 5 bookings on Court 1
+        Assert.Equal("VIP Tier", rank1.LoyaltyTier);
+        Assert.False(rank1.IsNewCustomerThisMonth);
+
+        var rank2 = report.TopPlayers[1];
+        Assert.Equal("Charlie Newbie", rank2.CustomerName);
+        Assert.True(rank2.IsNewCustomerThisMonth);
+        Assert.Equal("Occasional", rank2.LoyaltyTier);
+
+        // At-Risk Customers
+        Assert.Single(report.AtRiskCustomers);
+        Assert.Equal("Inactive Bob", report.AtRiskCustomers[0].CustomerName);
+        Assert.Equal(1200m, report.AtRiskCustomers[0].LifetimeSpend);
+        Assert.True(report.AtRiskCustomers[0].DaysSinceLastBooking > 30);
+
+        Assert.NotEmpty(report.StrategicRecommendations);
+    }
+
+    [Fact]
+    public async Task GetCustomerInsightsReportAsync_EnforcesStrictTenantIsolation()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+        context.SuppressTenantWriteGuard = true;
+
+        var court1 = new Court { Id = 1, Name = "Org1 Court", Status = CourtStatus.Active, OrganizationId = Org1 };
+        var court2 = new Court { Id = 2, Name = "Org2 Court", Status = CourtStatus.Active, OrganizationId = Org2 };
+        context.Courts.AddRange(court1, court2);
+
+        // Org 1 Booking (Customer T1)
+        var org1Booking = new Booking
+        {
+            Id = 1,
+            OrganizationId = Org1,
+            BookingReference = "PB-T1-CUST",
+            CustomerName = "Org1 Customer",
+            CustomerPhone = "09170000001",
+            CustomerEmail = "org1@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 5),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(11, 0, 0),
+            Price = 1000m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+
+        // Org 2 Booking (Customer T2) - Must NEVER leak into Org 1
+        var org2Booking = new Booking
+        {
+            Id = 2,
+            OrganizationId = Org2,
+            BookingReference = "PB-T2-CUST",
+            CustomerName = "Org2 Customer",
+            CustomerPhone = "09170000002",
+            CustomerEmail = "org2@test.com",
+            CourtId = 2,
+            BookingDate = new DateOnly(2026, 10, 5),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(11, 0, 0),
+            Price = 2500m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+
+        context.Bookings.AddRange(org1Booking, org2Booking);
+        await context.SaveChangesAsync();
+
+        var service = new ReportService(context);
+
+        // Act: Fetch for Org 1
+        var reportOrg1 = await service.GetCustomerInsightsReportAsync(Org1, 2026, 10);
+
+        // Assert: Org 1 report contains ONLY Org 1 data
+        Assert.Equal(Org1, reportOrg1.OrganizationId);
+        Assert.Equal(1, reportOrg1.TotalUniqueCustomersInMonth);
+        Assert.Equal(1000m, reportOrg1.TotalRevenue);
+        Assert.Single(reportOrg1.TopPlayers);
+        Assert.Equal("Org1 Customer", reportOrg1.TopPlayers[0].CustomerName);
+        Assert.DoesNotContain(reportOrg1.TopPlayers, p => p.CustomerName == "Org2 Customer");
+
+        // Act & Assert: Fetch for Org 2
+        await using var context2 = TestDbContextFactory.CreateInMemory(dbName, Org2);
+        var service2 = new ReportService(context2);
+        var reportOrg2 = await service2.GetCustomerInsightsReportAsync(Org2, 2026, 10);
+
+        Assert.Equal(Org2, reportOrg2.OrganizationId);
+        Assert.Equal(1, reportOrg2.TotalUniqueCustomersInMonth);
+        Assert.Equal(2500m, reportOrg2.TotalRevenue);
+        Assert.Single(reportOrg2.TopPlayers);
+        Assert.Equal("Org2 Customer", reportOrg2.TopPlayers[0].CustomerName);
+        Assert.DoesNotContain(reportOrg2.TopPlayers, p => p.CustomerName == "Org1 Customer");
+    }
+
+    [Fact]
+    public async Task ExportCustomerDirectoryCsvAsync_GeneratesProperlyFormattedCsv()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+
+        var court = new Court { Id = 1, Name = "Premier Court 1", Status = CourtStatus.Active, OrganizationId = Org1 };
+        context.Courts.Add(court);
+
+        var booking = new Booking
+        {
+            Id = 1,
+            OrganizationId = Org1,
+            BookingReference = "PB-CSV-CUST",
+            CustomerName = "Ramos, Fernando",
+            CustomerPhone = "09175554433",
+            CustomerEmail = "fernando@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 10),
+            StartTime = new TimeSpan(16, 0, 0),
+            EndTime = new TimeSpan(17, 0, 0),
+            Price = 650m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+
+        context.Bookings.Add(booking);
+        await context.SaveChangesAsync();
+
+        var service = new ReportService(context);
+
+        // Act
+        var csvBytes = await service.ExportCustomerDirectoryCsvAsync(Org1, 2026, 10);
+        var csvText = Encoding.UTF8.GetString(csvBytes);
+
+        // Assert
+        Assert.NotEmpty(csvBytes);
+        Assert.Contains("Customer & Repeat Player Directory", csvText);
+        Assert.Contains("\"Ramos, Fernando\"", csvText);
+        Assert.Contains("09175554433", csvText);
+        Assert.Contains("Premier Court 1", csvText);
+        Assert.Contains("Active & Frequent Players Directory", csvText);
+    }
 }

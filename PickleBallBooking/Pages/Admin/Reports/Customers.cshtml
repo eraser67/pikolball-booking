@@ -1,0 +1,581 @@
+@page
+@model PickleBallBooking.Pages.Admin.Reports.CustomersModel
+@{
+    ViewData["Title"] = $"Customer & Repeat Player Insights - {Model.Report.MonthName}";
+    var currentYear = DateTime.UtcNow.Year;
+    var currentMonth = DateTime.UtcNow.Month;
+    var prevMonthDate = new DateTime(Model.Year, Model.Month, 1).AddMonths(-1);
+    var nextMonthDate = new DateTime(Model.Year, Model.Month, 1).AddMonths(1);
+}
+
+<div class="container-fluid py-4 px-md-4">
+
+    <!-- ─── HEADER BAR ─── -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill small fw-semibold">
+                    <i class="bi bi-buildings me-1"></i>@Model.Report.OrganizationName
+                </span>
+                <span class="badge bg-light text-muted border px-2 py-1 rounded-pill small">
+                    Tenant ID: #@Model.Report.OrganizationId
+                </span>
+            </div>
+            <h1 class="h3 fw-bold text-dark mt-1 mb-0">
+                <i class="bi bi-people-fill text-primary me-2"></i>Customer &amp; Repeat Player Insights
+            </h1>
+            <p class="text-muted small mb-0">Retention analytics, VIP players ranking, preferred play times &amp; win-back directory for <strong>@Model.Report.MonthName</strong>.</p>
+        </div>
+
+        <!-- Export & Print Actions -->
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a asp-page-handler="ExportCsv" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
+               class="btn btn-outline-success fw-semibold shadow-xs d-inline-flex align-items-center gap-1 rounded-3">
+                <i class="bi bi-file-earmark-spreadsheet fs-6"></i>
+                <span>Export Directory CSV</span>
+            </a>
+            <button type="button" class="btn btn-outline-secondary fw-semibold shadow-xs d-inline-flex align-items-center gap-1 rounded-3" onclick="window.print()">
+                <i class="bi bi-printer fs-6"></i>
+                <span class="d-none d-sm-inline">Print Report</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ─── REPORT SELECTION TABS (4-CARD SEGMENTED SELECTOR) ─── -->
+    <div class="report-tabs-wrapper mb-4">
+        <div class="row g-2 g-md-3">
+            <!-- Tab 1: Monthly Revenue & Ledger -->
+            <div class="col-6 col-xl-3">
+                <a asp-page="./Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
+                   class="report-tab-card revenue-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none h-100">
+                    <div class="tab-icon-box rounded-3 me-2 me-md-3 d-flex align-items-center justify-content-center flex-shrink-0">
+                        <i class="bi bi-wallet2 fs-5 text-muted"></i>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <span class="tab-title fw-bold text-dark d-block text-truncate">Revenue &amp; Ledger</span>
+                        <span class="tab-desc text-muted small d-none d-md-block text-truncate">Financial audit</span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Tab 2: Court Utilization & Peak Hours -->
+            <div class="col-6 col-xl-3">
+                <a asp-page="./Utilization" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
+                   class="report-tab-card utilization-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none h-100">
+                    <div class="tab-icon-box rounded-3 me-2 me-md-3 d-flex align-items-center justify-content-center flex-shrink-0">
+                        <i class="bi bi-fire fs-5 text-muted"></i>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <span class="tab-title fw-bold text-dark d-block text-truncate">Utilization &amp; Peak</span>
+                        <span class="tab-desc text-muted small d-none d-md-block text-truncate">Hourly heatmaps</span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Tab 3: Attendance & No-Shows -->
+            <div class="col-6 col-xl-3">
+                <a asp-page="./Attendance" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
+                   class="report-tab-card attendance-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none h-100">
+                    <div class="tab-icon-box rounded-3 me-2 me-md-3 d-flex align-items-center justify-content-center flex-shrink-0">
+                        <i class="bi bi-person-check-fill fs-5 text-muted"></i>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <span class="tab-title fw-bold text-dark d-block text-truncate">Attendance &amp; No-Shows</span>
+                        <span class="tab-desc text-muted small d-none d-md-block text-truncate">Arrivals &amp; QR</span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Tab 4: Customer & Player Insights (Active) -->
+            <div class="col-6 col-xl-3">
+                <a asp-page="./Customers" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
+                   class="report-tab-card active customers-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none shadow-xs h-100">
+                    <div class="tab-icon-box rounded-3 me-2 me-md-3 d-flex align-items-center justify-content-center flex-shrink-0">
+                        <i class="bi bi-people-fill fs-5 text-purple"></i>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex align-items-center gap-1 mb-1">
+                            <span class="tab-title fw-bold text-dark d-block text-truncate">Customer Insights</span>
+                            <span class="badge bg-purple-subtle text-purple rounded-pill small px-2 d-none d-sm-inline">Active</span>
+                        </div>
+                        <span class="tab-desc text-muted small d-none d-md-block text-truncate">VIPs &amp; Retention</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── MONTH SELECTOR ─── -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+        <div class="card-body p-3">
+            <form method="get" class="row g-2 align-items-center">
+                <div class="col-auto">
+                    <div class="btn-group" role="group">
+                        <a asp-page="./Customers" asp-route-year="@prevMonthDate.Year" asp-route-month="@prevMonthDate.Month"
+                           class="btn btn-outline-secondary btn-sm" title="Previous Month">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                        <a asp-page="./Customers" asp-route-year="@nextMonthDate.Year" asp-route-month="@nextMonthDate.Month"
+                           class="btn btn-outline-secondary btn-sm @(nextMonthDate > DateTime.UtcNow.AddMonths(1) ? "disabled" : "")" title="Next Month">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-auto">
+                    <select name="month" class="form-select form-select-sm fw-semibold" onchange="this.form.submit()">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            var dt = new DateTime(2000, m, 1);
+                            <option value="@m" selected="@(m == Model.Month)">@dt.ToString("MMMM")</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-auto">
+                    <select name="year" class="form-select form-select-sm fw-semibold" onchange="this.form.submit()">
+                        @for (int y = currentYear - 3; y <= currentYear + 1; y++)
+                        {
+                            <option value="@y" selected="@(y == Model.Year)">@y</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm px-3">
+                        <i class="bi bi-arrow-repeat me-1"></i>Load
+                    </button>
+                </div>
+
+                <!-- Quick Presets -->
+                <div class="col-12 col-md-auto ms-md-auto d-flex gap-1 flex-wrap">
+                    <a asp-page="./Customers" asp-route-year="@currentYear" asp-route-month="@currentMonth"
+                       class="btn btn-sm @(Model.Year == currentYear && Model.Month == currentMonth ? "btn-dark" : "btn-light border")">
+                        This Month
+                    </a>
+                    @{
+                        var lm = DateTime.UtcNow.AddMonths(-1);
+                    }
+                    <a asp-page="./Customers" asp-route-year="@lm.Year" asp-route-month="@lm.Month"
+                       class="btn btn-sm @(Model.Year == lm.Year && Model.Month == lm.Month ? "btn-dark" : "btn-light border")">
+                        Last Month
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ─── STRATEGIC RETENTION RECOMMENDATIONS ─── -->
+    @if (Model.Report.StrategicRecommendations.Any())
+    {
+        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-purple-subtle border-start border-4 border-purple">
+            <div class="card-body p-3 p-md-4">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-lightbulb-fill text-purple fs-5"></i>
+                    <h6 class="fw-bold text-dark mb-0">Player Retention &amp; Growth Insights</h6>
+                </div>
+                <ul class="mb-0 ps-3 small text-secondary">
+                    @foreach (var rec in Model.Report.StrategicRecommendations)
+                    {
+                        <li class="mb-1">@rec</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+
+    <!-- ─── EXECUTIVE KPI CARDS ─── -->
+    <div class="row g-3 mb-4">
+        <!-- 1. Repeat Retention Rate -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Repeat Retention</span>
+                        <div class="p-2 bg-success-subtle text-success rounded-circle">
+                            <i class="bi bi-arrow-repeat fs-5"></i>
+                        </div>
+                    </div>
+                    <h2 class="fw-bold text-dark mb-1">@Model.Report.RepeatCustomerRate.ToString("F1")%</h2>
+                    <div class="progress rounded-pill mb-2" style="height: 6px;">
+                        <div class="progress-bar bg-success" style="width: @Math.Min(100m, Model.Report.RepeatCustomerRate)%"></div>
+                    </div>
+                    <div class="small text-muted d-flex justify-content-between">
+                        <span><strong>@Model.Report.ReturningCustomersInMonth</strong> Returning</span>
+                        <span><strong>@Model.Report.NewCustomersInMonth</strong> New</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Unique Players & Average Spend -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Active Players</span>
+                        <div class="p-2 bg-primary-subtle text-primary rounded-circle">
+                            <i class="bi bi-person-check fs-5"></i>
+                        </div>
+                    </div>
+                    <h2 class="fw-bold text-dark mb-1">@Model.Report.TotalUniqueCustomersInMonth</h2>
+                    <div class="small text-muted d-flex align-items-center gap-1">
+                        <span>Avg Player Value:</span>
+                        <span class="fw-semibold text-success">₱@Model.Report.AverageSpendPerCustomer.ToString("N2")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Top 10 Revenue Concentration -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Top 10 Player Share</span>
+                        <div class="p-2 bg-purple-subtle text-purple rounded-circle">
+                            <i class="bi bi-award fs-5"></i>
+                        </div>
+                    </div>
+                    <h2 class="fw-bold text-purple mb-1">@Model.Report.TopTenCustomerRevenueShare.ToString("F1")%</h2>
+                    <div class="small text-muted">
+                        Share of total monthly income
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. VIP Tier Players -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">VIP Loyalty Tier</span>
+                        <div class="p-2 bg-warning-subtle text-warning-emphasis rounded-circle">
+                            <i class="bi bi-star-fill fs-5"></i>
+                        </div>
+                    </div>
+                    <h2 class="fw-bold text-dark mb-1">@Model.Report.VipPlayersCount <span class="fs-6 text-muted fw-normal">players</span></h2>
+                    <div class="small text-muted">
+                        ≥ 5 bookings this month
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── LOYALTY TIER BREAKDOWN CHIPS ─── -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+        <div class="card-body p-3 p-md-4">
+            <h6 class="fw-bold text-dark mb-3">Player Loyalty &amp; Booking Frequency Distribution</h6>
+            <div class="row g-2 text-center">
+                <div class="col-6 col-md-3">
+                    <div class="p-3 rounded-3 bg-light border">
+                        <span class="text-muted small d-block">VIP Tier (≥5 bookings)</span>
+                        <span class="fs-4 fw-bold text-warning-emphasis">@Model.Report.VipPlayersCount</span>
+                        <span class="text-muted d-block small">Top Enthusiasts</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 rounded-3 bg-light border">
+                        <span class="text-muted small d-block">Regular Players (2-4 bookings)</span>
+                        <span class="fs-4 fw-bold text-primary">@Model.Report.RegularPlayersCount</span>
+                        <span class="text-muted d-block small">Consistent Community</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 rounded-3 bg-light border">
+                        <span class="text-muted small d-block">Occasional (1 booking)</span>
+                        <span class="fs-4 fw-bold text-secondary">@Model.Report.OccasionalPlayersCount</span>
+                        <span class="text-muted d-block small">Trial / Casual</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 rounded-3 bg-light border">
+                        <span class="text-muted small d-block">New Players</span>
+                        <span class="fs-4 fw-bold text-success">@Model.Report.NewCustomersInMonth</span>
+                        <span class="text-muted d-block small">First Month at Venue</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── VIP & FREQUENT PLAYERS DIRECTORY ─── -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+        <div class="card-header bg-white border-0 pt-3 px-3 px-md-4 pb-3">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div>
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-trophy text-primary me-2"></i>VIP &amp; Active Players Leaderboard
+                    </h6>
+                    <span class="small text-muted">@Model.Report.TopPlayers.Count player(s) sorted by spend &amp; activity</span>
+                </div>
+
+                <!-- Search and Filter Form -->
+                <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+                    <input type="hidden" name="year" value="@Model.Year" />
+                    <input type="hidden" name="month" value="@Model.Month" />
+
+                    <div class="input-group input-group-sm" style="max-width: 220px;">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" name="SearchQuery" value="@Model.SearchQuery" class="form-control border-start-0" placeholder="Search player, phone..." />
+                    </div>
+
+                    <select name="TierFilter" class="form-select form-select-sm" style="max-width: 150px;" onchange="this.form.submit()">
+                        <option value="all" selected="@(string.IsNullOrEmpty(Model.TierFilter) || Model.TierFilter == "all")">All Tiers</option>
+                        <option value="vip" selected="@(Model.TierFilter == "vip")">VIP Only (≥5)</option>
+                        <option value="regular" selected="@(Model.TierFilter == "regular")">Regulars (2-4)</option>
+                        <option value="occasional" selected="@(Model.TierFilter == "occasional")">Occasional (1)</option>
+                        <option value="new" selected="@(Model.TierFilter == "new")">New Players Only</option>
+                    </select>
+
+                    <button type="submit" class="btn btn-outline-primary btn-sm">Filter</button>
+                    @if (!string.IsNullOrWhiteSpace(Model.SearchQuery) || !string.IsNullOrWhiteSpace(Model.TierFilter))
+                    {
+                        <a asp-page="./Customers" asp-route-year="@Model.Year" asp-route-month="@Model.Month" class="btn btn-light btn-sm border">Reset</a>
+                    }
+                </form>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small text-uppercase text-muted">
+                    <tr>
+                        <th class="text-center">Rank</th>
+                        <th>Player Name</th>
+                        <th>Contact</th>
+                        <th class="text-center">Tier</th>
+                        <th class="text-center">Type</th>
+                        <th class="text-center">Bookings</th>
+                        <th class="text-center">Hours</th>
+                        <th class="text-end">Spend</th>
+                        <th>Favorites (Court &amp; Time)</th>
+                        <th class="text-center">Quick Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Report.TopPlayers.Any())
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center py-4 text-muted small">
+                                No player activity matching your filters for this period.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var p in Model.Report.TopPlayers)
+                    {
+                        var tierBadge = p.LoyaltyTier == "VIP Tier" ? "bg-warning-subtle text-warning-emphasis border border-warning-subtle" :
+                                        p.LoyaltyTier == "Regular" ? "bg-primary-subtle text-primary border border-primary-subtle" :
+                                        "bg-light text-muted border";
+
+                        <tr>
+                            <td class="text-center font-monospace fw-bold">
+                                @if (p.Rank <= 3)
+                                {
+                                    <span class="badge bg-warning text-dark rounded-circle p-2">#@p.Rank</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">#@p.Rank</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark">@p.CustomerName</div>
+                                @if (!string.IsNullOrWhiteSpace(p.FacebookName))
+                                {
+                                    <span class="text-muted small" style="font-size: 0.72rem;"><i class="bi bi-facebook text-primary me-1"></i>@p.FacebookName</span>
+                                }
+                            </td>
+                            <td class="small">
+                                <div><a href="tel:@p.CustomerPhone" class="text-decoration-none text-dark"><i class="bi bi-telephone text-muted me-1"></i>@p.CustomerPhone</a></div>
+                                @if (!string.IsNullOrWhiteSpace(p.CustomerEmail))
+                                {
+                                    <div class="text-muted" style="font-size: 0.75rem;">@p.CustomerEmail</div>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge @tierBadge px-2 py-1 rounded-pill small">
+                                    @p.LoyaltyTier
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                @if (p.IsNewCustomerThisMonth)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill small">New</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-light text-muted border px-2 py-1 rounded-pill small">Returning</span>
+                                }
+                            </td>
+                            <td class="text-center font-monospace fw-bold">@p.TotalBookings</td>
+                            <td class="text-center font-monospace">@p.TotalHours.ToString("N1") hrs</td>
+                            <td class="text-end font-monospace text-success fw-bold">₱@p.TotalSpend.ToString("N2")</td>
+                            <td class="small">
+                                <div><i class="bi bi-trophy text-primary me-1"></i>@p.PreferredCourt</div>
+                                <div class="text-muted" style="font-size: 0.72rem;"><i class="bi bi-clock me-1"></i>@p.PreferredTimeSlot</div>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a asp-page="./Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month" asp-route-searchQuery="@p.CustomerPhone"
+                                       class="btn btn-outline-secondary btn-sm" title="View Booking History">
+                                        <i class="bi bi-receipt"></i>
+                                    </a>
+                                    <a href="tel:@p.CustomerPhone" class="btn btn-outline-primary btn-sm" title="Call Player">
+                                        <i class="bi bi-telephone"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ─── AT-RISK & INACTIVE PLAYERS (WIN-BACK LIST) ─── -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
+        <div class="card-header bg-white border-0 pt-3 px-3 px-md-4 pb-2 d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="fw-bold text-dark mb-0">
+                    <i class="bi bi-person-dash-fill text-danger me-2"></i>Inactive / At-Risk Players (Win-Back Opportunities)
+                </h6>
+                <p class="text-muted small mb-0">Previously active players who booked in recent months but have zero bookings this month.</p>
+            </div>
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">@Model.Report.AtRiskCustomers.Count At-Risk</span>
+        </div>
+        <div class="card-body p-3 p-md-4">
+            @if (!Model.Report.AtRiskCustomers.Any())
+            {
+                <div class="text-center py-4 text-muted small">
+                    <i class="bi bi-check2-circle fs-3 text-success d-block mb-2"></i>No at-risk players detected. Retention is healthy!
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small text-uppercase text-muted">
+                            <tr>
+                                <th>Customer Name</th>
+                                <th>Contact Information</th>
+                                <th class="text-center">Prior Bookings</th>
+                                <th class="text-end">Lifetime Spend</th>
+                                <th>Last Active Date</th>
+                                <th class="text-center">Days Inactive</th>
+                                <th class="text-center">Win-Back Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in Model.Report.AtRiskCustomers)
+                            {
+                                <tr>
+                                    <td class="fw-semibold text-dark">
+                                        <i class="bi bi-person me-1 text-muted"></i>@a.CustomerName
+                                    </td>
+                                    <td class="small">
+                                        <div><a href="tel:@a.CustomerPhone" class="text-decoration-none text-dark">@a.CustomerPhone</a></div>
+                                        @if (!string.IsNullOrWhiteSpace(a.CustomerEmail))
+                                        {
+                                            <div class="text-muted" style="font-size: 0.75rem;">@a.CustomerEmail</div>
+                                        }
+                                    </td>
+                                    <td class="text-center font-monospace fw-bold">@a.LifetimeBookings</td>
+                                    <td class="text-end font-monospace text-success fw-bold">₱@a.LifetimeSpend.ToString("N2")</td>
+                                    <td class="small">@a.LastActiveDate.ToString("MMM d, yyyy")</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle font-monospace px-2 py-1 rounded-pill small">
+                                            @a.DaysSinceLastBooking days ago
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="tel:@a.CustomerPhone" class="btn btn-outline-danger btn-sm rounded-3">
+                                            <i class="bi bi-chat-dots me-1"></i>Reach Out
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+<!-- ─── CUSTOM STYLING & PRINT RULES ─── -->
+<style>
+    .text-purple {
+        color: #7c3aed !important;
+    }
+    .bg-purple {
+        background-color: #7c3aed !important;
+    }
+    .bg-purple-subtle {
+        background-color: #f5f3ff !important;
+    }
+    .border-purple {
+        border-color: #7c3aed !important;
+    }
+
+    .report-tab-card {
+        background-color: #f8fafc;
+        border-color: #e2e8f0 !important;
+        color: #334155;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+    }
+    .report-tab-card:hover {
+        background-color: #ffffff;
+        border-color: #cbd5e1 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        color: #0f172a;
+    }
+    .report-tab-card .tab-icon-box {
+        background-color: #f1f5f9;
+        color: #64748b;
+        width: 44px;
+        height: 44px;
+        transition: all 0.2s ease;
+    }
+    .report-tab-card.active.customers-tab {
+        background-color: #ffffff !important;
+        border-color: #7c3aed !important;
+        border-width: 2px !important;
+        box-shadow: 0 6px 20px rgba(124, 58, 237, 0.12) !important;
+    }
+    .report-tab-card.active.customers-tab .tab-icon-box {
+        background-color: #f5f3ff;
+        color: #7c3aed;
+    }
+    .report-tab-card .tab-title {
+        font-size: 0.98rem;
+        letter-spacing: -0.01em;
+    }
+
+    @@media print {
+        body {
+            background-color: #fff !important;
+            font-size: 11pt !important;
+        }
+        .container-fluid {
+            padding: 0 !important;
+        }
+        .report-tabs-wrapper, .btn, form, .no-print {
+            display: none !important;
+        }
+        .card {
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+            break-inside: avoid;
+            margin-bottom: 1.5rem !important;
+        }
+        .table {
+            font-size: 10pt !important;
+        }
+    }
+</style>

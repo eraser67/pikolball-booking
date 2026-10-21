@@ -36,6 +36,17 @@ public interface IReportService
     /// Generates a CSV export of the attendance and check-in audit ledger for the specified tenant.
     /// </summary>
     Task<byte[]> ExportAttendanceReportCsvAsync(int organizationId, int year, int month);
+
+    /// <summary>
+    /// Generates a Customer & Repeat Player Insights report with retention rates,
+    /// VIP player rankings, preferred courts/times, and at-risk player detection.
+    /// </summary>
+    Task<CustomerInsightsReport> GetCustomerInsightsReportAsync(int organizationId, int year, int month);
+
+    /// <summary>
+    /// Generates a CSV export of customer contact and retention directory for marketing and loyalty campaigns.
+    /// </summary>
+    Task<byte[]> ExportCustomerDirectoryCsvAsync(int organizationId, int year, int month);
 }
 
 public class MonthlyBookingReport
@@ -324,4 +335,71 @@ public class AttendanceRecordItem
     public string? CheckedInByUserId { get; set; }
     public bool IsNoShow { get; set; }
     public int? PunctualityMinutes { get; set; }
+}
+
+public class CustomerInsightsReport
+{
+    public int OrganizationId { get; set; }
+    public string OrganizationName { get; set; } = string.Empty;
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public string MonthName => new DateTime(Year, Month, 1).ToString("MMMM yyyy");
+
+    // Executive Customer Metrics
+    public int TotalUniqueCustomersInMonth { get; set; }
+    public int NewCustomersInMonth { get; set; }
+    public int ReturningCustomersInMonth { get; set; }
+    public decimal RepeatCustomerRate => TotalUniqueCustomersInMonth > 0
+        ? Math.Round((decimal)ReturningCustomersInMonth / TotalUniqueCustomersInMonth * 100m, 1)
+        : 0m;
+
+    public decimal AverageSpendPerCustomer => TotalUniqueCustomersInMonth > 0
+        ? Math.Round(TotalRevenue / TotalUniqueCustomersInMonth, 2)
+        : 0m;
+
+    public decimal TotalRevenue { get; set; }
+    public decimal TopTenCustomerRevenueShare { get; set; }
+
+    // Customer Loyalty Tiers
+    public int VipPlayersCount { get; set; }
+    public int RegularPlayersCount { get; set; }
+    public int OccasionalPlayersCount { get; set; }
+
+    // Top VIP Players Ranking
+    public List<VipPlayerItem> TopPlayers { get; set; } = new();
+
+    // At-Risk / Inactive Customers
+    public List<InactiveCustomerItem> AtRiskCustomers { get; set; } = new();
+
+    // Automated Marketing & Retention Recommendations
+    public List<string> StrategicRecommendations { get; set; } = new();
+}
+
+public class VipPlayerItem
+{
+    public int Rank { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string CustomerPhone { get; set; } = string.Empty;
+    public string CustomerEmail { get; set; } = string.Empty;
+    public string? FacebookName { get; set; }
+    public int TotalBookings { get; set; }
+    public decimal TotalHours { get; set; }
+    public decimal TotalSpend { get; set; }
+    public string PreferredCourt { get; set; } = string.Empty;
+    public string PreferredTimeSlot { get; set; } = string.Empty;
+    public DateOnly FirstBookingDate { get; set; }
+    public DateOnly LatestBookingDate { get; set; }
+    public bool IsNewCustomerThisMonth { get; set; }
+    public string LoyaltyTier => TotalBookings >= 5 ? "VIP Tier" : TotalBookings >= 2 ? "Regular" : "Occasional";
+}
+
+public class InactiveCustomerItem
+{
+    public string CustomerName { get; set; } = string.Empty;
+    public string CustomerPhone { get; set; } = string.Empty;
+    public string CustomerEmail { get; set; } = string.Empty;
+    public int LifetimeBookings { get; set; }
+    public decimal LifetimeSpend { get; set; }
+    public DateOnly LastActiveDate { get; set; }
+    public int DaysSinceLastBooking { get; set; }
 }
