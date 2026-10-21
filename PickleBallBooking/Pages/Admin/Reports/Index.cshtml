@@ -42,19 +42,53 @@
         </div>
     </div>
 
-    <!-- ─── REPORT SUB-NAVIGATION TABS ─── -->
-    <ul class="nav nav-pills mb-4 gap-2 bg-light p-2 rounded-4 border">
-        <li class="nav-item">
-            <a class="nav-link active rounded-3 fw-semibold shadow-xs" asp-page="./Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month">
-                <i class="bi bi-receipt me-1"></i>Monthly Revenue &amp; Ledger
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link rounded-3 fw-semibold text-muted" asp-page="./Utilization" asp-route-year="@Model.Year" asp-route-month="@Model.Month">
-                <i class="bi bi-fire me-1"></i>Court Utilization &amp; Peak Hours
-            </a>
-        </li>
-    </ul>
+    <!-- ─── REPORT SELECTION TABS ─── -->
+    <div class="report-tabs-wrapper mb-4">
+        <div class="row g-3">
+            <!-- Tab 1: Monthly Revenue & Ledger (Active) -->
+            <div class="col-12 col-md-6">
+                <a asp-page="./Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
+                   class="report-tab-card active revenue-tab d-flex align-items-center p-3 p-xl-4 rounded-4 border text-decoration-none shadow-xs">
+                    <div class="tab-icon-box rounded-3 me-3 d-flex align-items-center justify-content-center flex-shrink-0">
+                        <i class="bi bi-wallet2 fs-4 text-success"></i>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="tab-title fw-bold text-dark">Monthly Revenue &amp; Ledger</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small px-2">Active View</span>
+                        </div>
+                        <span class="tab-desc text-muted small d-block text-truncate">
+                            Realized income, payment channels, booking counts &amp; audit ledger
+                        </span>
+                    </div>
+                    <div class="tab-arrow text-success ms-2 flex-shrink-0">
+                        <i class="bi bi-arrow-right-circle-fill fs-5"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Tab 2: Court Utilization & Peak Hours -->
+            <div class="col-12 col-md-6">
+                <a asp-page="./Utilization" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
+                   class="report-tab-card utilization-tab d-flex align-items-center p-3 p-xl-4 rounded-4 border text-decoration-none">
+                    <div class="tab-icon-box rounded-3 me-3 d-flex align-items-center justify-content-center flex-shrink-0">
+                        <i class="bi bi-fire fs-4 text-muted"></i>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="tab-title fw-bold text-dark">Court Utilization &amp; Peak Hours</span>
+                        </div>
+                        <span class="tab-desc text-muted small d-block text-truncate">
+                            Hourly demand heatmaps, peak times, day-of-week trends &amp; RevPAH yield
+                        </span>
+                    </div>
+                    <div class="tab-arrow text-muted ms-2 flex-shrink-0">
+                        <i class="bi bi-chevron-right fs-5"></i>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
 
     <!-- ─── MONTH SELECTOR & QUICK FILTERS ─── -->
     <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
@@ -515,3 +549,63 @@
         </div>
     </div>
 </div>
+
+<style>
+    .report-tab-card {
+        background-color: #f8fafc;
+        border-color: #e2e8f0 !important;
+        color: #334155;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+    }
+    .report-tab-card:hover {
+        background-color: #ffffff;
+        border-color: #cbd5e1 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        color: #0f172a;
+    }
+    .report-tab-card .tab-icon-box {
+        background-color: #f1f5f9;
+        color: #64748b;
+        width: 48px;
+        height: 48px;
+        transition: all 0.2s ease;
+    }
+    .report-tab-card.active.revenue-tab {
+        background-color: #ffffff !important;
+        border-color: #10b981 !important;
+        border-width: 2px !important;
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.12) !important;
+    }
+    .report-tab-card.active.revenue-tab .tab-icon-box {
+        background-color: #ecfdf5;
+        color: #059669;
+    }
+    .report-tab-card.active.utilization-tab {
+        background-color: #ffffff !important;
+        border-color: #f43f5e !important;
+        border-width: 2px !important;
+        box-shadow: 0 6px 20px rgba(244, 63, 94, 0.12) !important;
+    }
+    .report-tab-card.active.utilization-tab .tab-icon-box {
+        background-color: #fff1f2;
+        color: #e11d48;
+    }
+    .report-tab-card .tab-title {
+        font-size: 1.05rem;
+        letter-spacing: -0.01em;
+    }
+
+    @@media print {
+        .report-tabs-wrapper, .btn, form, .no-print {
+            display: none !important;
+        }
+        .card {
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+            break-inside: avoid;
+        }
+    }
+</style>
+
