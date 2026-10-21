@@ -316,4 +316,222 @@ public class ReportServiceTests
         Assert.Contains("450.00", csvText);
         Assert.Contains("Court Alpha", csvText);
     }
+
+    [Fact]
+    public async Task GetCourtUtilizationReportAsync_CalculatesAccurateUtilizationAndPeakHours()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+
+        var court1 = new Court { Id = 1, Name = "Court Alpha", Status = CourtStatus.Active, OrganizationId = Org1 };
+        context.Courts.Add(court1);
+
+        // Master slot: 18:00 - 19:00 (1 hour)
+        var slot1 = new TimeSlot { Id = 1, StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(19, 0, 0), Status = TimeSlotStatus.Active };
+        // Master slot: 19:00 - 20:00 (1 hour)
+        var slot2 = new TimeSlot { Id = 2, StartTime = new TimeSpan(19, 0, 0), EndTime = new TimeSpan(20, 0, 0), Status = TimeSlotStatus.Active };
+        context.TimeSlots.AddRange(slot1, slot2);
+
+        // Booking 1: Oct 9 (Friday), 18:00 - 20:00 (2 hrs), ₱1,000, Confirmed
+        var b1 = new Booking
+        {
+            Id = 1,
+            OrganizationId = Org1,
+            BookingReference = "PB-UTIL01",
+            CustomerName = "John",
+            CustomerPhone = "09170000001",
+            CustomerEmail = "john@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 9), // Friday
+            StartTime = new TimeSpan(18, 0, 0),
+            EndTime = new TimeSpan(20, 0, 0),
+            DurationHours = 2m,
+            Price = 1000m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+
+        // Booking 2: Oct 10 (Saturday), 18:00 - 19:00 (1 hr), ₱500, Completed
+        var b2 = new Booking
+        {
+            Id = 2,
+            OrganizationId = Org1,
+            BookingReference = "PB-UTIL02",
+            CustomerName = "Jane",
+            CustomerPhone = "09170000002",
+            CustomerEmail = "jane@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 10), // Saturday (Weekend)
+            StartTime = new TimeSpan(18, 0, 0),
+            EndTime = new TimeSpan(19, 0, 0),
+            DurationHours = 1m,
+            Price = 500m,
+            BookingStatus = BookingStatus.Completed
+        };
+
+        context.Bookings.AddRange(b1, b2);
+        await context.SaveChangesAsync();
+
+        var service = new ReportService(context);
+
+        // Act
+        var report = await service.GetCourtUtilizationReportAsync(Org1, 2026, 10);
+
+        // Assert
+        Assert.Equal(Org1, report.OrganizationId);
+        Assert.Equal(1, report.ActiveCourtsCount);
+        Assert.Equal(2m, report.DailyOperatingHours); // 2 hours configured
+        Assert.Equal(31 * 2m, report.TotalAvailableCapacityHours); // 62 hours capacity
+        Assert.Equal(3m, report.TotalBookedHours); // 2 + 1 = 3 hrs
+        Assert.Equal(1500m, report.TotalRevenue);
+
+        // Peak Hour: hour 18 (6:00 PM) has 2 bookings (b1 overlap 1h + b2 overlap 1h = 2h)
+        var hour18 = report.HourlyStats.FirstOrDefault(h => h.Hour == 18);
+        Assert.NotNull(hour18);
+        Assert.Equal(2, hour18.BookingsCount);
+        Assert.Equal(2m, hour18.BookedHours);
+        Assert.Equal(1000m, hour18.Revenue); // 500 from b1 + 500 from b2
+
+        // Hour 19 (7:00 PM) has 1 booking (b1 overlap 1h = 1h)
+        var hour19 = report.HourlyStats.FirstOrDefault(h => h.Hour == 19);
+        Assert.NotNull(hour19);
+        Assert.Equal(1, hour19.BookingsCount);
+        Assert.Equal(1m, hour19.BookedHours);
+        Assert.Equal(500m, hour19.Revenue);
+
+        // Weekday vs Weekend checks
+        Assert.Equal(2m, report.WeekdayVsWeekend.WeekdayBookedHours);
+        Assert.Equal(1000m, report.WeekdayVsWeekend.WeekdayRevenue);
+        Assert.Equal(1m, report.WeekdayVsWeekend.WeekendBookedHours);
+        Assert.Equal(500m, report.WeekdayVsWeekend.WeekendRevenue);
+
+        // Court details check
+        Assert.Single(report.CourtDetails);
+        Assert.Equal("Court Alpha", report.CourtDetails[0].CourtName);
+        Assert.Equal(3m, report.CourtDetails[0].BookedHours);
+        Assert.Equal(1500m, report.CourtDetails[0].Revenue);
+        Assert.True(report.CourtDetails[0].RevPAH > 0m);
+
+        // Strategic recommendations generated
+        Assert.NotEmpty(report.StrategicRecommendations);
+    }
+
+    [Fact]
+    public async Task GetCourtUtilizationReportAsync_EnforcesStrictTenantIsolation()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+        context.SuppressTenantWriteGuard = true;
+
+        var court1 = new Court { Id = 1, Name = "Org1 Court", Status = CourtStatus.Active, OrganizationId = Org1 };
+        var court2 = new Court { Id = 2, Name = "Org2 Court", Status = CourtStatus.Active, OrganizationId = Org2 };
+        context.Courts.AddRange(court1, court2);
+
+        // Org 1 Booking (5 hours, ₱2,500)
+        var org1Booking = new Booking
+        {
+            Id = 1,
+            OrganizationId = Org1,
+            BookingReference = "PB-ORG1-UTIL",
+            CustomerName = "Org1 Customer",
+            CustomerPhone = "09170000001",
+            CustomerEmail = "org1@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 5),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(15, 0, 0),
+            DurationHours = 5m,
+            Price = 2500m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+
+        // Org 2 Booking (2 hours, ₱1,200) - Should NEVER leak into Org 1
+        var org2Booking = new Booking
+        {
+            Id = 2,
+            OrganizationId = Org2,
+            BookingReference = "PB-ORG2-UTIL",
+            CustomerName = "Org2 Customer",
+            CustomerPhone = "09170000002",
+            CustomerEmail = "org2@test.com",
+            CourtId = 2,
+            BookingDate = new DateOnly(2026, 10, 5),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(12, 0, 0),
+            DurationHours = 2m,
+            Price = 1200m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+
+        context.Bookings.AddRange(org1Booking, org2Booking);
+        await context.SaveChangesAsync();
+
+        var service = new ReportService(context);
+
+        // Act: Fetch for Org 1
+        var reportOrg1 = await service.GetCourtUtilizationReportAsync(Org1, 2026, 10);
+
+        // Assert: Org 1 report contains ONLY Org 1 data
+        Assert.Equal(Org1, reportOrg1.OrganizationId);
+        Assert.Equal(1, reportOrg1.ActiveCourtsCount);
+        Assert.Single(reportOrg1.CourtDetails);
+        Assert.Equal("Org1 Court", reportOrg1.CourtDetails[0].CourtName);
+        Assert.Equal(5m, reportOrg1.TotalBookedHours);
+        Assert.Equal(2500m, reportOrg1.TotalRevenue);
+
+        // Act & Assert: Fetch for Org 2
+        await using var context2 = TestDbContextFactory.CreateInMemory(dbName, Org2);
+        var service2 = new ReportService(context2);
+        var reportOrg2 = await service2.GetCourtUtilizationReportAsync(Org2, 2026, 10);
+
+        Assert.Equal(Org2, reportOrg2.OrganizationId);
+        Assert.Equal(1, reportOrg2.ActiveCourtsCount);
+        Assert.Single(reportOrg2.CourtDetails);
+        Assert.Equal("Org2 Court", reportOrg2.CourtDetails[0].CourtName);
+        Assert.Equal(2m, reportOrg2.TotalBookedHours);
+        Assert.Equal(1200m, reportOrg2.TotalRevenue);
+    }
+
+    [Fact]
+    public async Task ExportCourtUtilizationCsvAsync_GeneratesProperlyFormattedCsv()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+
+        var court = new Court { Id = 1, Name = "Main Arena Court", Status = CourtStatus.Active, OrganizationId = Org1 };
+        context.Courts.Add(court);
+
+        var booking = new Booking
+        {
+            Id = 1,
+            OrganizationId = Org1,
+            BookingReference = "PB-CSV-UTIL",
+            CustomerName = "Carlos, Juan",
+            CustomerPhone = "09171112222",
+            CustomerEmail = "carlos@example.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 14),
+            StartTime = new TimeSpan(17, 0, 0),
+            EndTime = new TimeSpan(19, 0, 0),
+            DurationHours = 2m,
+            Price = 900m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+
+        context.Bookings.Add(booking);
+        await context.SaveChangesAsync();
+
+        var service = new ReportService(context);
+
+        // Act
+        var csvBytes = await service.ExportCourtUtilizationCsvAsync(Org1, 2026, 10);
+        var csvText = Encoding.UTF8.GetString(csvBytes);
+
+        // Assert
+        Assert.NotEmpty(csvBytes);
+        Assert.Contains("Court Utilization & Peak Hours Report", csvText);
+        Assert.Contains("Main Arena Court", csvText);
+        Assert.Contains("Hourly Distribution & Peak Demand", csvText);
+        Assert.Contains("Day of the Week Performance", csvText);
+        Assert.Contains("Per-Court Utilization & RevPAH", csvText);
+    }
 }

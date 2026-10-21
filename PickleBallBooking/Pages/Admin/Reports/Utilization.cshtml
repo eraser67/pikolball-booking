@@ -1,0 +1,506 @@
+@page
+@model PickleBallBooking.Pages.Admin.Reports.UtilizationModel
+@{
+    ViewData["Title"] = $"Court Utilization & Peak Hours - {Model.Report.MonthName}";
+    var currentYear = DateTime.UtcNow.Year;
+    var currentMonth = DateTime.UtcNow.Month;
+    var prevMonthDate = new DateTime(Model.Year, Model.Month, 1).AddMonths(-1);
+    var nextMonthDate = new DateTime(Model.Year, Model.Month, 1).AddMonths(1);
+    var maxHourlyUtilization = Model.Report.HourlyStats.Any() ? Math.Max(1m, Model.Report.HourlyStats.Max(h => h.UtilizationRate)) : 100m;
+}
+
+<div class="container-fluid py-4 px-md-4">
+
+    <!-- ─── HEADER BAR ─── -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill small fw-semibold">
+                    <i class="bi bi-buildings me-1"></i>@Model.Report.OrganizationName
+                </span>
+                <span class="badge bg-light text-muted border px-2 py-1 rounded-pill small">
+                    Tenant ID: #@Model.Report.OrganizationId
+                </span>
+            </div>
+            <h1 class="h3 fw-bold text-dark mt-1 mb-0">
+                <i class="bi bi-clock-history text-primary me-2"></i>Court Utilization &amp; Peak Hours
+            </h1>
+            <p class="text-muted small mb-0">Hourly demand heatmaps, peak times, and capacity metrics for <strong>@Model.Report.MonthName</strong>.</p>
+        </div>
+
+        <!-- Export & Print Actions -->
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a asp-page-handler="ExportCsv" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
+               class="btn btn-outline-success fw-semibold shadow-xs d-inline-flex align-items-center gap-1 rounded-3">
+                <i class="bi bi-file-earmark-spreadsheet fs-6"></i>
+                <span>Export CSV</span>
+            </a>
+            <button type="button" class="btn btn-outline-secondary fw-semibold shadow-xs d-inline-flex align-items-center gap-1 rounded-3" onclick="window.print()">
+                <i class="bi bi-printer fs-6"></i>
+                <span class="d-none d-sm-inline">Print Report</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ─── REPORT SUB-NAVIGATION TABS ─── -->
+    <ul class="nav nav-pills mb-4 gap-2 bg-light p-2 rounded-4 border">
+        <li class="nav-item">
+            <a class="nav-link rounded-3 fw-semibold text-muted" asp-page="./Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month">
+                <i class="bi bi-receipt me-1"></i>Monthly Revenue &amp; Ledger
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active rounded-3 fw-semibold shadow-xs" asp-page="./Utilization" asp-route-year="@Model.Year" asp-route-month="@Model.Month">
+                <i class="bi bi-fire me-1"></i>Court Utilization &amp; Peak Hours
+            </a>
+        </li>
+    </ul>
+
+    <!-- ─── MONTH SELECTOR ─── -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+        <div class="card-body p-3">
+            <form method="get" class="row g-2 align-items-center">
+                <!-- Month Step Navigation -->
+                <div class="col-auto">
+                    <div class="btn-group" role="group">
+                        <a asp-page="./Utilization" asp-route-year="@prevMonthDate.Year" asp-route-month="@prevMonthDate.Month"
+                           class="btn btn-outline-secondary btn-sm" title="Previous Month">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                        <a asp-page="./Utilization" asp-route-year="@nextMonthDate.Year" asp-route-month="@nextMonthDate.Month"
+                           class="btn btn-outline-secondary btn-sm @(nextMonthDate > DateTime.UtcNow.AddMonths(1) ? "disabled" : "")" title="Next Month">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-auto">
+                    <select name="month" class="form-select form-select-sm fw-semibold" onchange="this.form.submit()">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            var dt = new DateTime(2000, m, 1);
+                            <option value="@m" selected="@(m == Model.Month)">@dt.ToString("MMMM")</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-auto">
+                    <select name="year" class="form-select form-select-sm fw-semibold" onchange="this.form.submit()">
+                        @for (int y = currentYear - 3; y <= currentYear + 1; y++)
+                        {
+                            <option value="@y" selected="@(y == Model.Year)">@y</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary btn-sm px-3">
+                        <i class="bi bi-arrow-repeat me-1"></i>Load
+                    </button>
+                </div>
+
+                <!-- Quick Presets -->
+                <div class="col-12 col-md-auto ms-md-auto d-flex gap-1 flex-wrap">
+                    <a asp-page="./Utilization" asp-route-year="@currentYear" asp-route-month="@currentMonth"
+                       class="btn btn-sm @(Model.Year == currentYear && Model.Month == currentMonth ? "btn-dark" : "btn-light border")">
+                        This Month
+                    </a>
+                    @{
+                        var lm = DateTime.UtcNow.AddMonths(-1);
+                    }
+                    <a asp-page="./Utilization" asp-route-year="@lm.Year" asp-route-month="@lm.Month"
+                       class="btn btn-sm @(Model.Year == lm.Year && Model.Month == lm.Month ? "btn-dark" : "btn-light border")">
+                        Last Month
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ─── STRATEGIC RECOMMENDATIONS ─── -->
+    @if (Model.Report.StrategicRecommendations.Any())
+    {
+        <div class="card border-0 shadow-sm rounded-4 mb-4 bg-primary-subtle border-start border-4 border-primary">
+            <div class="card-body p-3 p-md-4">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-lightbulb-fill text-primary fs-5"></i>
+                    <h6 class="fw-bold text-dark mb-0">Automated Facility Insights &amp; Recommendations</h6>
+                </div>
+                <ul class="mb-0 ps-3 small text-secondary">
+                    @foreach (var rec in Model.Report.StrategicRecommendations)
+                    {
+                        <li class="mb-1">@rec</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+
+    <!-- ─── EXECUTIVE KPI CARDS ─── -->
+    <div class="row g-3 mb-4">
+        <!-- 1. Overall Facility Utilization Rate -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Overall Utilization</span>
+                        <div class="p-2 bg-primary-subtle text-primary rounded-circle">
+                            <i class="bi bi-speedometer2 fs-5"></i>
+                        </div>
+                    </div>
+                    <h2 class="fw-bold text-dark mb-1">@Model.Report.OverallUtilizationRate.ToString("F1")%</h2>
+                    <div class="progress rounded-pill mb-2" style="height: 6px;">
+                        <div class="progress-bar @(Model.Report.OverallUtilizationRate >= 70 ? "bg-danger" : Model.Report.OverallUtilizationRate >= 40 ? "bg-primary" : "bg-warning")" 
+                             style="width: @Math.Min(100m, Model.Report.OverallUtilizationRate)%"></div>
+                    </div>
+                    <div class="small text-muted d-flex justify-content-between">
+                        <span>Booked: <strong>@Model.Report.TotalBookedHours.ToString("N1") hrs</strong></span>
+                        <span>Capacity: @Model.Report.TotalAvailableCapacityHours.ToString("N0") hrs</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Peak Hours Window -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Peak Demand Window</span>
+                        <div class="p-2 bg-danger-subtle text-danger rounded-circle">
+                            <i class="bi bi-fire fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold text-danger mb-1 fs-4">
+                        @(string.IsNullOrEmpty(Model.Report.PeakHourWindow) ? "N/A" : Model.Report.PeakHourWindow)
+                    </h3>
+                    <div class="small text-muted d-flex align-items-center gap-1">
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-semibold">
+                            @Model.Report.PeakHourUtilization.ToString("F1")% Peak Occupancy
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Revenue Per Available Hour (RevPAH) -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">RevPAH (Yield / Hr)</span>
+                        <div class="p-2 bg-success-subtle text-success rounded-circle">
+                            <i class="bi bi-cash-stack fs-5"></i>
+                        </div>
+                    </div>
+                    <h2 class="fw-bold text-success mb-1">₱@Model.Report.RevPAH.ToString("N2")</h2>
+                    <div class="small text-muted">
+                        Revenue per court-operating hour
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Quietest Window & Operating Stats -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Capacity &amp; Off-Peak</span>
+                        <div class="p-2 bg-info-subtle text-info rounded-circle">
+                            <i class="bi bi-moon-stars fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-1 fs-5">
+                        @(string.IsNullOrEmpty(Model.Report.OffPeakHourWindow) ? "N/A" : Model.Report.OffPeakHourWindow)
+                    </h3>
+                    <div class="small text-muted d-flex justify-content-between align-items-center">
+                        <span>Low: @Model.Report.OffPeakHourUtilization.ToString("F1")%</span>
+                        <span class="badge bg-light text-dark border">@Model.Report.ActiveCourtsCount Courts</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── HOURLY DEMAND HEATMAP / DISTRIBUTION ─── -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+        <div class="card-header bg-white border-0 pt-3 px-3 px-md-4 pb-0 d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="fw-bold text-dark mb-0">
+                    <i class="bi bi-bar-chart-steps text-primary me-2"></i>Hourly Utilization &amp; Demand Breakdown (6:00 AM – 11:00 PM)
+                </h6>
+                <p class="text-muted small mb-0">Total booked hours, utilization rate, and revenue distribution across operating hours.</p>
+            </div>
+            <div class="d-none d-md-flex align-items-center gap-2 small">
+                <span class="d-inline-flex align-items-center gap-1"><span class="badge bg-danger p-1 rounded-circle"></span> Peak (≥65%)</span>
+                <span class="d-inline-flex align-items-center gap-1"><span class="badge bg-primary p-1 rounded-circle"></span> Moderate (35-64%)</span>
+                <span class="d-inline-flex align-items-center gap-1"><span class="badge bg-secondary p-1 rounded-circle"></span> Off-Peak (&lt;35%)</span>
+            </div>
+        </div>
+        <div class="card-body p-3 p-md-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small text-uppercase text-muted">
+                        <tr>
+                            <th>Time Window</th>
+                            <th class="text-center">Bookings</th>
+                            <th class="text-center">Booked Hours</th>
+                            <th>Utilization Intensity</th>
+                            <th class="text-end">Occupancy %</th>
+                            <th class="text-end">Revenue</th>
+                            <th class="text-center">Demand</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var h in Model.Report.HourlyStats)
+                        {
+                            var barClass = h.DemandLevel == "Peak" ? "bg-danger" : h.DemandLevel == "Moderate" ? "bg-primary" : "bg-secondary-subtle";
+                            var badgeClass = h.DemandLevel == "Peak" ? "bg-danger-subtle text-danger border-danger-subtle" :
+                                             h.DemandLevel == "Moderate" ? "bg-primary-subtle text-primary border-primary-subtle" :
+                                             "bg-light text-muted border";
+
+                            <tr>
+                                <td class="fw-semibold text-dark">
+                                    <i class="bi bi-clock text-muted me-1"></i>@h.TimeLabel
+                                </td>
+                                <td class="text-center font-monospace">@h.BookingsCount</td>
+                                <td class="text-center font-monospace">@h.BookedHours.ToString("N1") hrs</td>
+                                <td style="min-width: 140px;">
+                                    <div class="progress rounded-pill" style="height: 10px;">
+                                        <div class="progress-bar @barClass" style="width: @Math.Min(100m, h.UtilizationRate)%"></div>
+                                    </div>
+                                </td>
+                                <td class="text-end font-monospace fw-bold">@h.UtilizationRate.ToString("F1")%</td>
+                                <td class="text-end font-monospace text-success fw-semibold">₱@h.Revenue.ToString("N2")</td>
+                                <td class="text-center">
+                                    <span class="badge @badgeClass border px-2 py-1 rounded-pill small">
+                                        @h.DemandLevel
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── TWO COLUMN: DAY OF WEEK PERFORMANCE & WEEKDAY VS WEEKEND ─── -->
+    <div class="row g-4 mb-4">
+        <!-- Day of Week Distribution -->
+        <div class="col-12 col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-header bg-white border-0 pt-3 px-3 px-md-4 pb-0 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-calendar-week text-primary me-2"></i>Day of the Week Utilization
+                        </h6>
+                        <span class="small text-muted">Busiest: <strong>@Model.Report.BusiestDayOfWeek</strong> | Quietest: <strong>@Model.Report.QuietestDayOfWeek</strong></span>
+                    </div>
+                </div>
+                <div class="card-body p-3 p-md-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small text-uppercase text-muted">
+                                <tr>
+                                    <th>Day</th>
+                                    <th class="text-center">Days in Month</th>
+                                    <th class="text-center">Bookings</th>
+                                    <th class="text-center">Hours</th>
+                                    <th class="text-end">Revenue</th>
+                                    <th class="text-end">Utilization</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var d in Model.Report.DayOfWeekStats)
+                                {
+                                    var isWeekend = d.DayOfWeek == DayOfWeek.Saturday || d.DayOfWeek == DayOfWeek.Sunday;
+                                    <tr>
+                                        <td class="fw-semibold text-dark">
+                                            @if (isWeekend)
+                                            {
+                                                <span class="badge bg-warning-subtle text-warning-emphasis me-1">Weekend</span>
+                                            }
+                                            @d.DayName
+                                        </td>
+                                        <td class="text-center font-monospace">@d.OccurrenceCount</td>
+                                        <td class="text-center font-monospace">@d.TotalBookings</td>
+                                        <td class="text-center font-monospace">@d.BookedHours.ToString("N1") hrs</td>
+                                        <td class="text-end font-monospace text-success fw-semibold">₱@d.Revenue.ToString("N2")</td>
+                                        <td class="text-end font-monospace fw-bold">@d.UtilizationRate.ToString("F1")%</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekday vs Weekend Comparison -->
+        <div class="col-12 col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-header bg-white border-0 pt-3 px-3 px-md-4 pb-0">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-arrow-left-right text-primary me-2"></i>Weekday vs. Weekend Comparison
+                    </h6>
+                    <span class="small text-muted">Monday–Friday vs. Saturday–Sunday yield</span>
+                </div>
+                <div class="card-body p-3 p-md-4 d-flex flex-column justify-content-between">
+                    <!-- Weekdays -->
+                    <div class="p-3 bg-light rounded-4 border mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-dark"><i class="bi bi-briefcase me-1 text-primary"></i>Weekdays (Mon - Fri)</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">
+                                @Model.Report.WeekdayVsWeekend.WeekdayUtilizationRate.ToString("F1")% Utilized
+                            </span>
+                        </div>
+                        <div class="row g-2 text-center">
+                            <div class="col-6">
+                                <div class="bg-white p-2 rounded-3 border">
+                                    <span class="small text-muted d-block">Hours Booked</span>
+                                    <span class="fw-bold text-dark fs-5">@Model.Report.WeekdayVsWeekend.WeekdayBookedHours.ToString("N1")</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-white p-2 rounded-3 border">
+                                    <span class="small text-muted d-block">Revenue</span>
+                                    <span class="fw-bold text-success fs-5">₱@Model.Report.WeekdayVsWeekend.WeekdayRevenue.ToString("N0")</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weekends -->
+                    <div class="p-3 bg-warning-subtle rounded-4 border border-warning-subtle">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-warning-emphasis"><i class="bi bi-sun me-1"></i>Weekends (Sat - Sun)</span>
+                            <span class="badge bg-warning text-dark font-monospace">
+                                @Model.Report.WeekdayVsWeekend.WeekendUtilizationRate.ToString("F1")% Utilized
+                            </span>
+                        </div>
+                        <div class="row g-2 text-center">
+                            <div class="col-6">
+                                <div class="bg-white p-2 rounded-3 border">
+                                    <span class="small text-muted d-block">Hours Booked</span>
+                                    <span class="fw-bold text-dark fs-5">@Model.Report.WeekdayVsWeekend.WeekendBookedHours.ToString("N1")</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-white p-2 rounded-3 border">
+                                    <span class="small text-muted d-block">Revenue</span>
+                                    <span class="fw-bold text-success fs-5">₱@Model.Report.WeekdayVsWeekend.WeekendRevenue.ToString("N0")</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Operating Hours Note -->
+                    <div class="mt-3 small text-muted text-center">
+                        <i class="bi bi-info-circle me-1"></i>Based on <strong>@Model.Report.DailyOperatingHours.ToString("N1") hrs/day</strong> operating capacity across @Model.Report.ActiveCourtsCount court(s).
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── PER-COURT UTILIZATION & REVPAH TABLE ─── -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+        <div class="card-header bg-white border-0 pt-3 px-3 px-md-4 pb-0 d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="fw-bold text-dark mb-0">
+                    <i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>Court Capacity &amp; RevPAH Breakdown
+                </h6>
+                <p class="text-muted small mb-0">Revenue per available hour (RevPAH) indicates asset efficiency per court.</p>
+            </div>
+            <span class="badge bg-light text-muted border">@Model.Report.CourtDetails.Count Court(s)</span>
+        </div>
+        <div class="card-body p-3 p-md-4">
+            @if (!Model.Report.CourtDetails.Any())
+            {
+                <div class="text-center py-4 text-muted small">
+                    <i class="bi bi-slash-circle fs-3 d-block mb-2"></i>No courts configured for this tenant.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small text-uppercase text-muted">
+                            <tr>
+                                <th>Court Name</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Bookings</th>
+                                <th class="text-center">Hours Booked</th>
+                                <th class="text-center">Available Capacity</th>
+                                <th class="text-end">Utilization Rate</th>
+                                <th class="text-end">Realized Revenue</th>
+                                <th class="text-end">RevPAH (₱/hr)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in Model.Report.CourtDetails)
+                            {
+                                <tr>
+                                    <td class="fw-semibold text-dark">
+                                        <i class="bi bi-trophy text-primary me-2"></i>@c.CourtName
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge @(c.Status == PickleBallBooking.Models.CourtStatus.Active ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary") border px-2 py-1 rounded-pill small">
+                                            @c.Status
+                                        </span>
+                                    </td>
+                                    <td class="text-center font-monospace">@c.TotalBookings</td>
+                                    <td class="text-center font-monospace">@c.BookedHours.ToString("N1") hrs</td>
+                                    <td class="text-center font-monospace text-muted">@c.AvailableCapacityHours.ToString("N0") hrs</td>
+                                    <td class="text-end">
+                                        <div class="d-inline-flex align-items-center gap-2">
+                                            <div class="progress rounded-pill d-none d-sm-flex" style="width: 80px; height: 6px;">
+                                                <div class="progress-bar bg-primary" style="width: @Math.Min(100m, c.UtilizationRate)%"></div>
+                                            </div>
+                                            <span class="font-monospace fw-bold">@c.UtilizationRate.ToString("F1")%</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-end font-monospace text-success fw-semibold">₱@c.Revenue.ToString("N2")</td>
+                                    <td class="text-end font-monospace fw-bold text-dark">₱@c.RevPAH.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+<!-- ─── PRINT-ONLY STYLES ─── -->
+<style>
+    @@media print {
+        body {
+            background-color: #fff !important;
+            font-size: 11pt !important;
+        }
+        .container-fluid {
+            padding: 0 !important;
+        }
+        .btn, .nav, form, .no-print {
+            display: none !important;
+        }
+        .card {
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+            break-inside: avoid;
+            margin-bottom: 1.5rem !important;
+        }
+        .table {
+            font-size: 10pt !important;
+        }
+        .progress {
+            border: 1px solid #ccc !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+    }
+</style>
