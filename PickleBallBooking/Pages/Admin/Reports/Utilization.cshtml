@@ -272,7 +272,7 @@
                 </h6>
                 <p class="text-muted small mb-0">Total booked hours, utilization rate, and revenue distribution across operating hours.</p>
             </div>
-            <div class="d-none d-md-flex align-items-center gap-2 small">
+            <div class="d-flex flex-wrap align-items-center gap-2 small mt-2 mt-md-0">
                 <span class="d-inline-flex align-items-center gap-1"><span class="badge bg-danger p-1 rounded-circle"></span> Peak (≥65%)</span>
                 <span class="d-inline-flex align-items-center gap-1"><span class="badge bg-primary p-1 rounded-circle"></span> Moderate (35-64%)</span>
                 <span class="d-inline-flex align-items-center gap-1"><span class="badge bg-secondary p-1 rounded-circle"></span> Off-Peak (&lt;35%)</span>
@@ -286,16 +286,15 @@
                             <th>Time Window</th>
                             <th class="text-center">Bookings</th>
                             <th class="text-center">Booked Hours</th>
-                            <th>Utilization Intensity</th>
-                            <th class="text-end">Occupancy %</th>
+                            <th>Court Occupancy Rate</th>
                             <th class="text-end">Revenue</th>
-                            <th class="text-center">Demand</th>
+                            <th class="text-center">Demand Level</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var h in Model.Report.HourlyStats)
                         {
-                            var barClass = h.DemandLevel == "Peak" ? "bg-danger" : h.DemandLevel == "Moderate" ? "bg-primary" : "bg-secondary-subtle";
+                            var barClass = h.DemandLevel == "Peak" ? "bg-danger" : h.DemandLevel == "Moderate" ? "bg-primary" : "bg-secondary";
                             var badgeClass = h.DemandLevel == "Peak" ? "bg-danger-subtle text-danger border-danger-subtle" :
                                              h.DemandLevel == "Moderate" ? "bg-primary-subtle text-primary border-primary-subtle" :
                                              "bg-light text-muted border";
@@ -306,12 +305,18 @@
                                 </td>
                                 <td class="text-center font-monospace">@h.BookingsCount</td>
                                 <td class="text-center font-monospace">@h.BookedHours.ToString("N1") hrs</td>
-                                <td style="min-width: 140px;">
-                                    <div class="progress rounded-pill" style="height: 10px;">
-                                        <div class="progress-bar @barClass" style="width: @Math.Min(100m, h.UtilizationRate)%"></div>
+                                <td style="min-width: 170px;">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress rounded-pill flex-grow-1 bg-light border" style="height: 8px;">
+                                            <div class="progress-bar @barClass rounded-pill" role="progressbar"
+                                                 style="width: @Math.Min(100m, h.UtilizationRate)%;"
+                                                 aria-valuenow="@h.UtilizationRate" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <span class="font-monospace fw-bold small text-dark" style="min-width: 48px; text-align: right;">
+                                            @h.UtilizationRate.ToString("F1")%
+                                        </span>
                                     </div>
                                 </td>
-                                <td class="text-end font-monospace fw-bold">@h.UtilizationRate.ToString("F1")%</td>
                                 <td class="text-end font-monospace text-success fw-semibold">₱@h.Revenue.ToString("N2")</td>
                                 <td class="text-center">
                                     <span class="badge @badgeClass border px-2 py-1 rounded-pill small">
