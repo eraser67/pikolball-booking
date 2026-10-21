@@ -301,10 +301,10 @@ public class ReportService : IReportService
             }
         }
 
-        // If no master slots configured, fallback to 16.0 hours/day (e.g. 6:00 AM - 10:00 PM)
+        // If no master slots configured, fallback to 18.0 hours/day (e.g. 8:00 AM - 2:00 AM)
         if (dailyOperatingHours <= 0)
         {
-            dailyOperatingHours = 16.0m;
+            dailyOperatingHours = 18.0m;
         }
 
         decimal totalCapacityHours = activeCourtsCount * dailyOperatingHours * daysInMonth;
@@ -343,28 +343,68 @@ public class ReportService : IReportService
             TotalRevenue = totalRevenue
         };
 
-        // 1. Hourly Utilization Breakdown (6:00 AM to 11:00 PM -> hours 6..22)
-        var hourlyList = new List<HourlyUtilizationItem>();
-        for (int h = 6; h <= 22; h++)
+        // 1. Hourly Utilization Breakdown (8:00 AM to 2:00 AM -> 18 operating hours)
+        var operatingSlots = new (int Hour, double SlotStart, double SlotEnd)[]
         {
-            var slotStart = TimeSpan.FromHours(h);
-            var slotEnd = TimeSpan.FromHours(h + 1);
+            (8, 8.0, 9.0),
+            (9, 9.0, 10.0),
+            (10, 10.0, 11.0),
+            (11, 11.0, 12.0),
+            (12, 12.0, 13.0),
+            (13, 13.0, 14.0),
+            (14, 14.0, 15.0),
+            (15, 15.0, 16.0),
+            (16, 16.0, 17.0),
+            (17, 17.0, 18.0),
+            (18, 18.0, 19.0),
+            (19, 19.0, 20.0),
+            (20, 20.0, 21.0),
+            (21, 21.0, 22.0),
+            (22, 22.0, 23.0),
+            (23, 23.0, 24.0),
+            (0, 24.0, 25.0),
+            (1, 25.0, 26.0)
+        };
+
+        var hourlyList = new List<HourlyUtilizationItem>();
+        foreach (var (slotHour, slotStart, slotEnd) in operatingSlots)
+        {
             decimal slotBookedHours = 0m;
             decimal slotRevenue = 0m;
             int slotBookingsCount = 0;
 
             foreach (var b in bookings)
             {
-                var overlapStart = b.StartTime > slotStart ? b.StartTime : slotStart;
-                var overlapEnd = b.EndTime < slotEnd ? b.EndTime : slotEnd;
+                // Normalize booking start and end to operational day absolute hours (8.0 to 26.0)
+                double bStart = b.StartTime.TotalHours;
+                double bEnd = b.EndTime == TimeSpan.Zero ? 24.0 : b.EndTime.TotalHours;
+
+                if (bStart >= 8.0)
+                {
+                    // Starts in daytime/evening (e.g. 8:00 AM – 11:59 PM)
+                    if (bEnd <= bStart)
+                    {
+                        // Overnight booking crossing midnight into next day (e.g. 23:00 to 01:00 or 23:00 to 00:00)
+                        bEnd += 24.0;
+                    }
+                }
+                else if (bStart < 2.0)
+                {
+                    // Booked in post-midnight operational hours (12:00 AM – 2:00 AM)
+                    bStart += 24.0;
+                    bEnd += 24.0;
+                }
+
+                var overlapStart = Math.Max(bStart, slotStart);
+                var overlapEnd = Math.Min(bEnd, slotEnd);
 
                 if (overlapEnd > overlapStart)
                 {
-                    var overlapDuration = (decimal)(overlapEnd - overlapStart).TotalHours;
+                    var overlapDuration = (decimal)(overlapEnd - overlapStart);
                     slotBookedHours += overlapDuration;
 
-                    var totalDuration = b.DurationHours ?? (decimal)(b.EndTime - b.StartTime).TotalHours;
-                    if (totalDuration <= 0 && b.EndTime == TimeSpan.Zero) totalDuration = (decimal)(TimeSpan.FromHours(24) - b.StartTime).TotalHours;
+                    var totalDuration = b.DurationHours ?? (decimal)(bEnd - bStart);
+                    if (totalDuration <= 0) totalDuration = (decimal)(bEnd - bStart);
                     if (totalDuration > 0)
                     {
                         slotRevenue += b.Price * (overlapDuration / totalDuration);
@@ -376,7 +416,7 @@ public class ReportService : IReportService
             decimal slotCapacity = activeCourtsCount * daysInMonth * 1.0m;
             hourlyList.Add(new HourlyUtilizationItem
             {
-                Hour = h,
+                Hour = slotHour,
                 BookingsCount = slotBookingsCount,
                 BookedHours = slotBookedHours,
                 Revenue = slotRevenue,

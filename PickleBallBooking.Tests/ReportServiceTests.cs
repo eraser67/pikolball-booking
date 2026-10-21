@@ -411,8 +411,113 @@ public class ReportServiceTests
         Assert.Equal(1500m, report.CourtDetails[0].Revenue);
         Assert.True(report.CourtDetails[0].RevPAH > 0m);
 
+        // Hourly slots check: exactly 18 slots from 8 AM to 2 AM
+        Assert.Equal(18, report.HourlyStats.Count);
+        Assert.Equal(8, report.HourlyStats[0].Hour);
+        Assert.Equal("8:00 AM - 9:00 AM", report.HourlyStats[0].TimeLabel);
+        Assert.Equal(23, report.HourlyStats[15].Hour);
+        Assert.Equal("11:00 PM - 12:00 AM", report.HourlyStats[15].TimeLabel);
+        Assert.Equal(0, report.HourlyStats[16].Hour);
+        Assert.Equal("12:00 AM - 1:00 AM", report.HourlyStats[16].TimeLabel);
+        Assert.Equal(1, report.HourlyStats[17].Hour);
+        Assert.Equal("1:00 AM - 2:00 AM", report.HourlyStats[17].TimeLabel);
+
         // Strategic recommendations generated
         Assert.NotEmpty(report.StrategicRecommendations);
+    }
+
+    [Fact]
+    public async Task GetCourtUtilizationReportAsync_OperatingHours8AMTo2AM_AccuratelyDistributesMidnightBookings()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+        context.SuppressTenantWriteGuard = true;
+
+        var court = new Court { Id = 1, Name = "Court Night", Status = CourtStatus.Active, OrganizationId = Org1 };
+        context.Courts.Add(court);
+
+        // Booking 1: 11:00 PM – 12:00 AM (Hour 23), ₱600
+        var b1 = new Booking
+        {
+            Id = 1,
+            OrganizationId = Org1,
+            BookingReference = "PB-NIGHT01",
+            CustomerName = "Night Owl 1",
+            CustomerPhone = "09170000001",
+            CustomerEmail = "owl1@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 15),
+            StartTime = new TimeSpan(23, 0, 0),
+            EndTime = TimeSpan.Zero, // 00:00:00 midnight
+            DurationHours = 1m,
+            Price = 600m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+
+        // Booking 2: 12:00 AM – 1:00 AM (Hour 0), ₱650
+        var b2 = new Booking
+        {
+            Id = 2,
+            OrganizationId = Org1,
+            BookingReference = "PB-NIGHT02",
+            CustomerName = "Night Owl 2",
+            CustomerPhone = "09170000002",
+            CustomerEmail = "owl2@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 15),
+            StartTime = new TimeSpan(0, 0, 0),
+            EndTime = new TimeSpan(1, 0, 0),
+            DurationHours = 1m,
+            Price = 650m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+
+        // Booking 3: 1:00 AM – 2:00 AM (Hour 1), ₱700
+        var b3 = new Booking
+        {
+            Id = 3,
+            OrganizationId = Org1,
+            BookingReference = "PB-NIGHT03",
+            CustomerName = "Night Owl 3",
+            CustomerPhone = "09170000003",
+            CustomerEmail = "owl3@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 15),
+            StartTime = new TimeSpan(1, 0, 0),
+            EndTime = new TimeSpan(2, 0, 0),
+            DurationHours = 1m,
+            Price = 700m,
+            BookingStatus = BookingStatus.Confirmed
+        };
+
+        context.Bookings.AddRange(b1, b2, b3);
+        await context.SaveChangesAsync();
+
+        var service = new ReportService(context);
+
+        // Act
+        var report = await service.GetCourtUtilizationReportAsync(Org1, 2026, 10);
+
+        // Assert
+        Assert.Equal(18, report.HourlyStats.Count);
+
+        var slot23 = report.HourlyStats.First(h => h.Hour == 23);
+        Assert.Equal("11:00 PM - 12:00 AM", slot23.TimeLabel);
+        Assert.Equal(1, slot23.BookingsCount);
+        Assert.Equal(1m, slot23.BookedHours);
+        Assert.Equal(600m, slot23.Revenue);
+
+        var slot0 = report.HourlyStats.First(h => h.Hour == 0);
+        Assert.Equal("12:00 AM - 1:00 AM", slot0.TimeLabel);
+        Assert.Equal(1, slot0.BookingsCount);
+        Assert.Equal(1m, slot0.BookedHours);
+        Assert.Equal(650m, slot0.Revenue);
+
+        var slot1 = report.HourlyStats.First(h => h.Hour == 1);
+        Assert.Equal("1:00 AM - 2:00 AM", slot1.TimeLabel);
+        Assert.Equal(1, slot1.BookingsCount);
+        Assert.Equal(1m, slot1.BookedHours);
+        Assert.Equal(700m, slot1.Revenue);
     }
 
     [Fact]
