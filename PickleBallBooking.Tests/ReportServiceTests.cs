@@ -534,4 +534,246 @@ public class ReportServiceTests
         Assert.Contains("Day of the Week Performance", csvText);
         Assert.Contains("Per-Court Utilization & RevPAH", csvText);
     }
+
+    [Fact]
+    public async Task GetAttendanceReportAsync_CalculatesAccurateAttendanceAndNoShows()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+
+        var court = new Court { Id = 1, Name = "Center Court", Status = CourtStatus.Active, OrganizationId = Org1 };
+        context.Courts.Add(court);
+
+        // Booking 1: Oct 12, 10:00 - Checked in 10 mins early via QR Scan (Price ₱500)
+        var scheduledStart1 = new DateTime(2026, 10, 12, 10, 0, 0); // 10:00 Manila
+        var checkInUtc1 = AppClock.ToUtcFromPhilippineTime(scheduledStart1.AddMinutes(-10)); // 9:50 Manila
+
+        var b1 = new Booking
+        {
+            Id = 1,
+            OrganizationId = Org1,
+            BookingReference = "PB-ATT-01",
+            CustomerName = "Carlos Player",
+            CustomerPhone = "09170001111",
+            CustomerEmail = "carlos@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 12),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(11, 0, 0),
+            Price = 500m,
+            BookingStatus = BookingStatus.Confirmed,
+            CheckedInAt = checkInUtc1,
+            CheckInMethod = CheckInMethod.QrScan,
+            IsNoShow = false
+        };
+
+        // Booking 2: Oct 12, 11:00 - No-Show (Price ₱600)
+        var b2 = new Booking
+        {
+            Id = 2,
+            OrganizationId = Org1,
+            BookingReference = "PB-ATT-02",
+            CustomerName = "Carlos Player", // Same customer, repeat offender
+            CustomerPhone = "09170001111",
+            CustomerEmail = "carlos@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 12),
+            StartTime = new TimeSpan(11, 0, 0),
+            EndTime = new TimeSpan(12, 0, 0),
+            Price = 600m,
+            BookingStatus = BookingStatus.Confirmed,
+            CheckedInAt = null,
+            IsNoShow = true
+        };
+
+        // Booking 3: Oct 15, 14:00 - Unmarked / Pending Arrival (Price ₱400)
+        var b3 = new Booking
+        {
+            Id = 3,
+            OrganizationId = Org1,
+            BookingReference = "PB-ATT-03",
+            CustomerName = "Maria Santos",
+            CustomerPhone = "09170002222",
+            CustomerEmail = "maria@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 15),
+            StartTime = new TimeSpan(14, 0, 0),
+            EndTime = new TimeSpan(15, 0, 0),
+            Price = 400m,
+            BookingStatus = BookingStatus.Confirmed,
+            CheckedInAt = null,
+            IsNoShow = false
+        };
+
+        context.Bookings.AddRange(b1, b2, b3);
+        await context.SaveChangesAsync();
+
+        var service = new ReportService(context);
+
+        // Act
+        var report = await service.GetAttendanceReportAsync(Org1, 2026, 10);
+
+        // Assert
+        Assert.Equal(Org1, report.OrganizationId);
+        Assert.Equal(3, report.TotalEligibleBookings);
+        Assert.Equal(1, report.CheckedInCount);
+        Assert.Equal(1, report.NoShowCount);
+        Assert.Equal(1, report.UnmarkedCount);
+
+        // Turnout rates
+        Assert.Equal(33.3m, report.CheckInRate);
+        Assert.Equal(33.3m, report.NoShowRate);
+        Assert.Equal(600m, report.NoShowRevenueLoss);
+        Assert.Equal(500m, report.RealizedCheckedInRevenue);
+
+        // Punctuality: -10 minutes (early)
+        Assert.NotNull(report.AveragePunctualityMinutes);
+        Assert.Equal(-10.0, report.AveragePunctualityMinutes.Value);
+
+        // Method Breakdown
+        Assert.Single(report.MethodStats);
+        Assert.Equal("QR Pass Scan", report.MethodStats[0].MethodName);
+        Assert.Equal(1, report.MethodStats[0].Count);
+
+        // Customer Reliability
+        Assert.Equal(2, report.CustomerReliabilityStats.Count);
+        var carlos = report.CustomerReliabilityStats.FirstOrDefault(c => c.CustomerPhone == "09170001111");
+        Assert.NotNull(carlos);
+        Assert.Equal(2, carlos.TotalBookings);
+        Assert.Equal(1, carlos.CheckedInCount);
+        Assert.Equal(1, carlos.NoShowCount);
+        Assert.Equal(50.0m, carlos.ReliabilityRate);
+
+        // Records check
+        Assert.Equal(3, report.Records.Count);
+        Assert.NotEmpty(report.StrategicInsights);
+    }
+
+    [Fact]
+    public async Task GetAttendanceReportAsync_EnforcesStrictTenantIsolation()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+        context.SuppressTenantWriteGuard = true;
+
+        var court1 = new Court { Id = 1, Name = "Org1 Court", Status = CourtStatus.Active, OrganizationId = Org1 };
+        var court2 = new Court { Id = 2, Name = "Org2 Court", Status = CourtStatus.Active, OrganizationId = Org2 };
+        context.Courts.AddRange(court1, court2);
+
+        // Org 1 Booking (Checked In, ₱700)
+        var org1Booking = new Booking
+        {
+            Id = 1,
+            OrganizationId = Org1,
+            BookingReference = "PB-T1-ATT",
+            CustomerName = "T1 Player",
+            CustomerPhone = "09170000001",
+            CustomerEmail = "t1@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 5),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(11, 0, 0),
+            Price = 700m,
+            BookingStatus = BookingStatus.Confirmed,
+            CheckedInAt = DateTime.UtcNow,
+            IsNoShow = false
+        };
+
+        // Org 2 Booking (No-Show, ₱900) - Must NEVER leak into Org 1
+        var org2Booking = new Booking
+        {
+            Id = 2,
+            OrganizationId = Org2,
+            BookingReference = "PB-T2-ATT",
+            CustomerName = "T2 Player",
+            CustomerPhone = "09170000002",
+            CustomerEmail = "t2@test.com",
+            CourtId = 2,
+            BookingDate = new DateOnly(2026, 10, 5),
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(11, 0, 0),
+            Price = 900m,
+            BookingStatus = BookingStatus.Confirmed,
+            CheckedInAt = null,
+            IsNoShow = true
+        };
+
+        context.Bookings.AddRange(org1Booking, org2Booking);
+        await context.SaveChangesAsync();
+
+        var service = new ReportService(context);
+
+        // Act: Fetch for Org 1
+        var reportOrg1 = await service.GetAttendanceReportAsync(Org1, 2026, 10);
+
+        // Assert: Org 1 report contains ONLY Org 1 data
+        Assert.Equal(Org1, reportOrg1.OrganizationId);
+        Assert.Equal(1, reportOrg1.TotalEligibleBookings);
+        Assert.Equal(1, reportOrg1.CheckedInCount);
+        Assert.Equal(0, reportOrg1.NoShowCount);
+        Assert.Equal(700m, reportOrg1.RealizedCheckedInRevenue);
+        Assert.Single(reportOrg1.Records);
+        Assert.Equal("PB-T1-ATT", reportOrg1.Records[0].BookingReference);
+        Assert.DoesNotContain(reportOrg1.Records, r => r.BookingReference == "PB-T2-ATT");
+
+        // Act & Assert: Fetch for Org 2
+        await using var context2 = TestDbContextFactory.CreateInMemory(dbName, Org2);
+        var service2 = new ReportService(context2);
+        var reportOrg2 = await service2.GetAttendanceReportAsync(Org2, 2026, 10);
+
+        Assert.Equal(Org2, reportOrg2.OrganizationId);
+        Assert.Equal(1, reportOrg2.TotalEligibleBookings);
+        Assert.Equal(0, reportOrg2.CheckedInCount);
+        Assert.Equal(1, reportOrg2.NoShowCount);
+        Assert.Equal(900m, reportOrg2.NoShowRevenueLoss);
+        Assert.Single(reportOrg2.Records);
+        Assert.Equal("PB-T2-ATT", reportOrg2.Records[0].BookingReference);
+        Assert.DoesNotContain(reportOrg2.Records, r => r.BookingReference == "PB-T1-ATT");
+    }
+
+    [Fact]
+    public async Task ExportAttendanceReportCsvAsync_GeneratesProperlyFormattedCsv()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+
+        var court = new Court { Id = 1, Name = "Arena Court 1", Status = CourtStatus.Active, OrganizationId = Org1 };
+        context.Courts.Add(court);
+
+        var booking = new Booking
+        {
+            Id = 1,
+            OrganizationId = Org1,
+            BookingReference = "PB-CSV-ATT",
+            CustomerName = "Garcia, Ana",
+            CustomerPhone = "09179998888",
+            CustomerEmail = "ana@test.com",
+            CourtId = 1,
+            BookingDate = new DateOnly(2026, 10, 8),
+            StartTime = new TimeSpan(9, 0, 0),
+            EndTime = new TimeSpan(10, 0, 0),
+            Price = 400m,
+            BookingStatus = BookingStatus.Confirmed,
+            CheckedInAt = DateTime.UtcNow,
+            CheckInMethod = CheckInMethod.QrScan,
+            IsNoShow = false
+        };
+
+        context.Bookings.Add(booking);
+        await context.SaveChangesAsync();
+
+        var service = new ReportService(context);
+
+        // Act
+        var csvBytes = await service.ExportAttendanceReportCsvAsync(Org1, 2026, 10);
+        var csvText = Encoding.UTF8.GetString(csvBytes);
+
+        // Assert
+        Assert.NotEmpty(csvBytes);
+        Assert.Contains("Attendance, Check-In & No-Show Report", csvText);
+        Assert.Contains("PB-CSV-ATT", csvText);
+        Assert.Contains("\"Garcia, Ana\"", csvText);
+        Assert.Contains("Checked-In", csvText);
+        Assert.Contains("QrScan", csvText);
+    }
 }

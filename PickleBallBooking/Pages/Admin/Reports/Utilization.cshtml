@@ -42,22 +42,22 @@
         </div>
     </div>
 
-    <!-- ─── REPORT SELECTION TABS ─── -->
+    <!-- ─── REPORT SELECTION TABS (3-CARD SEGMENTED SELECTOR) ─── -->
     <div class="report-tabs-wrapper mb-4">
         <div class="row g-3">
             <!-- Tab 1: Monthly Revenue & Ledger -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-lg-4">
                 <a asp-page="./Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
-                   class="report-tab-card revenue-tab d-flex align-items-center p-3 p-xl-4 rounded-4 border text-decoration-none">
+                   class="report-tab-card revenue-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none">
                     <div class="tab-icon-box rounded-3 me-3 d-flex align-items-center justify-content-center flex-shrink-0">
                         <i class="bi bi-wallet2 fs-4 text-muted"></i>
                     </div>
                     <div class="flex-grow-1 min-w-0">
                         <div class="d-flex align-items-center gap-2 mb-1">
-                            <span class="tab-title fw-bold text-dark">Monthly Revenue &amp; Ledger</span>
+                            <span class="tab-title fw-bold text-dark">Revenue &amp; Ledger</span>
                         </div>
                         <span class="tab-desc text-muted small d-block text-truncate">
-                            Realized income, payment channels, booking counts &amp; audit ledger
+                            Income, payments &amp; ledger
                         </span>
                     </div>
                     <div class="tab-arrow text-muted ms-2 flex-shrink-0">
@@ -67,23 +67,44 @@
             </div>
 
             <!-- Tab 2: Court Utilization & Peak Hours (Active) -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-lg-4">
                 <a asp-page="./Utilization" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
-                   class="report-tab-card active utilization-tab d-flex align-items-center p-3 p-xl-4 rounded-4 border text-decoration-none shadow-xs">
+                   class="report-tab-card active utilization-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none shadow-xs">
                     <div class="tab-icon-box rounded-3 me-3 d-flex align-items-center justify-content-center flex-shrink-0">
                         <i class="bi bi-fire fs-4 text-danger"></i>
                     </div>
                     <div class="flex-grow-1 min-w-0">
                         <div class="d-flex align-items-center gap-2 mb-1">
-                            <span class="tab-title fw-bold text-dark">Court Utilization &amp; Peak Hours</span>
+                            <span class="tab-title fw-bold text-dark">Utilization &amp; Peak</span>
                             <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill small px-2">Active View</span>
                         </div>
                         <span class="tab-desc text-muted small d-block text-truncate">
-                            Hourly demand heatmaps, peak times, day-of-week trends &amp; RevPAH yield
+                            Hourly heatmaps &amp; RevPAH
                         </span>
                     </div>
                     <div class="tab-arrow text-danger ms-2 flex-shrink-0">
                         <i class="bi bi-arrow-right-circle-fill fs-5"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Tab 3: Attendance & No-Shows -->
+            <div class="col-12 col-lg-4">
+                <a asp-page="./Attendance" asp-route-year="@Model.Year" asp-route-month="@Model.Month"
+                   class="report-tab-card attendance-tab d-flex align-items-center p-3 rounded-4 border text-decoration-none">
+                    <div class="tab-icon-box rounded-3 me-3 d-flex align-items-center justify-content-center flex-shrink-0">
+                        <i class="bi bi-person-check-fill fs-4 text-muted"></i>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="tab-title fw-bold text-dark">Attendance &amp; No-Shows</span>
+                        </div>
+                        <span class="tab-desc text-muted small d-block text-truncate">
+                            Arrivals, punctuality &amp; no-show risk
+                        </span>
+                    </div>
+                    <div class="tab-arrow text-muted ms-2 flex-shrink-0">
+                        <i class="bi bi-chevron-right fs-5"></i>
                     </div>
                 </a>
             </div>

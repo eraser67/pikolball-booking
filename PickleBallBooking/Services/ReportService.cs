@@ -595,6 +595,253 @@ public class ReportService : IReportService
         return utf8WithBom.GetBytes(sb.ToString());
     }
 
+    public async Task<AttendanceReport> GetAttendanceReportAsync(int organizationId, int year, int month)
+    {
+        if (year < 2000 || year > 2100) year = DateTime.UtcNow.Year;
+        if (month < 1 || month > 12) month = DateTime.UtcNow.Month;
+
+        var startDate = new DateOnly(year, month, 1);
+        var daysInMonth = DateTime.DaysInMonth(year, month);
+        var endDate = new DateOnly(year, month, daysInMonth);
+
+        // Fetch organization name
+        var orgName = await _context.Organizations
+            .IgnoreQueryFilters()
+            .Where(o => o.Id == organizationId)
+            .Select(o => o.Name)
+            .FirstOrDefaultAsync() ?? $"Tenant #{organizationId}";
+
+        // Strict tenant isolation: fetch only this tenant's confirmed/completed bookings for the month
+        var bookings = await _context.Bookings
+            .AsNoTracking()
+            .Where(b => b.OrganizationId == organizationId
+                        && b.BookingDate >= startDate
+                        && b.BookingDate <= endDate
+                        && (b.BookingStatus == BookingStatus.Confirmed || b.BookingStatus == BookingStatus.Completed))
+            .Include(b => b.Court)
+            .OrderBy(b => b.BookingDate)
+            .ThenBy(b => b.StartTime)
+            .ToListAsync();
+
+        int totalEligible = bookings.Count;
+        int checkedInCount = bookings.Count(b => b.CheckedInAt.HasValue && !b.IsNoShow);
+        int noShowCount = bookings.Count(b => b.IsNoShow);
+        int unmarkedCount = bookings.Count(b => !b.CheckedInAt.HasValue && !b.IsNoShow);
+
+        decimal noShowLoss = bookings.Where(b => b.IsNoShow).Sum(b => b.Price);
+        decimal checkedInRevenue = bookings.Where(b => b.CheckedInAt.HasValue && !b.IsNoShow).Sum(b => b.Price);
+
+        // Punctuality calculation (minutes relative to scheduled local start time)
+        var punctualityList = new List<double>();
+        var records = new List<AttendanceRecordItem>();
+
+        foreach (var b in bookings)
+        {
+            int? punctualityMin = null;
+            DateTime? localCheckIn = null;
+
+            if (b.CheckedInAt.HasValue)
+            {
+                localCheckIn = AppClock.ToPhilippineTime(b.CheckedInAt.Value);
+                if (!b.IsNoShow)
+                {
+                    var scheduledLocal = b.BookingDate.ToDateTime(TimeOnly.FromTimeSpan(b.StartTime));
+                    var delta = (localCheckIn.Value - scheduledLocal).TotalMinutes;
+                    punctualityMin = (int)Math.Round(delta);
+                    punctualityList.Add(delta);
+                }
+            }
+
+            records.Add(new AttendanceRecordItem
+            {
+                BookingId = b.Id,
+                BookingReference = b.BookingReference,
+                BookingDate = b.BookingDate,
+                TimeRange = $"{AppClock.To12Hour(b.StartTime)} - {AppClock.To12Hour(b.EndTime)}",
+                CourtName = b.Court?.Name ?? $"Court #{b.CourtId}",
+                CustomerName = b.CustomerName,
+                CustomerPhone = b.CustomerPhone,
+                CustomerEmail = b.CustomerEmail,
+                Price = b.Price,
+                BookingStatus = b.BookingStatus,
+                CheckedIn = b.CheckedInAt.HasValue && !b.IsNoShow,
+                CheckedInAtLocal = localCheckIn,
+                CheckInMethod = b.CheckInMethod,
+                CheckedInByUserId = b.CheckedInByUserId,
+                IsNoShow = b.IsNoShow,
+                PunctualityMinutes = punctualityMin
+            });
+        }
+
+        double? avgPunctuality = punctualityList.Any() ? Math.Round(punctualityList.Average(), 1) : null;
+
+        var report = new AttendanceReport
+        {
+            OrganizationId = organizationId,
+            OrganizationName = orgName,
+            Year = year,
+            Month = month,
+            TotalEligibleBookings = totalEligible,
+            CheckedInCount = checkedInCount,
+            NoShowCount = noShowCount,
+            UnmarkedCount = unmarkedCount,
+            NoShowRevenueLoss = noShowLoss,
+            RealizedCheckedInRevenue = checkedInRevenue,
+            AveragePunctualityMinutes = avgPunctuality,
+            Records = records
+        };
+
+        // 1. Check-in method breakdown
+        var methodGroups = bookings
+            .Where(b => b.CheckedInAt.HasValue && !b.IsNoShow)
+            .GroupBy(b => b.CheckInMethod?.ToString() ?? "Unspecified")
+            .Select(g => new CheckInMethodReportItem
+            {
+                MethodName = g.Key == "QrScan" ? "QR Pass Scan" :
+                             g.Key == "AdminManual" ? "Staff Manual Check-In" :
+                             g.Key == "WalkIn" ? "Walk-In / Verbal" : g.Key,
+                Count = g.Count(),
+                SharePercentage = checkedInCount > 0 ? Math.Round((decimal)g.Count() / checkedInCount * 100m, 1) : 0m
+            })
+            .OrderByDescending(m => m.Count)
+            .ToList();
+        report.MethodStats = methodGroups;
+
+        // 2. Day of Week Attendance
+        var orderedDows = new[]
+        {
+            DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
+            DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday
+        };
+
+        var dowStats = new List<DayOfWeekAttendanceItem>();
+        foreach (var dow in orderedDows)
+        {
+            var dowBookings = bookings.Where(b => b.BookingDate.DayOfWeek == dow).ToList();
+            dowStats.Add(new DayOfWeekAttendanceItem
+            {
+                DayOfWeek = dow,
+                TotalBookings = dowBookings.Count,
+                CheckedInCount = dowBookings.Count(b => b.CheckedInAt.HasValue && !b.IsNoShow),
+                NoShowCount = dowBookings.Count(b => b.IsNoShow)
+            });
+        }
+        report.DayOfWeekStats = dowStats;
+
+        // 3. Customer Reliability & Repeat No-Shows
+        var customerGroups = bookings
+            .GroupBy(b => !string.IsNullOrWhiteSpace(b.CustomerPhone) ? b.CustomerPhone : b.CustomerName.Trim().ToLowerInvariant())
+            .Select(g =>
+            {
+                var first = g.First();
+                var total = g.Count();
+                var cIn = g.Count(b => b.CheckedInAt.HasValue && !b.IsNoShow);
+                var ns = g.Count(b => b.IsNoShow);
+                return new CustomerReliabilityItem
+                {
+                    CustomerName = first.CustomerName,
+                    CustomerPhone = first.CustomerPhone,
+                    CustomerEmail = first.CustomerEmail,
+                    TotalBookings = total,
+                    CheckedInCount = cIn,
+                    NoShowCount = ns
+                };
+            })
+            .OrderByDescending(c => c.NoShowCount)
+            .ThenBy(c => c.ReliabilityRate)
+            .ThenByDescending(c => c.TotalBookings)
+            .Take(30)
+            .ToList();
+        report.CustomerReliabilityStats = customerGroups;
+
+        // 4. Strategic Insights
+        var insights = new List<string>();
+        if (report.NoShowRate >= 10m)
+        {
+            insights.Add($"High No-Show Rate: {report.NoShowRate:F1}% of bookings resulted in no-shows (₱{report.NoShowRevenueLoss:N2} lost revenue). Consider implementing a 50% non-refundable deposit or booking cooldown for no-shows.");
+        }
+        if (report.CheckInRate >= 80m)
+        {
+            insights.Add($"Strong Turnout Fidelity: {report.CheckInRate:F1}% check-in rate demonstrates high customer engagement and commitment.");
+        }
+        if (report.AveragePunctualityMinutes.HasValue)
+        {
+            if (report.AveragePunctualityMinutes.Value <= -5)
+            {
+                insights.Add($"Punctual Players: Customers arrive an average of {Math.Abs(report.AveragePunctualityMinutes.Value):F1} minutes before their scheduled court time.");
+            }
+            else if (report.AveragePunctualityMinutes.Value >= 10)
+            {
+                insights.Add($"Late Arrival Tendency: Average check-in is {report.AveragePunctualityMinutes.Value:F1} minutes after slot start. Ensure automated SMS/email reminders are sent 1 hour prior.");
+            }
+        }
+        var repeatNoShowCustomers = customerGroups.Count(c => c.NoShowCount >= 2);
+        if (repeatNoShowCustomers > 0)
+        {
+            insights.Add($"Repeat No-Show Alert: {repeatNoShowCustomers} customer(s) have 2 or more no-shows this month. Check Customer Reliability list to flag repeat offenders.");
+        }
+        if (!insights.Any())
+        {
+            insights.Add("Attendance and check-in rates are healthy. Continue scanning customer QR passes for swift arrival tracking.");
+        }
+        report.StrategicInsights = insights;
+
+        return report;
+    }
+
+    public async Task<byte[]> ExportAttendanceReportCsvAsync(int organizationId, int year, int month)
+    {
+        var report = await GetAttendanceReportAsync(organizationId, year, month);
+
+        var sb = new StringBuilder();
+
+        // Metadata Header
+        sb.AppendLine($"# Attendance, Check-In & No-Show Report");
+        sb.AppendLine($"# Organization: {EscapeCsv(report.OrganizationName)} (ID: {report.OrganizationId})");
+        sb.AppendLine($"# Period: {report.MonthName}");
+        sb.AppendLine($"# Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+        sb.AppendLine($"# Total Eligible Bookings: {report.TotalEligibleBookings}");
+        sb.AppendLine($"# Checked-In: {report.CheckedInCount} ({report.CheckInRate:F1}%)");
+        sb.AppendLine($"# No-Shows: {report.NoShowCount} ({report.NoShowRate:F1}%)");
+        sb.AppendLine($"# Unmarked / Pending: {report.UnmarkedCount}");
+        sb.AppendLine($"# Realized Checked-In Revenue: ₱{report.RealizedCheckedInRevenue:N2}");
+        sb.AppendLine($"# No-Show Revenue Loss: ₱{report.NoShowRevenueLoss:N2}");
+        sb.AppendLine($"# Average Arrival Delta: {(report.AveragePunctualityMinutes.HasValue ? report.AveragePunctualityMinutes.Value.ToString("F1") + " mins" : "N/A")}");
+        sb.AppendLine();
+
+        // 1. Audit Ledger Table
+        sb.AppendLine("## Attendance Audit Ledger");
+        sb.AppendLine("Reference,Date,Time Range,Court,Customer Name,Phone,Email,Price,Status,Attendance Status,Check-In Time (Local),Check-In Method,Punctuality (Mins),Checked In By");
+
+        foreach (var r in report.Records)
+        {
+            var attendanceStatus = r.IsNoShow ? "No-Show" : r.CheckedIn ? "Checked-In" : "Pending Arrival";
+            var punctualityStr = r.PunctualityMinutes.HasValue 
+                ? (r.PunctualityMinutes.Value < 0 ? $"{Math.Abs(r.PunctualityMinutes.Value)}m Early" : r.PunctualityMinutes.Value == 0 ? "On Time" : $"{r.PunctualityMinutes.Value}m Late") 
+                : "";
+
+            sb.AppendLine(string.Join(",",
+                EscapeCsv(r.BookingReference),
+                r.BookingDate.ToString("yyyy-MM-dd"),
+                EscapeCsv(r.TimeRange),
+                EscapeCsv(r.CourtName),
+                EscapeCsv(r.CustomerName),
+                EscapeCsv(r.CustomerPhone),
+                EscapeCsv(r.CustomerEmail),
+                r.Price.ToString("F2"),
+                r.BookingStatus.ToString(),
+                attendanceStatus,
+                r.CheckedInAtLocal.HasValue ? r.CheckedInAtLocal.Value.ToString("yyyy-MM-dd HH:mm:ss") : "",
+                EscapeCsv(r.CheckInMethod?.ToString() ?? ""),
+                EscapeCsv(punctualityStr),
+                EscapeCsv(r.CheckedInByUserId ?? "")
+            ));
+        }
+
+        var utf8WithBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+        return utf8WithBom.GetBytes(sb.ToString());
+    }
+
     private static string EscapeCsv(string value)
     {
         if (string.IsNullOrEmpty(value)) return "";

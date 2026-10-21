@@ -25,6 +25,17 @@ public interface IReportService
     /// Generates a CSV export of hourly utilization and day-of-week breakdown for the specified tenant.
     /// </summary>
     Task<byte[]> ExportCourtUtilizationCsvAsync(int organizationId, int year, int month);
+
+    /// <summary>
+    /// Generates an Attendance, Check-In & No-Show report with check-in rates,
+    /// no-show frequency, punctuality, method distribution, and repeat no-show risk.
+    /// </summary>
+    Task<AttendanceReport> GetAttendanceReportAsync(int organizationId, int year, int month);
+
+    /// <summary>
+    /// Generates a CSV export of the attendance and check-in audit ledger for the specified tenant.
+    /// </summary>
+    Task<byte[]> ExportAttendanceReportCsvAsync(int organizationId, int year, int month);
 }
 
 public class MonthlyBookingReport
@@ -219,4 +230,98 @@ public class CourtUtilizationDetailItem
     public decimal RevPAH => AvailableCapacityHours > 0
         ? Math.Round(Revenue / AvailableCapacityHours, 2)
         : 0m;
+}
+
+public class AttendanceReport
+{
+    public int OrganizationId { get; set; }
+    public string OrganizationName { get; set; } = string.Empty;
+    public int Year { get; set; }
+    public int Month { get; set; }
+    public string MonthName => new DateTime(Year, Month, 1).ToString("MMMM yyyy");
+
+    // Executive Metrics
+    public int TotalEligibleBookings { get; set; }
+    public int CheckedInCount { get; set; }
+    public int NoShowCount { get; set; }
+    public int UnmarkedCount { get; set; }
+
+    public decimal CheckInRate => TotalEligibleBookings > 0 
+        ? Math.Round((decimal)CheckedInCount / TotalEligibleBookings * 100m, 1) 
+        : 0m;
+
+    public decimal NoShowRate => TotalEligibleBookings > 0 
+        ? Math.Round((decimal)NoShowCount / TotalEligibleBookings * 100m, 1) 
+        : 0m;
+
+    public decimal NoShowRevenueLoss { get; set; }
+    public decimal RealizedCheckedInRevenue { get; set; }
+
+    public double? AveragePunctualityMinutes { get; set; }
+
+    // Breakdown By Check-In Method
+    public List<CheckInMethodReportItem> MethodStats { get; set; } = new();
+
+    // Breakdown By Day of Week
+    public List<DayOfWeekAttendanceItem> DayOfWeekStats { get; set; } = new();
+
+    // Repeat No-Show / Customer Reliability
+    public List<CustomerReliabilityItem> CustomerReliabilityStats { get; set; } = new();
+
+    // Ledger of Attendance records
+    public List<AttendanceRecordItem> Records { get; set; } = new();
+
+    // Automated Insights
+    public List<string> StrategicInsights { get; set; } = new();
+}
+
+public class CheckInMethodReportItem
+{
+    public string MethodName { get; set; } = string.Empty;
+    public int Count { get; set; }
+    public decimal SharePercentage { get; set; }
+}
+
+public class DayOfWeekAttendanceItem
+{
+    public DayOfWeek DayOfWeek { get; set; }
+    public string DayName => DayOfWeek.ToString();
+    public int TotalBookings { get; set; }
+    public int CheckedInCount { get; set; }
+    public int NoShowCount { get; set; }
+    public decimal CheckInRate => TotalBookings > 0 ? Math.Round((decimal)CheckedInCount / TotalBookings * 100m, 1) : 0m;
+    public decimal NoShowRate => TotalBookings > 0 ? Math.Round((decimal)NoShowCount / TotalBookings * 100m, 1) : 0m;
+}
+
+public class CustomerReliabilityItem
+{
+    public string CustomerName { get; set; } = string.Empty;
+    public string CustomerPhone { get; set; } = string.Empty;
+    public string CustomerEmail { get; set; } = string.Empty;
+    public int TotalBookings { get; set; }
+    public int CheckedInCount { get; set; }
+    public int NoShowCount { get; set; }
+    public decimal ReliabilityRate => TotalBookings > 0 ? Math.Round((decimal)CheckedInCount / TotalBookings * 100m, 1) : 0m;
+    public string RiskLevel => NoShowCount >= 3 || (TotalBookings >= 3 && ReliabilityRate < 50m) ? "High" :
+                               NoShowCount >= 1 ? "Medium" : "Reliable";
+}
+
+public class AttendanceRecordItem
+{
+    public int BookingId { get; set; }
+    public string BookingReference { get; set; } = string.Empty;
+    public DateOnly BookingDate { get; set; }
+    public string TimeRange { get; set; } = string.Empty;
+    public string CourtName { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public string CustomerPhone { get; set; } = string.Empty;
+    public string CustomerEmail { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public BookingStatus BookingStatus { get; set; }
+    public bool CheckedIn { get; set; }
+    public DateTime? CheckedInAtLocal { get; set; }
+    public CheckInMethod? CheckInMethod { get; set; }
+    public string? CheckedInByUserId { get; set; }
+    public bool IsNoShow { get; set; }
+    public int? PunctualityMinutes { get; set; }
 }
