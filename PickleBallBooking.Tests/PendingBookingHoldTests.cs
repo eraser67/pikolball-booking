@@ -222,5 +222,63 @@ public class PendingBookingHoldTests
         var slots = await bookingService.GetAvailableSlotsAsync(1, date);
         Assert.False(slots[0].IsAvailable, "Slot with submitted payment must stay booked awaiting admin verification.");
     }
+
+    [Fact]
+    public async Task UpdateBookingStatusAsync_WhenConfirmedByAdmin_MarksPaymentVerifiedAndDispatchesNotification()
+    {
+        // Arrange
+        await using var context = CreateContext();
+        var date = AppClock.TodayLocal;
+        var court = new Court { Id = 5, OrganizationId = TestOrganizationId, Name = "Court 5", Status = CourtStatus.Active };
+        var org = new Organization { Id = TestOrganizationId, Name = "Demo Pickleball", NotificationEmail = "admin@example.com" };
+
+        context.Courts.Add(court);
+        context.Organizations.Add(org);
+
+        var booking = new Booking
+        {
+            Id = 50,
+            OrganizationId = TestOrganizationId,
+            BookingReference = "PB-TEST-0050",
+            CustomerName = "Alice",
+            CustomerPhone = "09111111111",
+            CustomerEmail = "alice@example.com",
+            CourtId = 5,
+            BookingDate = date,
+            StartTime = new TimeSpan(10, 0, 0),
+            EndTime = new TimeSpan(11, 0, 0),
+            Price = 400m,
+            BookingStatus = BookingStatus.Pending,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.Bookings.Add(booking);
+
+        var payment = new Payment
+        {
+            Id = 500,
+            OrganizationId = TestOrganizationId,
+            BookingId = booking.Id,
+            Amount = 400m,
+            PaymentStatus = PaymentStatus.Submitted,
+            ReferenceNumber = "REF-500",
+            CreatedAt = DateTime.UtcNow
+        };
+        context.Payments.Add(payment);
+        await context.SaveChangesAsync();
+
+        var bookingService = new BookingService(context);
+
+        // Act: Admin confirms directly from /Admin/Bookings
+        var result = await bookingService.UpdateBookingStatusAsync(booking.Id, BookingStatus.Confirmed);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(BookingStatus.Confirmed, result.Booking!.BookingStatus);
+
+        var updatedPayment = await context.Payments.FindAsync(payment.Id);
+        Assert.NotNull(updatedPayment);
+        Assert.Equal(PaymentStatus.Verified, updatedPayment!.PaymentStatus);
+    }
 }
 

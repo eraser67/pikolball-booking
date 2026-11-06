@@ -734,10 +734,45 @@ public class BookingService : IBookingService
             }
         }
 
+        if (newStatus == BookingStatus.Confirmed)
+        {
+            var pendingPayments = await _context.Payments
+                .Where(p => p.BookingId == id && p.PaymentStatus != PaymentStatus.Verified && p.PaymentStatus != PaymentStatus.Rejected)
+                .ToListAsync();
+
+            var now = DateTime.UtcNow;
+            foreach (var p in pendingPayments)
+            {
+                p.PaymentStatus = PaymentStatus.Verified;
+                p.VerifiedAt = now;
+                p.UpdatedAt = now;
+            }
+        }
+
         booking.BookingStatus = newStatus;
         booking.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        // Notify customer when booking is confirmed directly by admin.
+        if (newStatus == BookingStatus.Confirmed)
+        {
+            try
+            {
+                var orgForEmail = await _context.Organizations
+                    .FirstOrDefaultAsync(o => o.Id == booking.OrganizationId);
+                if (orgForEmail is not null)
+                {
+                    booking.Court ??= await _context.Courts.FindAsync(booking.CourtId);
+                    _emailService?.SendPaymentVerifiedAsync(booking, orgForEmail);
+                    _smsService?.SendPaymentVerifiedAsync(booking, orgForEmail);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to send confirmation notifications for booking {BookingReference}", booking.BookingReference);
+            }
+        }
 
         // Phase 26: notify customer and org when booking is cancelled.
         if (newStatus == BookingStatus.Cancelled)
