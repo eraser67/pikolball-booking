@@ -14,12 +14,12 @@ public class BookingRateLimiterTests
     private const int TestOrgId = 1;
 
     [Fact]
-    public void IsAllowed_UnderLimit_AllowsUpToThreeBookings()
+    public void IsAllowed_UnderLimit_AllowsUpToTwoBookings()
     {
-        var limiter = new BookingRateLimiter(maxBookings: 3, window: TimeSpan.FromMinutes(10));
+        var limiter = new BookingRateLimiter(); // defaults: maxBookings=2, window=15 min
         var ip = "203.0.113.19";
 
-        // First 3 should all be allowed
+        // First 2 should both be allowed
         Assert.True(limiter.IsAllowed(ip, out var retryAfter1));
         Assert.Equal(TimeSpan.Zero, retryAfter1);
         limiter.RecordAttempt(ip);
@@ -28,25 +28,20 @@ public class BookingRateLimiterTests
         Assert.Equal(TimeSpan.Zero, retryAfter2);
         limiter.RecordAttempt(ip);
 
-        Assert.True(limiter.IsAllowed(ip, out var retryAfter3));
-        Assert.Equal(TimeSpan.Zero, retryAfter3);
-        limiter.RecordAttempt(ip);
-
-        // 4th attempt must be rejected
-        Assert.False(limiter.IsAllowed(ip, out var retryAfter4));
-        Assert.True(retryAfter4 > TimeSpan.Zero);
-        Assert.True(retryAfter4 <= TimeSpan.FromMinutes(10));
+        // 3rd attempt must be rejected
+        Assert.False(limiter.IsAllowed(ip, out var retryAfter3));
+        Assert.True(retryAfter3 > TimeSpan.Zero);
+        Assert.True(retryAfter3 <= TimeSpan.FromMinutes(15));
     }
 
     [Fact]
     public void IsAllowed_DifferentIps_TrackIndependently()
     {
-        var limiter = new BookingRateLimiter(maxBookings: 3, window: TimeSpan.FromMinutes(10));
+        var limiter = new BookingRateLimiter();
         var ipSpammer = "198.51.100.1";
         var ipLegit = "198.51.100.2";
 
-        // Spammer hits 3 bookings
-        limiter.RecordAttempt(ipSpammer);
+        // Spammer hits 2 bookings
         limiter.RecordAttempt(ipSpammer);
         limiter.RecordAttempt(ipSpammer);
 
@@ -85,11 +80,10 @@ public class BookingRateLimiterTests
     public async Task IndexModel_OnPostConfirmAsync_BlocksWhenRateLimitExceeded()
     {
         // Arrange
-        var limiter = new BookingRateLimiter(maxBookings: 3, window: TimeSpan.FromMinutes(10));
+        var limiter = new BookingRateLimiter(); // defaults: maxBookings=2, window=15 min
         var testIp = "49.145.2.10";
 
-        // Pre-record 3 attempts for this IP
-        limiter.RecordAttempt(testIp);
+        // Pre-record 2 attempts for this IP
         limiter.RecordAttempt(testIp);
         limiter.RecordAttempt(testIp);
 
@@ -131,7 +125,7 @@ public class BookingRateLimiterTests
         // Assert: Rate limit error message should be set, and no booking should be created in the database!
         Assert.NotNull(model.ErrorMessage);
         Assert.Contains("Too many booking attempts", model.ErrorMessage);
-        Assert.Contains("limited to 3 per 10 minutes", model.ErrorMessage);
+        Assert.Contains("limited to 2 per 15 minutes", model.ErrorMessage);
         Assert.Empty(db.Bookings);
     }
 }

@@ -12,12 +12,18 @@ public class IndexModel : PageModel
     private readonly IBookingService _bookingService;
     private readonly ICourtService _courtService;
     private readonly ApplicationDbContext? _context;
+    private readonly IPaymentService? _paymentService;
 
-    public IndexModel(IBookingService bookingService, ICourtService courtService, ApplicationDbContext? context = null)
+    public IndexModel(
+        IBookingService bookingService,
+        ICourtService courtService,
+        ApplicationDbContext? context = null,
+        IPaymentService? paymentService = null)
     {
         _bookingService = bookingService;
         _courtService = courtService;
         _context = context;
+        _paymentService = paymentService;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -91,6 +97,19 @@ public class IndexModel : PageModel
         // Automatically complete confirmed bookings whose date/time has passed so
         // admins don't have to mark them manually.
         await _bookingService.AutoCompleteExpiredBookingsAsync();
+
+        // Release any unpaid booking holds that exceeded the 10-minute payment window
+        if (_paymentService != null)
+        {
+            try
+            {
+                await _paymentService.CleanupExpiredPendingBookingsAsync();
+            }
+            catch
+            {
+                // Silently continue if hold cleanup fails on load
+            }
+        }
 
         Courts = await _courtService.GetAllAsync();
 

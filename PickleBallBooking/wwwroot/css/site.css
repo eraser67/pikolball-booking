@@ -910,14 +910,14 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
 .pb-hero .btn-lime {
   background-color: var(--pb-lime-400);
   border-color: var(--pb-lime-400);
-  color: var(--pb-green-900);
+  color: #0f172a;
   font-weight: 700;
 }
 
 .pb-hero .btn-lime:hover {
   background-color: var(--pb-lime-500);
   border-color: var(--pb-lime-500);
-  color: var(--pb-green-900);
+  color: #0f172a;
 }
 
 .pb-hero .btn-ghost {
@@ -1214,7 +1214,7 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
 .pb-hero .btn-lime {
   background-color: var(--pb-lime-400);
   border-color: var(--pb-lime-400);
-  color: var(--pb-green-900);
+  color: #0f172a;
   font-weight: 700;
   font-size: 1rem;
   padding: 0.7rem 1.75rem;
@@ -1226,7 +1226,7 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
 .pb-hero .btn-lime:hover {
   background-color: var(--pb-lime-500);
   border-color: var(--pb-lime-500);
-  color: var(--pb-green-900);
+  color: #0f172a;
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(180, 227, 61, 0.45), 0 2px 6px rgba(0,0,0,0.2);
 }
@@ -1237,22 +1237,29 @@ h1, h2, h3, h4, h5, .display-4, .display-5 {
 }
 
 .pb-hero .btn-ghost {
-  background-color: transparent;
-  border-color: rgba(255, 255, 255, 0.28);
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
   color: #ffffff;
   font-weight: 600;
   font-size: 1rem;
-  padding: 0.7rem 1.5rem;
+  padding: 0.7rem 1.75rem;
   border-radius: 0.75rem;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
   transition: all 0.2s ease;
 }
 
 .pb-hero .btn-ghost:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255,255,255,0.55);
+  background-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.75);
   color: #ffffff;
   transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.pb-hero .btn-ghost:active {
+  transform: translateY(0);
 }
 
 /* ── Hero Art (right column 3D card) ─────────────────────── */

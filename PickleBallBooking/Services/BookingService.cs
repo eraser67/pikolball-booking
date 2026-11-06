@@ -54,13 +54,11 @@ public class BookingService : IBookingService
         var effectiveEnd = endTime == TimeSpan.Zero ? TimeSpan.FromHours(24) : endTime;
 
         // 1. Check BookingTimeSlots (authoritative slot records storing true calendar date per slot)
-        var holdCutoff = DateTime.UtcNow.AddMinutes(-10);
         var bookedViaTimeSlots = await _context.BookingTimeSlots
             .AnyAsync(bts =>
                 bts.CourtId == courtId
                 && bts.BookingDate == bookingDate
                 && bts.IsActive
-                && !(bts.Booking.BookingStatus == BookingStatus.Pending && bts.Booking.Price > 0 && bts.Booking.CreatedAt <= holdCutoff)
                 && bts.TimeSlot.StartTime < effectiveEnd
                 && (bts.TimeSlot.EndTime == TimeSpan.Zero ? TimeSpan.FromHours(24) : bts.TimeSlot.EndTime) > startTime);
 
@@ -457,10 +455,8 @@ public class BookingService : IBookingService
                 .ToListAsync();
 
         // Get booked slot IDs and customer names for this court on this date (IsActive = true)
-        var holdCutoff = DateTime.UtcNow.AddMinutes(-10);
         var bookedSlots = await _context.BookingTimeSlots
-            .Where(bts => bts.CourtId == courtId && bts.BookingDate == bookingDate && bts.IsActive
-                && !(bts.Booking.BookingStatus == BookingStatus.Pending && bts.Booking.Price > 0 && bts.Booking.CreatedAt <= holdCutoff))
+            .Where(bts => bts.CourtId == courtId && bts.BookingDate == bookingDate && bts.IsActive)
             .Select(bts => new { bts.TimeSlotId, bts.Booking.CustomerName })
             .ToListAsync();
 
@@ -493,12 +489,10 @@ public class BookingService : IBookingService
                 .ToListAsync();
 
         // Booked slots for all requested courts in a single query with customer display name.
-        var holdCutoff = DateTime.UtcNow.AddMinutes(-10);
         var bookedByCourt = (await _context.BookingTimeSlots
                 .Where(bts => courtIdList.Contains(bts.CourtId)
                     && bts.BookingDate == bookingDate
-                    && bts.IsActive
-                    && !(bts.Booking.BookingStatus == BookingStatus.Pending && bts.Booking.Price > 0 && bts.Booking.CreatedAt <= holdCutoff))
+                    && bts.IsActive)
                 .Select(bts => new { bts.CourtId, bts.TimeSlotId, bts.Booking.CustomerName })
                 .ToListAsync())
             .GroupBy(x => x.CourtId)

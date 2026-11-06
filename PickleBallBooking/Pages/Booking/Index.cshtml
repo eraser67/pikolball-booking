@@ -21,7 +21,7 @@
 
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
-        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-start" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-start" role="alert" id="bookingErrorAlert">
             <i class="bi bi-exclamation-triangle-fill me-2 mt-1" aria-hidden="true"></i>
             <div>
                 <strong>We couldn't complete that.</strong>

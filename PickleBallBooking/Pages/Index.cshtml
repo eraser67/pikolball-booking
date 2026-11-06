@@ -126,12 +126,12 @@
             </div>
 
             <!-- CTA Action Buttons -->
-            <div class="d-flex flex-wrap gap-3 mb-2">
-                <a asp-page="/Booking/Index" class="btn btn-lime btn-lg" id="hero-book-btn">
+            <div class="d-flex flex-column flex-sm-row gap-2 gap-sm-3 mb-2">
+                <a asp-page="/Booking/Index" class="btn btn-lime btn-lg text-center" id="hero-book-btn">
                     <i class="bi bi-lightning-charge-fill me-2" aria-hidden="true"></i>Book a Court
                 </a>
-                <a href="#courts" class="btn btn-ghost btn-lg" id="hero-avail-btn">
-                    <i class="bi bi-grid-3x3-gap me-2" aria-hidden="true"></i>Explore Courts
+                <a asp-page="/Availability/Index" class="btn btn-ghost btn-lg text-center" id="hero-avail-btn">
+                    <i class="bi bi-calendar3 text-lime me-2" aria-hidden="true"></i>Check Availability
                 </a>
             </div>
         </div>

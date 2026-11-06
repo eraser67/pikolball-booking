@@ -11,14 +11,14 @@ public class BookingRateLimiter : IBookingRateLimiter
     private readonly object _cleanupLock = new();
     private DateTime _lastCleanupUtc = DateTime.UtcNow;
 
-    public BookingRateLimiter(int maxBookings = 3, TimeSpan? window = null)
+    public BookingRateLimiter(int maxBookings = 2, TimeSpan? window = null)
     {
         _maxBookings = maxBookings;
-        _window = window ?? TimeSpan.FromMinutes(10);
+        _window = window ?? TimeSpan.FromMinutes(15);
     }
 
     public bool IsAllowed(string ipAddress, out TimeSpan retryAfter)
-    {
+    {       
         retryAfter = TimeSpan.Zero;
         if (string.IsNullOrWhiteSpace(ipAddress))
         {

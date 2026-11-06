@@ -171,17 +171,16 @@ public class IndexModel : PageModel
         await LoadCalendarAsync();
         await LoadTimeSlotAvailabilityAsync();
 
-        // Check IP rate limit (max 3 bookings per 10 minutes)
+        // Check IP rate limit (max 2 bookings per 15 minutes)
         if (_rateLimiter != null)
         {
             var clientIp = _rateLimiter.GetClientIp(HttpContext);
             if (!_rateLimiter.IsAllowed(clientIp, out var retryAfter))
             {
                 var minutes = Math.Max(1, (int)Math.Ceiling(retryAfter.TotalMinutes));
-                var rateLimitMsg = $"Too many booking attempts. To prevent spam, bookings are limited to 3 per 10 minutes. Please try again in {minutes} minute{(minutes == 1 ? "" : "s")}.";
+                var rateLimitMsg = $"Too many booking attempts. To prevent spam, bookings are limited to 2 per 15 minutes. Please try again in {minutes} minute{(minutes == 1 ? "" : "s")}.";
                 await TryCalculatePriceAsync();
                 ErrorMessage = rateLimitMsg;
-                ModelState.AddModelError("", ErrorMessage);
                 return Page();
             }
         }
@@ -430,6 +429,16 @@ public class IndexModel : PageModel
         if (Input.CourtId <= 0)
         {
             return;
+        }
+
+        // Release expired unpaid booking holds (10-min window) so slots are truly free
+        try
+        {
+            await _paymentService.CleanupExpiredPendingBookingsAsync();
+        }
+        catch
+        {
+            // Transient cleanup failure should not prevent loading availability
         }
 
         var timeSlots = await _timeSlotService.GetActiveAsync();

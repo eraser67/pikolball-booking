@@ -1485,8 +1485,16 @@ document.addEventListener('DOMContentLoaded', function () {
         triggerLivePriceCalculation();
     }
 
-    // On mobile responsive views (< 992px), automatically scroll down to Step 4 if already calculated
-    if (step4Card && step4Card.style.display !== 'none' && window.innerWidth < 992) {
+    // If an error alert is present on the page, scroll smoothly to it and do NOT scroll down to Step 4
+    const errorAlert = document.getElementById('bookingErrorAlert') ||
+        (validationSummary && validationSummary.style.display !== 'none' ? validationSummary : null);
+
+    if (errorAlert) {
+        setTimeout(function () {
+            errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
+    } else if (step4Card && step4Card.style.display !== 'none' && window.innerWidth < 992) {
+        // On mobile responsive views (< 992px), automatically scroll down to Step 4 if already calculated
         setTimeout(function () {
             scrollToStep4();
         }, 300);
