@@ -75,29 +75,46 @@ public sealed class TenantResolver : ITenantResolver
         // The selector is the request host ONLY. Never the query string, route, form,
         // cookie, body, or a client-supplied organization id.
         var host = httpContext.Request.Host.Host;
-        if (!_hostParser.TryGetTenantSlug(host, _options.BaseDomain, out var slug))
+        int? organizationId = null;
+
+        if (_hostParser.TryGetTenantSlug(host, _options.BaseDomain, out var slug))
+        {
+            // Resolve the slug to an ACTIVE organization. Organizations is not tenant
+            // filtered (it is the tenant table itself), so this lookup is intentional and
+            // is keyed solely by the hostname-derived slug.
+            var org = await _context.Organizations
+                .Where(o => o.Slug == slug && o.Status == OrganizationStatus.Active)
+                .Select(o => new { o.Id })
+                .FirstOrDefaultAsync(cancellationToken);
+            organizationId = org?.Id;
+        }
+        else if (_env?.IsDevelopment() == true && IPAddress.TryParse(host, out _))
         {
             // Development-only: allow direct device IP access from phone/tablet on local Wi-Fi
-            if (_env?.IsDevelopment() == true && IPAddress.TryParse(host, out _))
-            {
-                slug = httpContext.Request.Query["tenant"].FirstOrDefault() ?? "demo";
-            }
-            else
-            {
-                // Unknown / missing / malformed / base-domain / www / nested host: no tenant.
-                return null;
-            }
+            var devSlug = httpContext.Request.Query["tenant"].FirstOrDefault() ?? "demo";
+            var org = await _context.Organizations
+                .Where(o => o.Slug == devSlug && o.Status == OrganizationStatus.Active)
+                .Select(o => new { o.Id })
+                .FirstOrDefaultAsync(cancellationToken);
+            organizationId = org?.Id;
+        }
+        else if (!string.IsNullOrWhiteSpace(host))
+        {
+            // Custom apex/subdomain lookup (e.g. "courthauscarmen.tech" or "www.courthauscarmen.tech")
+            var normalizedHost = host.Trim().ToLowerInvariant();
+            var hostWithoutWww = normalizedHost.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+                ? normalizedHost[4..]
+                : normalizedHost;
+
+            var org = await _context.Organizations
+                .Where(o => o.Status == OrganizationStatus.Active &&
+                            (o.CustomDomain == normalizedHost || o.CustomDomain == hostWithoutWww))
+                .Select(o => new { o.Id })
+                .FirstOrDefaultAsync(cancellationToken);
+            organizationId = org?.Id;
         }
 
-        // Resolve the slug to an ACTIVE organization. Organizations is not tenant
-        // filtered (it is the tenant table itself), so this lookup is intentional and
-        // is keyed solely by the hostname-derived slug.
-        var organization = await _context.Organizations
-            .Where(o => o.Slug == slug && o.Status == OrganizationStatus.Active)
-            .Select(o => new { o.Id })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (organization is null)
+        if (organizationId is null)
         {
             // Unknown or inactive tenant: do NOT fall back to Pikolball.
             return null;
@@ -128,7 +145,7 @@ public sealed class TenantResolver : ITenantResolver
                 }
 
                 var isMember = await _context.OrganizationMembers
-                    .AnyAsync(m => m.OrganizationId == organization.Id && m.UserId == userId, cancellationToken);
+                    .AnyAsync(m => m.OrganizationId == organizationId.Value && m.UserId == userId, cancellationToken);
 
                 if (!isMember)
                 {
@@ -141,6 +158,6 @@ public sealed class TenantResolver : ITenantResolver
         }
 
         // Anonymous users, Customer-role users, and org members all resolve to the tenant.
-        return organization.Id;
+        return organizationId.Value;
     }
 }

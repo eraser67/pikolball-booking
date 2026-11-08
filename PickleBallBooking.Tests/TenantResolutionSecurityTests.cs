@@ -114,6 +114,52 @@ public class TenantResolutionSecurityTests
         Assert.Equal(PikolballId, await resolver.ResolveOrganizationIdAsync());
     }
 
+    [Fact]
+    public async Task Anonymous_CustomDomainHost_ResolvesToMatchingOrganization()
+    {
+        var database = NewDatabase();
+        await using var context = TestDbContextFactory.CreateWithoutTenant(database);
+        context.Organizations.Add(new Organization
+        {
+            Id = 218,
+            Name = "CourtHaus - Carmen",
+            Slug = "courthaus-carmen",
+            CustomDomain = "courthauscarmen.tech",
+            Status = OrganizationStatus.Active
+        });
+        await context.SaveChangesAsync();
+
+        var resolver = CreateResolver(context, AnonymousHttpContext("courthauscarmen.tech"));
+        Assert.Equal(218, await resolver.ResolveOrganizationIdAsync());
+
+        // Both custom apex and www alias resolve
+        var wwwResolver = CreateResolver(context, AnonymousHttpContext("www.courthauscarmen.tech"));
+        Assert.Equal(218, await wwwResolver.ResolveOrganizationIdAsync());
+
+        // Original subdomain still resolves
+        var slugResolver = CreateResolver(context, AnonymousHttpContext("courthaus-carmen.punitbola.com"));
+        Assert.Equal(218, await slugResolver.ResolveOrganizationIdAsync());
+    }
+
+    [Fact]
+    public async Task Anonymous_CustomDomainHost_InactiveOrg_ReturnsNull()
+    {
+        var database = NewDatabase();
+        await using var context = TestDbContextFactory.CreateWithoutTenant(database);
+        context.Organizations.Add(new Organization
+        {
+            Id = 218,
+            Name = "CourtHaus - Carmen",
+            Slug = "courthaus-carmen",
+            CustomDomain = "courthauscarmen.tech",
+            Status = OrganizationStatus.Inactive
+        });
+        await context.SaveChangesAsync();
+
+        var resolver = CreateResolver(context, AnonymousHttpContext("courthauscarmen.tech"));
+        Assert.Null(await resolver.ResolveOrganizationIdAsync());
+    }
+
     // -------------------------------------------------------------------------
     // Rejection (no fallback to Pikolball)
     // -------------------------------------------------------------------------

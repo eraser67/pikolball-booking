@@ -11,13 +11,13 @@
     Path to the SSH private key (optional).
 #>
 param (
-    [string]$VpsIp = "179.197.240.189",
+    [string]$VpsIp = "201.18.221.53",
 
     [string]$SshUser = "root",
     [string]$VpsUser = "",
     [string]$Domain = "punitbola.tech",
     [int]$SshPort = 22,
-    [string]$SshKeyPath = "",
+    [string]$SshKeyPath = "$HOME\.ssh\id_ed25519",
     [switch]$SkipProvisioning
 )
 
@@ -60,8 +60,11 @@ if (-not $SkipProvisioning) {
 }
 
 Write-Host "=== 4. Uploading published build artifacts to VPS ===" -ForegroundColor Cyan
-ssh @sshOpts $remote "rm -rf /tmp/publish && mkdir -p /tmp/publish"
-scp @scpOpts -r publish/* "$remote`:/tmp/publish/"
+if (Test-Path publish.tar.gz) { Remove-Item publish.tar.gz }
+tar -czf publish.tar.gz -C publish .
+scp @scpOpts publish.tar.gz "$remote`:/tmp/"
+ssh @sshOpts $remote "rm -rf /tmp/publish && mkdir -p /tmp/publish && tar -xzf /tmp/publish.tar.gz -C /tmp/publish && rm -f /tmp/publish.tar.gz"
+if (Test-Path publish.tar.gz) { Remove-Item publish.tar.gz }
 
 Write-Host "=== 5. Deploying application on VPS ===" -ForegroundColor Cyan
 ssh @sshOpts $remote "/tmp/deploy-app.sh /tmp/publish"

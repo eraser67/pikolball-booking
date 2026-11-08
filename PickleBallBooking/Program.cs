@@ -115,7 +115,33 @@ builder.Services.ConfigureApplicationCookie(options =>
     var baseDomain = builder.Configuration["Tenant:BaseDomain"];
     if (!builder.Environment.IsDevelopment() && !string.IsNullOrWhiteSpace(baseDomain) && !baseDomain.Contains("localhost"))
     {
-        options.Cookie.Domain = $".{baseDomain.TrimStart('.')}";
+        var cleanBaseDomain = baseDomain.TrimStart('.');
+        options.Events.OnSigningIn = context =>
+        {
+            var host = context.HttpContext.Request.Host.Host;
+            if (host.EndsWith(cleanBaseDomain, StringComparison.OrdinalIgnoreCase))
+            {
+                context.CookieOptions.Domain = $".{cleanBaseDomain}";
+            }
+            else
+            {
+                context.CookieOptions.Domain = null;
+            }
+            return Task.CompletedTask;
+        };
+        options.Events.OnSigningOut = context =>
+        {
+            var host = context.HttpContext.Request.Host.Host;
+            if (host.EndsWith(cleanBaseDomain, StringComparison.OrdinalIgnoreCase))
+            {
+                context.CookieOptions.Domain = $".{cleanBaseDomain}";
+            }
+            else
+            {
+                context.CookieOptions.Domain = null;
+            }
+            return Task.CompletedTask;
+        };
     }
 });
 

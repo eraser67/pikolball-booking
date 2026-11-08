@@ -901,6 +901,10 @@ namespace PickleBallBooking.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("CustomDomain")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<bool>("EnableAiPaymentVerification")
                         .HasColumnType("boolean");
 
@@ -988,6 +992,9 @@ namespace PickleBallBooking.Data.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CustomDomain")
+                        .IsUnique();
 
                     b.HasIndex("Slug")
                         .IsUnique();

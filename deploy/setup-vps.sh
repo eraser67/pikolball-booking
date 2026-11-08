@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
 
 # Pikolball Hostinger VPS Provisioning Script
 # Run as root on the Hostinger VPS (Ubuntu/Debian)
@@ -54,6 +55,10 @@ chown -R pikolball:pikolball /var/www/pikolball
 chmod 755 /var/www/pikolball
 chown -R root:pikolball /etc/pikolball
 chmod 750 /etc/pikolball
+if [ -f /etc/pikolball/production.env ]; then
+    chown root:pikolball /etc/pikolball/production.env
+    chmod 640 /etc/pikolball/production.env
+fi
 
 echo "=== 7. Configuring Firewall (UFW) ==="
 ufw allow 22/tcp comment 'SSH'

@@ -43,8 +43,9 @@ if [ -f "/tmp/nginx-punitbola.conf" ]; then
     ln -sf /etc/nginx/sites-available/punitbola.tech /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
     nginx -t
-    systemctl reload nginx
-    echo "Nginx configuration updated and reloaded"
+    systemctl enable nginx
+    systemctl restart nginx
+    echo "Nginx configuration updated and service started/reloaded"
 fi
 
 echo "=== 7. Starting pikolball service ==="

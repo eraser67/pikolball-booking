@@ -14,6 +14,13 @@ public class Organization
     [MaxLength(100)]
     public string Slug { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Optional fully-qualified custom domain (e.g. "courthauscarmen.tech").
+    /// When set, requests with this Host header resolve to this organization.
+    /// </summary>
+    [MaxLength(200)]
+    public string? CustomDomain { get; set; }
+
     public OrganizationStatus Status { get; set; } = OrganizationStatus.Active;
 
     /// <summary>Street address shown on the public homepage.</summary>

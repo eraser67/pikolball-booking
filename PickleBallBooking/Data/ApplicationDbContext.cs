@@ -375,6 +375,12 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser>
             // Slug is the future subdomain key and must be unique.
             entity.HasIndex(o => o.Slug).IsUnique();
 
+            entity.Property(o => o.CustomDomain)
+                .HasMaxLength(200);
+
+            entity.HasIndex(o => o.CustomDomain)
+                .IsUnique();
+
             entity.Property(o => o.Status).IsRequired();
 
             entity.Property(o => o.CreatedAt).IsRequired();
