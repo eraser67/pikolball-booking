@@ -107,7 +107,14 @@
                         @displayName
                         @if (tenantOrg is not null)
                         {
-                            <small>Punit Bola Booking</small>
+                            @if (!string.IsNullOrWhiteSpace(tenantOrg.Tagline))
+                            {
+                                <small>@tenantOrg.Tagline</small>
+                            }
+                            else
+                            {
+                                <small>Court Reservations</small>
+                            }
                         }
                         else
                         {
@@ -225,7 +232,7 @@
                         }
                         else
                         {
-                            @if (allowTenantReg)
+                            @if (allowTenantReg && tenantOrg is null)
                             {
                                 <li class="nav-item">
                                     <a class="btn btn-outline-success btn-sm rounded-3" asp-area="" asp-page="/JoinUs">
@@ -296,7 +303,10 @@
                                 }
                             </div>
                         }
-                        <p class="mb-0 small text-white" style="color:#fff;">Powered by <strong>@platformBrand</strong></p>
+                        @if (string.IsNullOrEmpty(tenantOrg.CustomDomain))
+                        {
+                            <p class="mb-0 small text-white" style="color:#fff;">Powered by <strong>@platformBrand</strong></p>
+                        }
                     }
                     else
                     {
