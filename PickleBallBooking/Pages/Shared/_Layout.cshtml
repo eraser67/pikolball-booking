@@ -34,7 +34,6 @@
     // Org-aware display name & custom logo: on tenant subdomains show the org's name & logo; elsewhere show platform brand.
     Models.Organization? tenantOrg = TenantCtx.IsResolved ? await OrgSvc.GetCurrentAsync() : null;
     var displayName = tenantOrg?.Name ?? "Punit Bola Booking";
-    var platformBrand = "Punit Bola Booking";
     var tenantLogoUrl = !string.IsNullOrEmpty(tenantOrg?.LogoPath) ? ImageStorage.GetPublicUrl(tenantOrg.LogoPath) : null;
     var primaryColor  = tenantOrg?.PrimaryColorHex;
     var facebookUrl   = tenantOrg?.FacebookUrl;
@@ -303,14 +302,10 @@
                                 }
                             </div>
                         }
-                        @if (string.IsNullOrEmpty(tenantOrg.CustomDomain))
-                        {
-                            <p class="mb-0 small text-white" style="color:#fff;">Powered by <strong>@platformBrand</strong></p>
-                        }
                     }
                     else
                     {
-                        <p class="mb-0">Your court. Your time. Your game. Book a pickleball court in just a few clicks.</p>
+                        <p class="mb-1">Your court. Your time. Your game. Book a pickleball court in just a few clicks.</p>
                     }
                 </div>
                 <div class="col-6 col-lg-3">
@@ -336,8 +331,9 @@
                 </div>
             </div>
             <hr class="pb-footer-divider" />
-            <div class="text-center small">
-                &copy; 2026 @displayName &mdash; All rights reserved.
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 small" style="color: rgba(255, 255, 255, 0.75);">
+                <div>&copy; 2026 @displayName &mdash; All rights reserved.</div>
+                <div>Powered by <strong class="text-white">Chris Jude</strong> <span class="opacity-75">(Eraser67)</span></div>
             </div>
         </div>
     </footer>
